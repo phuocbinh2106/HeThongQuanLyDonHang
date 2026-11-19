@@ -1,3 +1,4 @@
+using Ecom.Web.Models;
 using Oracle.ManagedDataAccess.Client;
 
 namespace Ecom.Web.Data;
@@ -128,6 +129,86 @@ public class OrderRepository(OracleConnectionFactory db)
         await tx.CommitAsync(ct);
         var orderId = Convert.ToInt64(parameters[0].Value);
         return (await DualityViewStore.GetAsync(conn, DualityView.ORDER_DV, orderId, ct))!;
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // M3 – DANH SÁCH ĐƠN: đọc bảng quan hệ (không dựng tài liệu JSON cho từng đơn).
+    // Khi chỉ lọc theo khách, câu chính có đúng dạng truy vấn Q1 của phần tối ưu:
+    //   SELECT ... FROM orders o WHERE o.customer_id = :cust
+    //   ORDER BY o.order_date DESC FETCH NEXT 20 ROWS ONLY      -> chỉ mục IX-1 (customer_id, order_date DESC)
+    // ------------------------------------------------------------------------------------------
+    public async Task<OrderListResult> ListAsync(Models.OrderFilter f, CancellationToken ct)
+    {
+        var pageSize = Math.Clamp(f.PageSize, 1, 100);
+        var page = Math.Max(f.Page, 1);
+
+        // Điều kiện lọc: chỉ ghép các mảnh SQL CỐ ĐỊNH; mọi giá trị người dùng đi qua bind variable
+        (string Where, List<OracleParameter> Binds) Build(bool withStatus)
+        {
+            var w = new List<string>();
+            var b = new List<OracleParameter>();
+            if (f.CustomerId is not null) { w.Add("o.customer_id = :cust"); b.Add(new("cust", f.CustomerId)); }
+            if (withStatus && !string.IsNullOrWhiteSpace(f.Status))
+            { w.Add("o.status = :status"); b.Add(new("status", f.Status.ToUpperInvariant())); }
+            if (f.From is not null) { w.Add("o.order_date >= :d_from"); b.Add(new("d_from", OracleDbType.Date) { Value = f.From.Value.Date }); }
+            if (f.To is not null) { w.Add("o.order_date < :d_to"); b.Add(new("d_to", OracleDbType.Date) { Value = f.To.Value.Date.AddDays(1) }); }
+            if (!string.IsNullOrWhiteSpace(f.Q)) { w.Add("o.order_no LIKE '%' || UPPER(:q) || '%'"); b.Add(new("q", f.Q.Trim())); }
+            return (w.Count == 0 ? "1 = 1" : string.Join("\n   AND ", w), b);
+        }
+
+        var (where, binds) = Build(withStatus: true);
+        var sql = $"""
+            SELECT o.order_id, o.order_no, o.order_date, o.customer_id, c.full_name, o.status,
+                   (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.order_id)          AS item_count,
+                   o.total_amount,
+                   (SELECT NVL(SUM(p.amount), 0) FROM payments p
+                     WHERE p.order_id = o.order_id AND p.status = 'PAID')                     AS paid_amount,
+                   (SELECT MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+                      FROM shipments s WHERE s.order_id = o.order_id)                         AS carrier
+              FROM orders o
+              JOIN customers c ON c.customer_id = o.customer_id
+             WHERE {where}
+             ORDER BY o.order_date DESC
+             OFFSET :off ROWS FETCH NEXT :n ROWS ONLY
+            """;
+
+        await using var conn = await db.OpenAsync(ct: ct);
+
+        // 1) Trang dữ liệu
+        var items = new List<OrderListItem>();
+        await using (var cmd = new OracleCommand(sql, conn) { BindByName = true })
+        {
+            cmd.Parameters.AddRange(binds.ToArray());
+            cmd.Parameters.Add(new OracleParameter("off", (page - 1) * pageSize));
+            cmd.Parameters.Add(new OracleParameter("n", pageSize));
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+                items.Add(new OrderListItem(r.GetInt64(0), r.GetString(1), r.GetDateTime(2), r.GetInt64(3),
+                    r.GetString(4), r.GetString(5), r.GetInt32(6), r.GetDecimal(7), r.GetDecimal(8),
+                    r.IsDBNull(9) ? null : r.GetString(9)));
+        }
+
+        // 2) Tổng số đơn khớp bộ lọc (để phân trang)
+        int total;
+        var (w2, b2) = Build(withStatus: true);
+        await using (var cmd = new OracleCommand($"SELECT COUNT(*) FROM orders o WHERE {w2}", conn) { BindByName = true })
+        {
+            cmd.Parameters.AddRange(b2.ToArray());
+            total = Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
+        }
+
+        // 3) Số đơn theo từng trạng thái (cùng bộ lọc, trừ điều kiện trạng thái) -> các nút lọc nhanh
+        var counts = new Dictionary<string, int>();
+        var (w3, b3) = Build(withStatus: false);
+        await using (var cmd = new OracleCommand(
+            $"SELECT o.status, COUNT(*) FROM orders o WHERE {w3} GROUP BY o.status", conn) { BindByName = true })
+        {
+            cmd.Parameters.AddRange(b3.ToArray());
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct)) counts[r.GetString(0)] = r.GetInt32(1);
+        }
+
+        return new OrderListResult(total, page, pageSize, sql, counts, items);
     }
 
     /// <summary>Các dòng của đơn trong 5 bảng nền; null nếu không có đơn này.</summary>

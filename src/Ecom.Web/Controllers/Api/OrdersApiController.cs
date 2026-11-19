@@ -20,6 +20,14 @@ namespace Ecom.Web.Controllers.Api;
 public class OrdersApiController(DualityViewStore store, OrderRepository orders) : ControllerBase
 {
     /// <summary>
+    /// GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize= : danh sách đơn (M3),
+    /// đọc từ bảng quan hệ orders (+ đếm dòng hàng, tiền đã trả, hãng vận chuyển).
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] Models.OrderFilter filter, CancellationToken ct)
+        => Ok(await orders.ListAsync(filter, ct));
+
+    /// <summary>
     /// GET /api/orders/{id}/relational : CÙNG đơn đó nhưng đọc thẳng các dòng trong 5 bảng nền
     /// (orders, order_items, payments, shipments, order_status_history) — tab "Dạng bảng quan hệ" ở M4.
     /// </summary>
