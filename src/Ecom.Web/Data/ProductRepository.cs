@@ -13,7 +13,7 @@ namespace Ecom.Web.Data;
 /// biểu thức giống hệt chỉ mục hàm IX-6, rồi lấy tài liệu của các _id thoả điều kiện.
 /// Mọi giá trị người dùng nhập đều đi qua BIND VARIABLE (:name), không nối chuỗi vào SQL.
 /// </summary>
-public class ProductRepository(OracleConnectionFactory db)
+public class ProductRepository(OracleConnectionFactory db, DualityViewStore store)
 {
     /// <summary>Danh sách tài liệu PRODUCT_DV theo bộ lọc. Trả (mảng JSON, mệnh đề WHERE đã dùng).</summary>
     public async Task<(string JsonArray, int Count, string WhereSql)> ListAsync(ProductFilter f, CancellationToken ct)
@@ -82,70 +82,15 @@ public class ProductRepository(OracleConnectionFactory db)
         return (sb.ToString(), count, "SELECT p.product_id FROM products p\n WHERE " + whereSql);
     }
 
-    /// <summary>Đọc một tài liệu PRODUCT_DV (null nếu không có).</summary>
-    public async Task<string?> GetDocAsync(long id, CancellationToken ct)
-    {
-        await using var conn = await db.OpenAsync(ct: ct);
-        return await GetDocAsync(conn, id, ct);
-    }
+    // Đọc / ghi đè / thêm tài liệu PRODUCT_DV: dùng chung DualityViewStore (xem lớp đó)
+    public Task<string?> GetDocAsync(long id, CancellationToken ct)
+        => store.GetAsync(DualityView.PRODUCT_DV, id, ct);
 
-    private static async Task<string?> GetDocAsync(OracleConnection conn, long id, CancellationToken ct)
-    {
-        const string sql = """
-            SELECT JSON_SERIALIZE(d.data RETURNING CLOB)
-              FROM product_dv d
-             WHERE d.data."_id" = :id
-            """;
-        await using var cmd = new OracleCommand(sql, conn);
-        cmd.Parameters.Add(new OracleParameter("id", id));
-        return await cmd.ExecuteScalarAsync(ct) as string;
-    }
+    public Task<string?> UpdateDocAsync(long id, string doc, string user, CancellationToken ct)
+        => store.UpdateAsync(DualityView.PRODUCT_DV, id, doc, user, ct);
 
-    /// <summary>
-    /// Ghi đè cả tài liệu: UPDATE product_dv SET data = JSON(:doc).
-    /// Tài liệu đã được gắn _metadata.etag -> Oracle kiểm tra ETag (sai -> ORA-42699).
-    /// Trả về tài liệu mới (etag mới) hoặc null nếu không tồn tại _id.
-    /// </summary>
-    public async Task<string?> UpdateDocAsync(long id, string doc, string user, CancellationToken ct)
-    {
-        await using var conn = await db.OpenAsync(user, ct);
-        await using var tx = conn.BeginTransaction();
-        const string sql = """
-            UPDATE product_dv d
-               SET d.data = JSON(:doc)
-             WHERE d.data."_id" = :id
-            """;
-        await using (var cmd = new OracleCommand(sql, conn) { BindByName = true, Transaction = tx })
-        {
-            cmd.Parameters.Add(new OracleParameter("doc", OracleDbType.Clob) { Value = doc });
-            cmd.Parameters.Add(new OracleParameter("id", id));
-            if (await cmd.ExecuteNonQueryAsync(ct) == 0) { await tx.RollbackAsync(ct); return null; }
-        }
-        await tx.CommitAsync(ct);
-        return await GetDocAsync(conn, id, ct);
-    }
-
-    /// <summary>Thêm sản phẩm bằng một tài liệu JSON: INSERT INTO product_dv VALUES (JSON(:doc)).</summary>
-    public async Task<(long Id, string Doc)> InsertDocAsync(string doc, string user, CancellationToken ct)
-    {
-        await using var conn = await db.OpenAsync(user, ct);
-        await using var tx = conn.BeginTransaction();
-        const string sql = """
-            INSERT INTO product_dv (data) VALUES (JSON(:doc))
-            RETURNING JSON_VALUE(data, '$._id' RETURNING NUMBER) INTO :new_id
-            """;
-        long newId;
-        await using (var cmd = new OracleCommand(sql, conn) { BindByName = true, Transaction = tx })
-        {
-            cmd.Parameters.Add(new OracleParameter("doc", OracleDbType.Clob) { Value = doc });
-            var outId = new OracleParameter("new_id", OracleDbType.Int64) { Direction = System.Data.ParameterDirection.Output };
-            cmd.Parameters.Add(outId);
-            await cmd.ExecuteNonQueryAsync(ct);
-            newId = Convert.ToInt64(outId.Value.ToString());
-        }
-        await tx.CommitAsync(ct);
-        return (newId, (await GetDocAsync(conn, newId, ct))!);
-    }
+    public Task<(long Id, string Doc)> InsertDocAsync(string doc, string user, CancellationToken ct)
+        => store.InsertAsync(DualityView.PRODUCT_DV, doc, user, ct);
 
     /// <summary>Cây danh mục (truy vấn phân cấp CONNECT BY) để làm ô lọc.</summary>
     public async Task<List<CategoryItem>> CategoriesAsync(CancellationToken ct)
