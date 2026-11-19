@@ -27,8 +27,8 @@ ORDER_DOC
   "_id" : 61,
   "_metadata" :
   {
-    "etag" : "788A2C3576900ADD73D271893DED3F68",
-    "asof" : "00000000014387A1"
+    "etag" : "F15B8A30986CCB350A4837B4269DA683",
+    "asof" : "000000000143EA52"
   },
   "shipments" :
   [
@@ -74,19 +74,19 @@ ORDER_DOC
       "historyId" : 261,
       "oldStatus" : null,
       "newStatus" : "PENDING",
-      "changedAt" : "2026-11-19T17:33:31.746507",
+      "changedAt" : "2026-11-19T17:49:20.988634",
       "changedBy" : "ECOM_SCHEMA"
     },
     {
       "historyId" : 263,
       "oldStatus" : "PENDING",
       "newStatus" : "CONFIRMED",
-      "changedAt" : "2026-11-19T17:33:31.841619",
+      "changedAt" : "2026-11-19T17:49:21.070338",
       "changedBy" : "tester"
     }
   ],
   "status" : "CONFIRMED",
-  "orderDate" : "2026-11-19T17:33:31.745701",
+  "orderDate" : "2026-11-19T17:49:20.988352",
   "shipPhone" : "0900000001"
 }
 

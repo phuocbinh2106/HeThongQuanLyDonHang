@@ -157,19 +157,28 @@ public class OrderRepository(OracleConnectionFactory db)
         }
 
         var (where, binds) = Build(withStatus: true);
+        // TỐI ƯU (đo ở docs/TOI_UU.md, Q1b -> Q1c): cắt đúng 1 trang đơn TRƯỚC trong inline view
+        // (dùng chỉ mục IX-1, dừng sớm), rồi mới join khách và tính 3 cột phụ cho riêng các đơn đó.
+        // Bản cũ đặt join + truy vấn con ở tầng ngoài -> Oracle tính cho MỌI đơn của khách rồi mới cắt
+        // (2.006 đơn, quét toàn bộ payments/shipments).
+        // NO_UNNEST: vì :off / :n là bind variable, optimizer không biết inline view chỉ trả ~20 dòng
+        // (ước lượng 2.116) nên lại "tháo" truy vấn con thành hash join quét toàn bảng payments /
+        // shipments. Gợi ý NO_UNNEST giữ chúng là truy vấn con chạy theo từng dòng qua chỉ mục IX-5.
         var sql = $"""
             SELECT o.order_id, o.order_no, o.order_date, o.customer_id, c.full_name, o.status,
-                   (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.order_id)          AS item_count,
+                   (SELECT /*+ NO_UNNEST */ COUNT(*) FROM order_items i
+                     WHERE i.order_id = o.order_id)                                           AS item_count,
                    o.total_amount,
-                   (SELECT NVL(SUM(p.amount), 0) FROM payments p
+                   (SELECT /*+ NO_UNNEST */ NVL(SUM(p.amount), 0) FROM payments p
                      WHERE p.order_id = o.order_id AND p.status = 'PAID')                     AS paid_amount,
-                   (SELECT MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+                   (SELECT /*+ NO_UNNEST */ MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
                       FROM shipments s WHERE s.order_id = o.order_id)                         AS carrier
-              FROM orders o
+              FROM (SELECT o.* FROM orders o
+                     WHERE {where}
+                     ORDER BY o.order_date DESC
+                     OFFSET :off ROWS FETCH NEXT :n ROWS ONLY) o
               JOIN customers c ON c.customer_id = o.customer_id
-             WHERE {where}
              ORDER BY o.order_date DESC
-             OFFSET :off ROWS FETCH NEXT :n ROWS ONLY
             """;
 
         await using var conn = await db.OpenAsync(ct: ct);

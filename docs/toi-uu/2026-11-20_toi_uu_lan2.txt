@@ -1,0 +1,783 @@
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+Dữ liệu: 200060 đơn, 50036 sản phẩm; khách #1 có 2006 đơn; brand Apple có 253 sản phẩm; Q3 đọc đơn order_id = 71
+
+######################  TRƯỚC: chưa có IX-1, IX-5, IX-6  ######################
+
+===== TRUOC | Q1  don cua toi (orders)
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	02zbzmvqsgrtz, child number 0
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.status, o.total_amount
+FROM orders o  WHERE o.customer_id = :cust  ORDER BY o.order_date DESC
+FETCH FIRST 20 ROWS ONLY
+
+Plan hash value: 399652421
+
+------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		| Name	 | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	|	 |	1 |	   |   820 (100)|     20 |00:00:00.01 |    3021 |	|	|	   |
+|*  1 |  COUNT STOPKEY		|	 |	1 |	   |		|     20 |00:00:00.01 |    3021 |	|	|	   |
+|   2 |   VIEW			|	 |	1 |   2116 |   820   (1)|     20 |00:00:00.01 |    3021 |	|	|	   |
+|*  3 |    SORT ORDER BY STOPKEY|	 |	1 |   2116 |   820   (1)|     20 |00:00:00.01 |    3021 |  6144 |  6144 | 6144	(0)|
+|*  4 |     TABLE ACCESS FULL	| ORDERS |	1 |   2116 |   819   (1)|   2006 |00:00:00.01 |    3021 |	|	|	   |
+------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter(ROWNUM<=20)
+   3 - filter(ROWNUM<=20)
+   4 - filter("O"."CUSTOMER_ID"=:CUST)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q1  don cua toi (orders) | Cost=820 | Buffers=3021 | ms=8.57
+
+===== TRUOC | Q1b M3 cau SQL cu
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	19y71rvm6rav7, child number 0
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.customer_id,
+c.full_name, o.status,	      (SELECT COUNT(*) FROM order_items i WHERE
+i.order_id = o.order_id) AS item_count,        o.total_amount,
+(SELECT NVL(SUM(p.amount), 0) FROM payments p	       WHERE p.order_id
+= o.order_id AND p.status = 'PAID') AS paid_amount,	   (SELECT
+MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+FROM shipments s WHERE s.order_id = o.order_id) AS carrier   FROM
+orders o   JOIN customers c ON c.customer_id = o.customer_id  WHERE
+o.customer_id = :cust  ORDER BY o.order_date DESC  OFFSET :off ROWS
+FETCH NEXT :n ROWS ONLY
+
+Plan hash value: 28862879
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			    | Name	     | Starts | E-Rows | Cost (%CPU)| A-Rows |	 A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		    |		     |	    1 |        |  7822 (100)|	  20 |00:00:00.32 |    5852 |	    |	    |	       |
+|   1 |  SORT AGGREGATE 		    |		     |	   20 |      1 |	    |	  20 |00:00:00.01 |	 43 |	    |	    |	       |
+|*  2 |   INDEX RANGE SCAN		    | ORDER_ITEMS_UQ |	   20 |      2 |     3	 (0)|	  40 |00:00:00.01 |	 43 |	    |	    |	       |
+|*  3 |  VIEW				    |		     |	    1 |   2116 |  7822	 (1)|	  20 |00:00:00.32 |    5852 |	    |	    |	       |
+|*  4 |   WINDOW SORT PUSHED RANK	    |		     |	    1 |   2116 |  7822	 (1)|	  20 |00:00:00.32 |    5809 |  4096 |  4096 | 4096  (0)|
+|*  5 |    FILTER			    |		     |	    1 |        |	    |	2006 |00:00:00.31 |    5809 |	    |	    |	       |
+|*  6 |     HASH JOIN OUTER		    |		     |	    1 |   2116 |  3450	 (1)|	2006 |00:00:00.31 |    5809 |	967K|	967K| 1232K (0)|
+|   7 |      JOIN FILTER CREATE 	    | :BF0000	     |	    1 |   2116 |  2071	 (1)|	2006 |00:00:00.04 |    4301 |	    |	    |	       |
+|*  8 |       HASH JOIN OUTER		    |		     |	    1 |   2116 |  2071	 (1)|	2006 |00:00:00.04 |    4301 |	976K|	976K| 1287K (0)|
+|   9 |        JOIN FILTER CREATE	    | :BF0001	     |	    1 |   2116 |   821	 (1)|	2006 |00:00:00.01 |    3024 |	    |	    |	       |
+|  10 | 	NESTED LOOPS		    |		     |	    1 |   2116 |   821	 (1)|	2006 |00:00:00.01 |    3024 |	    |	    |	       |
+|  11 | 	 TABLE ACCESS BY INDEX ROWID| CUSTOMERS      |	    1 |      1 |     2	 (0)|	   1 |00:00:00.01 |	  3 |	    |	    |	       |
+|* 12 | 	  INDEX UNIQUE SCAN	    | SYS_C009649    |	    1 |      1 |     1	 (0)|	   1 |00:00:00.01 |	  2 |	    |	    |	       |
+|* 13 | 	 TABLE ACCESS FULL	    | ORDERS	     |	    1 |   2116 |   819	 (1)|	2006 |00:00:00.01 |    3021 |	    |	    |	       |
+|  14 |        VIEW			    | VW_SSQ_2	     |	    1 |    170K|  1249	 (1)|	 170K|00:00:00.03 |    1277 |	    |	    |	       |
+|  15 | 	HASH GROUP BY		    |		     |	    1 |    170K|  1249	 (1)|	 170K|00:00:00.03 |    1277 |	 12M|  3126K|	11M (0)|
+|  16 | 	 JOIN FILTER USE	    | :BF0001	     |	    1 |    170K|   376	 (1)|	 170K|00:00:00.01 |    1277 |	    |	    |	       |
+|* 17 | 	  TABLE ACCESS FULL	    | PAYMENTS	     |	    1 |    170K|   376	 (1)|	 170K|00:00:00.01 |    1277 |	    |	    |	       |
+|  18 |      VIEW			    | VW_SSQ_1	     |	    1 |    170K|  1379	 (1)|	 170K|00:00:00.25 |    1508 |	    |	    |	       |
+|  19 |       SORT GROUP BY		    |		     |	    1 |    170K|  1379	 (1)|	 170K|00:00:00.23 |    1508 |	 26M|  1849K|	23M (0)|
+|  20 |        JOIN FILTER USE		    | :BF0000	     |	    1 |    170K|   410	 (1)|	 170K|00:00:00.03 |    1508 |	    |	    |	       |
+|* 21 | 	TABLE ACCESS FULL	    | SHIPMENTS      |	    1 |    170K|   410	 (1)|	 170K|00:00:00.02 |    1508 |	    |	    |	       |
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("I"."ORDER_ID"=:B1)
+   3 - filter(("from$_subquery$_007"."rowlimit_$$_rownumber"<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N AND
+	      "from$_subquery$_007"."rowlimit_$$_rownumber">:OFF))
+   4 - filter(ROW_NUMBER() OVER ( ORDER BY "O"."ORDER_DATE" DESC )<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+   5 - filter(:OFF<GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+   6 - access("ITEM_1"="O"."ORDER_ID")
+   8 - access("ITEM_3"="O"."ORDER_ID")
+  12 - access("C"."CUSTOMER_ID"=:CUST)
+  13 - filter("O"."CUSTOMER_ID"=:CUST)
+  17 - filter(("P"."STATUS"='PAID' AND SYS_OP_BLOOM_FILTER(:BF0001,"P"."ORDER_ID")))
+  21 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"S"."ORDER_ID"))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q1b M3 cau SQL cu | Cost=7822 | Buffers=5852 | ms=315.44
+
+===== TRUOC | Q1c M3 cau SQL moi
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	41mnzc8yth8pg, child number 3
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.customer_id,
+c.full_name, o.status,	      (SELECT /*+ NO_UNNEST */ COUNT(*) FROM
+order_items i	       WHERE i.order_id = o.order_id) AS item_count,
+    o.total_amount,	   (SELECT /*+ NO_UNNEST */ NVL(SUM(p.amount),
+0) FROM payments p	    WHERE p.order_id = o.order_id AND p.status
+= 'PAID') AS paid_amount,	 (SELECT /*+ NO_UNNEST */
+MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+FROM shipments s WHERE s.order_id = o.order_id) AS carrier   FROM
+(SELECT o.* FROM orders o	   WHERE o.customer_id = :cust
+ORDER BY o.order_date DESC	    OFFSET :off ROWS FETCH NEXT :n ROWS
+ONLY) o   JOIN customers c ON c.customer_id = o.customer_id  ORDER BY
+o.order_date DESC
+
+Plan hash value: 591490483
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		      | Name	       | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+--------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	      | 	       |      1 |	 |  1150K(100)|     20 |00:00:00.28 |	58792 |       |       | 	 |
+|   1 |  SORT AGGREGATE 	      | 	       |     20 |      1 |	      |     20 |00:00:00.01 |	   42 |       |       | 	 |
+|*  2 |   INDEX RANGE SCAN	      | ORDER_ITEMS_UQ |     20 |      2 |     3   (0)|     40 |00:00:00.01 |	   42 |       |       | 	 |
+|   3 |  SORT AGGREGATE 	      | 	       |     20 |      1 |	      |     20 |00:00:00.14 |	25540 |       |       | 	 |
+|*  4 |   TABLE ACCESS FULL	      | PAYMENTS       |     20 |      1 |   376   (1)|      0 |00:00:00.14 |	25540 |       |       | 	 |
+|   5 |  SORT AGGREGATE 	      | 	       |     20 |      1 |	      |     20 |00:00:00.13 |	30160 |       |       | 	 |
+|*  6 |   TABLE ACCESS FULL	      | SHIPMENTS      |     20 |      1 |   410   (1)|      0 |00:00:00.13 |	30160 |       |       | 	 |
+|   7 |  SORT ORDER BY		      | 	       |      1 |   2116 |  1150K  (1)|     20 |00:00:00.28 |	58792 |  4096 |  4096 | 4096  (0)|
+|   8 |   NESTED LOOPS		      | 	       |      1 |   2116 |   889   (1)|     20 |00:00:00.01 |	 3050 |       |       | 	 |
+|   9 |    NESTED LOOPS 	      | 	       |      1 |	 |	      |     20 |00:00:00.01 |	 3030 |       |       | 	 |
+|* 10 |     VIEW		      | 	       |      1 |   2116 |   820   (1)|     20 |00:00:00.01 |	 3021 |       |       | 	 |
+|* 11 |      WINDOW SORT PUSHED RANK  | 	       |      1 |   2116 |   820   (1)|     20 |00:00:00.01 |	 3021 |  6144 |  6144 | 6144  (0)|
+|* 12 |       FILTER		      | 	       |      1 |	 |	      |   2006 |00:00:00.01 |	 3021 |       |       | 	 |
+|* 13 |        TABLE ACCESS FULL      | ORDERS	       |      1 |   2116 |   819   (1)|   2006 |00:00:00.01 |	 3021 |       |       | 	 |
+|* 14 |     INDEX UNIQUE SCAN	      | SYS_C009649    |     20 |	 |	      |     20 |00:00:00.01 |	    9 |       |       | 	 |
+|  15 |    TABLE ACCESS BY INDEX ROWID| CUSTOMERS      |     20 |      1 |    68   (0)|     20 |00:00:00.01 |	   20 |       |       | 	 |
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("I"."ORDER_ID"=:B1)
+   4 - filter(("P"."ORDER_ID"=:B1 AND "P"."STATUS"='PAID'))
+   6 - filter("S"."ORDER_ID"=:B1)
+  10 - filter(("from$_subquery$_006"."rowlimit_$$_rownumber"<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N AND
+	      "from$_subquery$_006"."rowlimit_$$_rownumber">:OFF))
+  11 - filter(ROW_NUMBER() OVER ( ORDER BY "O"."ORDER_DATE" DESC )<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+  12 - filter(:OFF<GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+  13 - filter("O"."CUSTOMER_ID"=:CUST)
+  14 - access("C"."CUSTOMER_ID"="from$_subquery$_006"."CUSTOMER_ID")
+
+Note
+-----
+   - statistics feedback used for this statement
+   - this is an adaptive plan
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q1c M3 cau SQL moi | Cost=1150815 | Buffers=58801 | ms=282.04
+
+===== TRUOC | Q2  loc brand tren bang
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	afadzcw2jp7hp, child number 0
+-------------------------------------
+SELECT p.product_id, p.product_name, p.price   FROM products p	WHERE
+JSON_VALUE(p.attributes, '$.brand' RETURNING VARCHAR2(60)) = :brand
+
+Plan hash value: 1954719464
+
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation	  | Name     | Starts | E-Rows | Cost (%CPU)| A-Rows |	 A-Time   | Buffers |
+-----------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |	     |	    1 |        |   438 (100)|	 253 |00:00:00.01 |    1452 |
+|*  1 |  TABLE ACCESS FULL| PRODUCTS |	    1 |    500 |   438	 (1)|	 253 |00:00:00.01 |    1452 |
+-----------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter(JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */
+	      "P"."ATTRIBUTES" /*+ LOB_BY_VALUE */  FORMAT OSON , '$.brand' RETURNING VARCHAR2(60) NULL ON
+	      ERROR TYPE(LAX) )=:BRAND)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q2  loc brand tren bang | Cost=438 | Buffers=1452 | ms=10.97
+
+===== TRUOC | Q2b M1 cau SQL cu
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	dqn4hsv3jjdcs, child number 1
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM product_dv d  WHERE
+d.data."_id".number() IN (SELECT p.product_id FROM products p
+			WHERE JSON_VALUE(p.attributes, '$.brand'
+RETURNING VARCHAR2(60)) = :brand)  ORDER BY d.data."_id".number()
+
+Plan hash value: 2025251684
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		    | Name	  | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+---------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	    |		  |	 1 |	    | 19727 (100)|    253 |00:00:01.42 |     102K|	 |	 |	    |
+|   1 |  TABLE ACCESS BY INDEX ROWID| SELLERS	  |  49889 |	  1 |	  1   (0)|  49889 |00:00:00.06 |   49893 |	 |	 |	    |
+|*  2 |   INDEX UNIQUE SCAN	    | SYS_C009667 |  49889 |	  1 |	  0   (0)|  49889 |00:00:00.02 |       4 |	 |	 |	    |
+|   3 |  TABLE ACCESS BY INDEX ROWID| CATEGORIES  |  49971 |	  1 |	  1   (0)|  49971 |00:00:00.06 |   49975 |	 |	 |	    |
+|*  4 |   INDEX UNIQUE SCAN	    | SYS_C009671 |  49971 |	  1 |	  0   (0)|  49971 |00:00:00.02 |       4 |	 |	 |	    |
+|   5 |  SORT ORDER BY		    |		  |	 1 |	500 | 19727   (1)|    253 |00:00:01.42 |     102K|   160K|   160K|  142K (0)|
+|*  6 |   HASH JOIN		    |		  |	 1 |	500 | 18016   (1)|    253 |00:00:01.42 |     102K|  2278K|  2278K| 1602K (0)|
+|*  7 |    TABLE ACCESS FULL	    | PRODUCTS	  |	 1 |	500 |	438   (1)|    253 |00:00:00.01 |    1435 |	 |	 |	    |
+|   8 |    VIEW 		    | PRODUCT_DV  |	 1 |  50036 | 17578   (1)|  50036 |00:00:01.37 |     101K|	 |	 |	    |
+|   9 |     TABLE ACCESS FULL	    | PRODUCTS	  |	 1 |  50036 |	410   (1)|  50036 |00:00:00.03 |    1435 |	 |	 |	    |
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   6 - access("P"."PRODUCT_ID"=JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ "D"."DATA" FORMAT OSON ,
+	      '$."_id".number()' RETURNING NUMBER NULL ON ERROR TYPE(LAX) ))
+   7 - filter(JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ "P"."ATTRIBUTES" /*+ LOB_BY_VALUE */  FORMAT OSON ,
+	      '$.brand' RETURNING VARCHAR2(60) NULL ON ERROR TYPE(LAX) )=:BRAND)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q2b M1 cau SQL cu | Cost=19727 | Buffers=102738 | ms=1423.58
+
+===== TRUOC | Q2c M1 cau SQL moi
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	65azcnz1jwarq, child number 1
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM (SELECT
+p.product_id FROM products p	      WHERE JSON_VALUE(p.attributes,
+'$.brand' RETURNING VARCHAR2(60)) = :brand	    ORDER BY
+p.product_id	      FETCH FIRST :max_rows ROWS ONLY) f  CROSS APPLY
+(SELECT x.data FROM product_dv x WHERE x.data."_id" = f.product_id) d
+ORDER BY f.product_id
+
+Plan hash value: 4236735785
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		    | Name	  | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+---------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	    |		  |	 1 |	    |	928 (100)|    200 |00:00:00.06 |    3075 |	 |	 |	    |
+|   1 |  TABLE ACCESS BY INDEX ROWID| SELLERS	  |	 2 |	  1 |	  1   (0)|	2 |00:00:00.01 |       4 |	 |	 |	    |
+|*  2 |   INDEX UNIQUE SCAN	    | SYS_C009667 |	 2 |	  1 |	  0   (0)|	2 |00:00:00.01 |       2 |	 |	 |	    |
+|   3 |  TABLE ACCESS BY INDEX ROWID| CATEGORIES  |    197 |	  1 |	  1   (0)|    197 |00:00:00.01 |     201 |	 |	 |	    |
+|*  4 |   INDEX UNIQUE SCAN	    | SYS_C009671 |    197 |	  1 |	  0   (0)|    197 |00:00:00.01 |       4 |	 |	 |	    |
+|   5 |  SORT ORDER BY		    |		  |	 1 |	200 |	928   (1)|    200 |00:00:00.06 |    3075 |   133K|   133K|  118K (0)|
+|*  6 |   HASH JOIN		    |		  |	 1 |	200 |	849   (1)|    200 |00:00:00.05 |    2870 |  2278K|  2278K| 1627K (0)|
+|   7 |    VIEW 		    |		  |	 1 |	200 |	439   (1)|    200 |00:00:00.01 |    1435 |	 |	 |	    |
+|*  8 |     COUNT STOPKEY	    |		  |	 1 |	    |		 |    200 |00:00:00.01 |    1435 |	 |	 |	    |
+|   9 |      VIEW		    |		  |	 1 |	500 |	439   (1)|    200 |00:00:00.01 |    1435 |	 |	 |	    |
+|* 10 |       SORT ORDER BY STOPKEY |		  |	 1 |	500 |	439   (1)|    200 |00:00:00.01 |    1435 | 11264 | 11264 |10240  (0)|
+|* 11 |        TABLE ACCESS FULL    | PRODUCTS	  |	 1 |	500 |	438   (1)|    253 |00:00:00.01 |    1435 |	 |	 |	    |
+|  12 |    TABLE ACCESS FULL	    | PRODUCTS	  |	 1 |  50036 |	410   (1)|  50036 |00:00:00.01 |    1435 |	 |	 |	    |
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   6 - access("F"."PRODUCT_ID"=JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ JSON_SCALAR( /*+ QJSNMD_CUR_PER_HP
+	      */  /*+ QJSNMD_USE_SHR_XCTX */ "P"."PRODUCT_ID" JSON NULL ON NULL ) FORMAT OSON , '$' RETURNING NUMBER NULL ON ERROR TYPE(STRICT) ))
+   8 - filter(ROWNUM<=:MAX_ROWS)
+  10 - filter(ROWNUM<=:MAX_ROWS)
+  11 - filter(JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ "P"."ATTRIBUTES" /*+ LOB_BY_VALUE */  FORMAT OSON ,
+	      '$.brand' RETURNING VARCHAR2(60) NULL ON ERROR TYPE(LAX) )=:BRAND)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q2c M1 cau SQL moi | Cost=928 | Buffers=3075 | ms=60.12
+
+===== TRUOC | Q2d loc tren tai lieu DV
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	bzvtz507y3dc0, child number 0
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM product_dv d  WHERE
+JSON_VALUE(d.data, '$.attributes.brand' RETURNING VARCHAR2(60)) = :brand
+
+Plan hash value: 2463223880
+
+------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		    | Name	  | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |
+------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	    |		  |	 1 |	    |	620 (100)|    253 |00:00:00.01 |    1451 |
+|   1 |  TABLE ACCESS BY INDEX ROWID| SELLERS	  |    253 |	  1 |	  1   (0)|    253 |00:00:00.01 |     273 |
+|*  2 |   INDEX UNIQUE SCAN	    | SYS_C009667 |    253 |	  1 |	  0   (0)|    253 |00:00:00.01 |      20 |
+|   3 |  TABLE ACCESS BY INDEX ROWID| CATEGORIES  |    253 |	  1 |	  1   (0)|    253 |00:00:00.01 |     273 |
+|*  4 |   INDEX UNIQUE SCAN	    | SYS_C009671 |    253 |	  1 |	  0   (0)|    253 |00:00:00.01 |      20 |
+|*  5 |  TABLE ACCESS FULL	    | PRODUCTS	  |	 1 |	500 |	438   (1)|    253 |00:00:00.01 |    1451 |
+------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   5 - filter(JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ "P"."ATTRIBUTES" /*+
+	      LOB_BY_VALUE */  FORMAT OSON , '$.brand.string()' RETURNING VARCHAR2(60) NULL ON ERROR TYPE(LAX) )=:BRAND)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q2d loc tren tai lieu DV | Cost=620 | Buffers=1997 | ms=22.65
+
+===== TRUOC | Q3  doc 1 tai lieu ORDER_DV
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	fyasumnxnqn94, child number 0
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM order_dv d	WHERE
+d.data."_id" = :oid
+
+Plan hash value: 307570882
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			     | Name		    | Starts | E-Rows | Cost (%CPU)| A-Rows |	A-Time	 | Buffers |  OMem |  1Mem | Used-Mem |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		     |			    |	   1 |	      |  1515 (100)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|   1 |  TABLE ACCESS BY INDEX ROWID	     | CUSTOMERS	    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|*  2 |   INDEX UNIQUE SCAN		     | SYS_C009649	    |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+|   3 |  TABLE ACCESS BY INDEX ROWID	     | PRODUCTS 	    |	   2 |	    1 |     2	(0)|	  2 |00:00:00.01 |	 6 |	   |	   |	      |
+|*  4 |   INDEX UNIQUE SCAN		     | SYS_C009686	    |	   2 |	    1 |     1	(0)|	  2 |00:00:00.01 |	 4 |	   |	   |	      |
+|   5 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |	11 |  2048 |  2048 | 2048  (0)|
+|   6 |   TABLE ACCESS BY INDEX ROWID BATCHED| ORDER_ITEMS	    |	   1 |	    2 |     5	(0)|	  2 |00:00:00.01 |	 5 |	   |	   |	      |
+|*  7 |    INDEX RANGE SCAN		     | ORDER_ITEMS_UQ	    |	   1 |	    2 |     3	(0)|	  2 |00:00:00.01 |	 3 |	   |	   |	      |
+|   8 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |    1277 |  2048 |  2048 | 2048  (0)|
+|*  9 |   TABLE ACCESS FULL		     | PAYMENTS 	    |	   1 |	    1 |   376	(1)|	  1 |00:00:00.01 |    1277 |	   |	   |	      |
+|  10 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |    1508 |  2048 |  2048 | 2048  (0)|
+|* 11 |   TABLE ACCESS FULL		     | SHIPMENTS	    |	   1 |	    1 |   410	(1)|	  1 |00:00:00.01 |    1508 |	   |	   |	      |
+|  12 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |    2586 |  2048 |  2048 | 2048  (0)|
+|* 13 |   TABLE ACCESS FULL		     | ORDER_STATUS_HISTORY |	   1 |	    2 |   718	(1)|	  2 |00:00:00.01 |    2586 |	   |	   |	      |
+|  14 |  TABLE ACCESS BY INDEX ROWID	     | ORDERS		    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|* 15 |   INDEX UNIQUE SCAN		     | SYS_C009704	    |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("C"."CUSTOMER_ID"=:B1)
+   4 - access("P"."PRODUCT_ID"=:B1)
+   7 - access("I"."ORDER_ID"=:B1)
+   9 - filter("PM"."ORDER_ID"=:B1)
+  11 - filter("S"."ORDER_ID"=:B1)
+  13 - filter("H"."ORDER_ID"=:B1)
+  15 - access("O"."ORDER_ID"=:OID)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | TRUOC | Q3  doc 1 tai lieu ORDER_DV | Cost=1515 | Buffers=5388 | ms=22.65
+
+######################  TẠO CHỈ MỤC: sql/03b_indexes_toi_uu.sql  ######################
+
+######################  SAU: đã có IX-1, IX-5, IX-6  ######################
+
+===== SAU   | Q1  don cua toi (orders)
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	02zbzmvqsgrtz, child number 0
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.status, o.total_amount
+FROM orders o  WHERE o.customer_id = :cust  ORDER BY o.order_date DESC
+FETCH FIRST 20 ROWS ONLY
+
+Plan hash value: 3647617789
+
+----------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		      | Name		    | Starts | E-Rows | Cost (%CPU)| A-Rows |	A-Time	 | Buffers |
+----------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	      | 		    |	   1 |	      |     5 (100)|	 20 |00:00:00.01 |	20 |
+|*  1 |  COUNT STOPKEY		      | 		    |	   1 |	      | 	   |	 20 |00:00:00.01 |	20 |
+|   2 |   VIEW			      | 		    |	   1 |	   20 |     5	(0)|	 20 |00:00:00.01 |	20 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| ORDERS		    |	   1 |	 2116 |     5	(0)|	 20 |00:00:00.01 |	20 |
+|*  4 |     INDEX RANGE SCAN	      | IX_ORDERS_CUST_DATE |	   1 |	   20 |     3	(0)|	 20 |00:00:00.01 |	 5 |
+----------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter(ROWNUM<=20)
+   4 - access("O"."CUSTOMER_ID"=:CUST)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q1  don cua toi (orders) | Cost=5 | Buffers=20 | ms=0.09
+
+===== SAU   | Q1b M3 cau SQL cu
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	19y71rvm6rav7, child number 0
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.customer_id,
+c.full_name, o.status,	      (SELECT COUNT(*) FROM order_items i WHERE
+i.order_id = o.order_id) AS item_count,        o.total_amount,
+(SELECT NVL(SUM(p.amount), 0) FROM payments p	       WHERE p.order_id
+= o.order_id AND p.status = 'PAID') AS paid_amount,	   (SELECT
+MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+FROM shipments s WHERE s.order_id = o.order_id) AS carrier   FROM
+orders o   JOIN customers c ON c.customer_id = o.customer_id  WHERE
+o.customer_id = :cust  ORDER BY o.order_date DESC  OFFSET :off ROWS
+FETCH NEXT :n ROWS ONLY
+
+Plan hash value: 1996559621
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation				     | Name		   | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time	| Buffers |  OMem |  1Mem | Used-Mem |
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT			     |			   |	  1 |	     |	7213 (100)|	20 |00:00:00.29 |    4167 |	  |	  |	     |
+|   1 |  SORT AGGREGATE 			     |			   |	 20 |	   1 |		  |	20 |00:00:00.01 |      42 |	  |	  |	     |
+|*  2 |   INDEX RANGE SCAN			     | ORDER_ITEMS_UQ	   |	 20 |	   2 |	   3   (0)|	40 |00:00:00.01 |      42 |	  |	  |	     |
+|   3 |  SORT ORDER BY				     |			   |	  1 |	2116 |	7213   (1)|	20 |00:00:00.29 |    4167 |  4096 |  4096 | 4096  (0)|
+|*  4 |   VIEW					     |			   |	  1 |	2116 |	7213   (1)|	20 |00:00:00.29 |    4167 |	  |	  |	     |
+|*  5 |    WINDOW SORT PUSHED RANK		     |			   |	  1 |	2116 |	7213   (1)|	20 |00:00:00.29 |    4125 |  9216 |  9216 | 8192  (0)|
+|*  6 |     FILTER				     |			   |	  1 |	     |		  |   2006 |00:00:00.28 |    4125 |	  |	  |	     |
+|*  7 |      HASH JOIN OUTER			     |			   |	  1 |	2116 |	2841   (1)|   2006 |00:00:00.28 |    4125 |  1010K|  1010K| 1239K (0)|
+|   8 |       JOIN FILTER CREATE		     | :BF0000		   |	  1 |	2116 |	1462   (1)|   2006 |00:00:00.03 |    2617 |	  |	  |	     |
+|*  9 |        HASH JOIN OUTER			     |			   |	  1 |	2116 |	1462   (1)|   2006 |00:00:00.03 |    2617 |  1018K|  1018K| 1303K (0)|
+|  10 | 	JOIN FILTER CREATE		     | :BF0001		   |	  1 |	2116 |	 212   (0)|   2006 |00:00:00.01 |    1340 |	  |	  |	     |
+|  11 | 	 NESTED LOOPS			     |			   |	  1 |	2116 |	 212   (0)|   2006 |00:00:00.01 |    1340 |	  |	  |	     |
+|  12 | 	  TABLE ACCESS BY INDEX ROWID	     | CUSTOMERS	   |	  1 |	   1 |	   2   (0)|	 1 |00:00:00.01 |	3 |	  |	  |	     |
+|* 13 | 	   INDEX UNIQUE SCAN		     | SYS_C009649	   |	  1 |	   1 |	   1   (0)|	 1 |00:00:00.01 |	2 |	  |	  |	     |
+|  14 | 	  TABLE ACCESS BY INDEX ROWID BATCHED| ORDERS		   |	  1 |	2116 |	 210   (0)|   2006 |00:00:00.01 |    1337 |	  |	  |	     |
+|* 15 | 	   INDEX RANGE SCAN		     | IX_ORDERS_CUST_DATE |	  1 |	2116 |	   9   (0)|   2006 |00:00:00.01 |	9 |	  |	  |	     |
+|  16 | 	VIEW				     | VW_SSQ_2 	   |	  1 |	 170K|	1249   (1)|    170K|00:00:00.03 |    1277 |	  |	  |	     |
+|  17 | 	 HASH GROUP BY			     |			   |	  1 |	 170K|	1249   (1)|    170K|00:00:00.03 |    1277 |    12M|  3126K|   11M (0)|
+|  18 | 	  JOIN FILTER USE		     | :BF0001		   |	  1 |	 170K|	 376   (1)|    170K|00:00:00.01 |    1277 |	  |	  |	     |
+|* 19 | 	   TABLE ACCESS FULL		     | PAYMENTS 	   |	  1 |	 170K|	 376   (1)|    170K|00:00:00.01 |    1277 |	  |	  |	     |
+|  20 |       VIEW				     | VW_SSQ_1 	   |	  1 |	 170K|	1379   (1)|    170K|00:00:00.23 |    1508 |	  |	  |	     |
+|  21 |        SORT GROUP BY			     |			   |	  1 |	 170K|	1379   (1)|    170K|00:00:00.21 |    1508 |    26M|  1849K|   23M (0)|
+|  22 | 	JOIN FILTER USE 		     | :BF0000		   |	  1 |	 170K|	 410   (1)|    170K|00:00:00.03 |    1508 |	  |	  |	     |
+|* 23 | 	 TABLE ACCESS FULL		     | SHIPMENTS	   |	  1 |	 170K|	 410   (1)|    170K|00:00:00.02 |    1508 |	  |	  |	     |
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("I"."ORDER_ID"=:B1)
+   4 - filter(("from$_subquery$_007"."rowlimit_$$_rownumber"<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N AND
+	      "from$_subquery$_007"."rowlimit_$$_rownumber">:OFF))
+   5 - filter(ROW_NUMBER() OVER ( ORDER BY "O"."SYS_NC00015$")<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+   6 - filter(:OFF<GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+   7 - access("ITEM_1"="O"."ORDER_ID")
+   9 - access("ITEM_3"="O"."ORDER_ID")
+  13 - access("C"."CUSTOMER_ID"=:CUST)
+  15 - access("O"."CUSTOMER_ID"=:CUST)
+  19 - filter(("P"."STATUS"='PAID' AND SYS_OP_BLOOM_FILTER(:BF0001,"P"."ORDER_ID")))
+  23 - filter(SYS_OP_BLOOM_FILTER(:BF0000,"S"."ORDER_ID"))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q1b M3 cau SQL cu | Cost=7213 | Buffers=4167 | ms=285.59
+
+===== SAU   | Q1c M3 cau SQL moi
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	41mnzc8yth8pg, child number 4
+-------------------------------------
+SELECT o.order_id, o.order_no, o.order_date, o.customer_id,
+c.full_name, o.status,	      (SELECT /*+ NO_UNNEST */ COUNT(*) FROM
+order_items i	       WHERE i.order_id = o.order_id) AS item_count,
+    o.total_amount,	   (SELECT /*+ NO_UNNEST */ NVL(SUM(p.amount),
+0) FROM payments p	    WHERE p.order_id = o.order_id AND p.status
+= 'PAID') AS paid_amount,	 (SELECT /*+ NO_UNNEST */
+MAX(s.carrier) KEEP (DENSE_RANK LAST ORDER BY s.shipment_id)
+FROM shipments s WHERE s.order_id = o.order_id) AS carrier   FROM
+(SELECT o.* FROM orders o	   WHERE o.customer_id = :cust
+ORDER BY o.order_date DESC	    OFFSET :off ROWS FETCH NEXT :n ROWS
+ONLY) o   JOIN customers c ON c.customer_id = o.customer_id  ORDER BY
+o.order_date DESC
+
+Plan hash value: 3539685791
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			     | Name		   | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time	| Buffers |  OMem |  1Mem | Used-Mem |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		     |			   |	  1 |	     | 10481 (100)|	20 |00:00:00.01 |     133 |	  |	  |	     |
+|   1 |  SORT AGGREGATE 		     |			   |	 20 |	   1 |		  |	20 |00:00:00.01 |      42 |	  |	  |	     |
+|*  2 |   INDEX RANGE SCAN		     | ORDER_ITEMS_UQ	   |	 20 |	   2 |	   3   (0)|	40 |00:00:00.01 |      42 |	  |	  |	     |
+|   3 |  SORT AGGREGATE 		     |			   |	 20 |	   1 |		  |	20 |00:00:00.01 |      22 |	  |	  |	     |
+|*  4 |   TABLE ACCESS BY INDEX ROWID BATCHED| PAYMENTS 	   |	 20 |	   1 |	   2   (0)|	 0 |00:00:00.01 |      22 |	  |	  |	     |
+|*  5 |    INDEX RANGE SCAN		     | IX_PAYMENTS_ORDER   |	 20 |	   1 |	   1   (0)|	 0 |00:00:00.01 |      22 |	  |	  |	     |
+|   6 |  SORT AGGREGATE 		     |			   |	 20 |	   1 |		  |	20 |00:00:00.01 |      22 |	  |	  |	     |
+|   7 |   TABLE ACCESS BY INDEX ROWID BATCHED| SHIPMENTS	   |	 20 |	   1 |	   2   (0)|	 0 |00:00:00.01 |      22 |	  |	  |	     |
+|*  8 |    INDEX RANGE SCAN		     | IX_SHIPMENTS_ORDER  |	 20 |	   1 |	   1   (0)|	 0 |00:00:00.01 |      22 |	  |	  |	     |
+|   9 |  SORT ORDER BY			     |			   |	  1 |	2116 | 10481   (1)|	20 |00:00:00.01 |     133 |  4096 |  4096 | 4096  (0)|
+|  10 |   NESTED LOOPS			     |			   |	  1 |	2116 |	 279   (0)|	20 |00:00:00.01 |      47 |	  |	  |	     |
+|  11 |    NESTED LOOPS 		     |			   |	  1 |	     |		  |	20 |00:00:00.01 |      27 |	  |	  |	     |
+|* 12 |     VIEW			     |			   |	  1 |	2116 |	 211   (0)|	20 |00:00:00.01 |      18 |	  |	  |	     |
+|* 13 |      WINDOW NOSORT STOPKEY	     |			   |	  1 |	2116 |	 211   (0)|	20 |00:00:00.01 |      18 |   129K|   129K|	     |
+|* 14 |       FILTER			     |			   |	  1 |	     |		  |	20 |00:00:00.01 |      18 |	  |	  |	     |
+|  15 |        TABLE ACCESS BY INDEX ROWID   | ORDERS		   |	  1 |	2116 |	 211   (0)|	20 |00:00:00.01 |      18 |	  |	  |	     |
+|* 16 | 	INDEX RANGE SCAN	     | IX_ORDERS_CUST_DATE |	  1 |	2116 |	  10   (0)|	20 |00:00:00.01 |	3 |	  |	  |	     |
+|* 17 |     INDEX UNIQUE SCAN		     | SYS_C009649	   |	 20 |	     |		  |	20 |00:00:00.01 |	9 |	  |	  |	     |
+|  18 |    TABLE ACCESS BY INDEX ROWID	     | CUSTOMERS	   |	 20 |	   1 |	  68   (0)|	20 |00:00:00.01 |      20 |	  |	  |	     |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("I"."ORDER_ID"=:B1)
+   4 - filter("P"."STATUS"='PAID')
+   5 - access("P"."ORDER_ID"=:B1)
+   8 - access("S"."ORDER_ID"=:B1)
+  12 - filter(("from$_subquery$_006"."rowlimit_$$_rownumber"<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N AND
+	      "from$_subquery$_006"."rowlimit_$$_rownumber">:OFF))
+  13 - filter(ROW_NUMBER() OVER ( ORDER BY "O"."SYS_NC00015$")<=GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+  14 - filter(:OFF<GREATEST(FLOOR(TO_NUMBER(TO_CHAR(:OFF))),0)+:N)
+  16 - access("O"."CUSTOMER_ID"=:CUST)
+  17 - access("C"."CUSTOMER_ID"="from$_subquery$_006"."CUSTOMER_ID")
+
+Note
+-----
+   - statistics feedback used for this statement
+   - this is an adaptive plan
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q1c M3 cau SQL moi | Cost=10481 | Buffers=142 | ms=5.40
+
+===== SAU   | Q2  loc brand tren bang
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	afadzcw2jp7hp, child number 0
+-------------------------------------
+SELECT p.product_id, p.product_name, p.price   FROM products p	WHERE
+JSON_VALUE(p.attributes, '$.brand' RETURNING VARCHAR2(60)) = :brand
+
+Plan hash value: 2305878151
+
+--------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			    | Name		| Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |
+--------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		    |			|      1 |	  |   254 (100)|    253 |00:00:00.01 |	   271 |
+|   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| PRODUCTS		|      1 |    260 |   254   (0)|    253 |00:00:00.01 |	   271 |
+|*  2 |   INDEX RANGE SCAN		    | IX_PRODUCTS_BRAND |      1 |    253 |	1   (0)|    253 |00:00:00.01 |	    19 |
+--------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("P"."SYS_NC00011$"=:BRAND)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=AUTO (SYSTEM))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q2  loc brand tren bang | Cost=254 | Buffers=271 | ms=0.61
+
+===== SAU   | Q2b M1 cau SQL cu
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	dqn4hsv3jjdcs, child number 1
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM product_dv d  WHERE
+d.data."_id".number() IN (SELECT p.product_id FROM products p
+			WHERE JSON_VALUE(p.attributes, '$.brand'
+RETURNING VARCHAR2(60)) = :brand)  ORDER BY d.data."_id".number()
+
+Plan hash value: 4140829055
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		    | Name		| Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+---------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	    |			|      1 |	  | 18560 (100)|    253 |00:00:01.37 |	   101K|       |       |	  |
+|   1 |  TABLE ACCESS BY INDEX ROWID| SELLERS		|  49889 |	1 |	1   (0)|  49889 |00:00:00.05 |	 49893 |       |       |	  |
+|*  2 |   INDEX UNIQUE SCAN	    | SYS_C009667	|  49889 |	1 |	0   (0)|  49889 |00:00:00.02 |	     4 |       |       |	  |
+|   3 |  TABLE ACCESS BY INDEX ROWID| CATEGORIES	|  49971 |	1 |	1   (0)|  49971 |00:00:00.05 |	 49975 |       |       |	  |
+|*  4 |   INDEX UNIQUE SCAN	    | SYS_C009671	|  49971 |	1 |	0   (0)|  49971 |00:00:00.02 |	     4 |       |       |	  |
+|   5 |  SORT ORDER BY		    |			|      1 |    260 | 18560   (1)|    253 |00:00:01.37 |	   101K|   160K|   160K|  142K (0)|
+|*  6 |   HASH JOIN		    |			|      1 |    260 | 17674   (1)|    253 |00:00:01.37 |	   101K|  2278K|  2278K| 1590K (0)|
+|*  7 |    VIEW 		    | index$_join$_002	|      1 |    260 |    95   (0)|    253 |00:00:00.01 |	   111 |       |       |	  |
+|*  8 |     HASH JOIN		    |			|      1 |	  |	       |    253 |00:00:00.01 |	   111 |  1506K|  1506K| 1607K (0)|
+|*  9 |      INDEX RANGE SCAN	    | IX_PRODUCTS_BRAND |      1 |    260 |	1   (0)|    253 |00:00:00.01 |	     2 |       |       |	  |
+|  10 |      INDEX FAST FULL SCAN   | SYS_C009686	|      1 |    260 |   118   (0)|  50036 |00:00:00.01 |	   109 |       |       |	  |
+|  11 |    VIEW 		    | PRODUCT_DV	|      1 |  50036 | 17578   (1)|  50036 |00:00:01.33 |	   101K|       |       |	  |
+|  12 |     TABLE ACCESS FULL	    | PRODUCTS		|      1 |  50036 |   410   (1)|  50036 |00:00:00.02 |	  1435 |       |       |	  |
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   6 - access("P"."PRODUCT_ID"=JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ "D"."DATA" FORMAT OSON ,
+	      '$."_id".number()' RETURNING NUMBER NULL ON ERROR TYPE(LAX) ))
+   7 - filter("P"."SYS_NC00011$"=:BRAND)
+   8 - access(ROWID=ROWID)
+   9 - access("P"."SYS_NC00011$"=:BRAND)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=AUTO (SYSTEM))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q2b M1 cau SQL cu | Cost=18560 | Buffers=101414 | ms=1373.42
+
+===== SAU   | Q2c M1 cau SQL moi
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	65azcnz1jwarq, child number 1
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM (SELECT
+p.product_id FROM products p	      WHERE JSON_VALUE(p.attributes,
+'$.brand' RETURNING VARCHAR2(60)) = :brand	    ORDER BY
+p.product_id	      FETCH FIRST :max_rows ROWS ONLY) f  CROSS APPLY
+(SELECT x.data FROM product_dv x WHERE x.data."_id" = f.product_id) d
+ORDER BY f.product_id
+
+Plan hash value: 3766815666
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation		     | Name		 | Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |  OMem |  1Mem | Used-Mem |
+----------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	     |			 |	1 |	   |   586 (100)|    200 |00:00:00.05 |    1751 |	|	|	   |
+|   1 |  TABLE ACCESS BY INDEX ROWID | SELLERS		 |	2 |	 1 |	 1   (0)|      2 |00:00:00.01 |       4 |	|	|	   |
+|*  2 |   INDEX UNIQUE SCAN	     | SYS_C009667	 |	2 |	 1 |	 0   (0)|      2 |00:00:00.01 |       2 |	|	|	   |
+|   3 |  TABLE ACCESS BY INDEX ROWID | CATEGORIES	 |    197 |	 1 |	 1   (0)|    197 |00:00:00.01 |     201 |	|	|	   |
+|*  4 |   INDEX UNIQUE SCAN	     | SYS_C009671	 |    197 |	 1 |	 0   (0)|    197 |00:00:00.01 |       4 |	|	|	   |
+|   5 |  SORT ORDER BY		     |			 |	1 |    200 |   586   (1)|    200 |00:00:00.05 |    1751 |   133K|   133K|  118K (0)|
+|*  6 |   HASH JOIN		     |			 |	1 |    200 |   506   (1)|    200 |00:00:00.05 |    1546 |  2278K|  2278K| 1666K (0)|
+|   7 |    VIEW 		     |			 |	1 |    200 |	96   (2)|    200 |00:00:00.01 |     111 |	|	|	   |
+|*  8 |     COUNT STOPKEY	     |			 |	1 |	   |		|    200 |00:00:00.01 |     111 |	|	|	   |
+|   9 |      VIEW		     |			 |	1 |    260 |	96   (2)|    200 |00:00:00.01 |     111 |	|	|	   |
+|* 10 |       SORT ORDER BY STOPKEY  |			 |	1 |    260 |	96   (2)|    200 |00:00:00.01 |     111 | 11264 | 11264 |10240	(0)|
+|* 11 |        VIEW		     | index$_join$_002  |	1 |    260 |	95   (0)|    253 |00:00:00.01 |     111 |	|	|	   |
+|* 12 | 	HASH JOIN	     |			 |	1 |	   |		|    253 |00:00:00.01 |     111 |  1506K|  1506K| 1582K (0)|
+|* 13 | 	 INDEX RANGE SCAN    | IX_PRODUCTS_BRAND |	1 |    260 |	 1   (0)|    253 |00:00:00.01 |       2 |	|	|	   |
+|  14 | 	 INDEX FAST FULL SCAN| SYS_C009686	 |	1 |    260 |   118   (0)|  50036 |00:00:00.01 |     109 |	|	|	   |
+|  15 |    TABLE ACCESS FULL	     | PRODUCTS 	 |	1 |  50036 |   410   (1)|  50036 |00:00:00.01 |    1435 |	|	|	   |
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   6 - access("F"."PRODUCT_ID"=JSON_VALUE( /*+ QJSNMD_CUR_PER_HP */  /*+ QJSNMD_USE_SHR_XCTX */ JSON_SCALAR( /*+ QJSNMD_CUR_PER_HP */  /*+
+	      QJSNMD_USE_SHR_XCTX */ "P"."PRODUCT_ID" JSON NULL ON NULL ) FORMAT OSON , '$' RETURNING NUMBER NULL ON ERROR TYPE(STRICT) ))
+   8 - filter(ROWNUM<=:MAX_ROWS)
+  10 - filter(ROWNUM<=:MAX_ROWS)
+  11 - filter("P"."SYS_NC00011$"=:BRAND)
+  12 - access(ROWID=ROWID)
+  13 - access("P"."SYS_NC00011$"=:BRAND)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=AUTO (SYSTEM))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q2c M1 cau SQL moi | Cost=586 | Buffers=1751 | ms=54.67
+
+===== SAU   | Q2d loc tren tai lieu DV
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	bzvtz507y3dc0, child number 0
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM product_dv d  WHERE
+JSON_VALUE(d.data, '$.attributes.brand' RETURNING VARCHAR2(60)) = :brand
+
+Plan hash value: 2766173670
+
+--------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			    | Name		| Starts | E-Rows | Cost (%CPU)| A-Rows |   A-Time   | Buffers |
+--------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		    |			|      1 |	  |   353 (100)|    253 |00:00:00.01 |	   269 |
+|   1 |  TABLE ACCESS BY INDEX ROWID	    | SELLERS		|    253 |	1 |	1   (0)|    253 |00:00:00.01 |	   273 |
+|*  2 |   INDEX UNIQUE SCAN		    | SYS_C009667	|    253 |	1 |	0   (0)|    253 |00:00:00.01 |	    20 |
+|   3 |  TABLE ACCESS BY INDEX ROWID	    | CATEGORIES	|    253 |	1 |	1   (0)|    253 |00:00:00.01 |	   273 |
+|*  4 |   INDEX UNIQUE SCAN		    | SYS_C009671	|    253 |	1 |	0   (0)|    253 |00:00:00.01 |	    20 |
+|   5 |  TABLE ACCESS BY INDEX ROWID BATCHED| PRODUCTS		|      1 |    260 |   254   (0)|    253 |00:00:00.01 |	   269 |
+|*  6 |   INDEX RANGE SCAN		    | IX_PRODUCTS_BRAND |      1 |    253 |	1   (0)|    253 |00:00:00.01 |	    18 |
+--------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("S"."SELLER_ID"=:B1)
+   4 - access("C"."CATEGORY_ID"=:B1)
+   6 - access("P"."SYS_NC00011$"=:BRAND)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=AUTO (SYSTEM))
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q2d loc tren tai lieu DV | Cost=353 | Buffers=815 | ms=10.93
+
+===== SAU   | Q3  doc 1 tai lieu ORDER_DV
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	fyasumnxnqn94, child number 0
+-------------------------------------
+SELECT JSON_SERIALIZE(d.data RETURNING CLOB)   FROM order_dv d	WHERE
+d.data."_id" = :oid
+
+Plan hash value: 3849111816
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation			     | Name		    | Starts | E-Rows | Cost (%CPU)| A-Rows |	A-Time	 | Buffers |  OMem |  1Mem | Used-Mem |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		     |			    |	   1 |	      |    20 (100)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|   1 |  TABLE ACCESS BY INDEX ROWID	     | CUSTOMERS	    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|*  2 |   INDEX UNIQUE SCAN		     | SYS_C009649	    |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+|   3 |  TABLE ACCESS BY INDEX ROWID	     | PRODUCTS 	    |	   2 |	    1 |     2	(0)|	  2 |00:00:00.01 |	 6 |	   |	   |	      |
+|*  4 |   INDEX UNIQUE SCAN		     | SYS_C009686	    |	   2 |	    1 |     1	(0)|	  2 |00:00:00.01 |	 4 |	   |	   |	      |
+|   5 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |	11 |  2048 |  2048 | 2048  (0)|
+|   6 |   TABLE ACCESS BY INDEX ROWID BATCHED| ORDER_ITEMS	    |	   1 |	    2 |     5	(0)|	  2 |00:00:00.01 |	 5 |	   |	   |	      |
+|*  7 |    INDEX RANGE SCAN		     | ORDER_ITEMS_UQ	    |	   1 |	    2 |     3	(0)|	  2 |00:00:00.01 |	 3 |	   |	   |	      |
+|   8 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |	 3 |  2048 |  2048 | 2048  (0)|
+|   9 |   TABLE ACCESS BY INDEX ROWID BATCHED| PAYMENTS 	    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|* 10 |    INDEX RANGE SCAN		     | IX_PAYMENTS_ORDER    |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+|  11 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |	 3 |  2048 |  2048 | 2048  (0)|
+|  12 |   TABLE ACCESS BY INDEX ROWID BATCHED| SHIPMENTS	    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|* 13 |    INDEX RANGE SCAN		     | IX_SHIPMENTS_ORDER   |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+|  14 |  SORT GROUP BY			     |			    |	   1 |	    1 | 	   |	  1 |00:00:00.01 |	 5 |  2048 |  2048 | 2048  (0)|
+|  15 |   TABLE ACCESS BY INDEX ROWID BATCHED| ORDER_STATUS_HISTORY |	   1 |	    2 |     5	(0)|	  2 |00:00:00.01 |	 5 |	   |	   |	      |
+|* 16 |    INDEX RANGE SCAN		     | IX_HISTORY_ORDER     |	   1 |	    2 |     3	(0)|	  2 |00:00:00.01 |	 3 |	   |	   |	      |
+|  17 |  TABLE ACCESS BY INDEX ROWID	     | ORDERS		    |	   1 |	    1 |     2	(0)|	  1 |00:00:00.01 |	 3 |	   |	   |	      |
+|* 18 |   INDEX UNIQUE SCAN		     | SYS_C009704	    |	   1 |	    1 |     1	(0)|	  1 |00:00:00.01 |	 2 |	   |	   |	      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("C"."CUSTOMER_ID"=:B1)
+   4 - access("P"."PRODUCT_ID"=:B1)
+   7 - access("I"."ORDER_ID"=:B1)
+  10 - access("PM"."ORDER_ID"=:B1)
+  13 - access("S"."ORDER_ID"=:B1)
+  16 - access("H"."ORDER_ID"=:B1)
+  18 - access("O"."ORDER_ID"=:OID)
+
+
+TOM_TAT
+------------------------------------------------------------------------------------------------------------------------
+TOM_TAT | SAU	| Q3  doc 1 tai lieu ORDER_DV | Cost=20 | Buffers=28 | ms=0.44

@@ -10,11 +10,14 @@ namespace Ecom.Web.Data;
 /// ĐƯỜNG JSON: đọc/ghi tài liệu trực tiếp trên Duality View PRODUCT_DV — C# KHÔNG tự ráp JSON
 /// từ nhiều bảng; Oracle sinh tài liệu (kèm seller, category, _metadata.etag).
 /// LỌC: điều kiện đặt trên bảng nền products bằng SQL/JSON (JSON_VALUE, JSON_EXISTS) với
-/// biểu thức giống hệt chỉ mục hàm IX-6, rồi lấy tài liệu của các _id thoả điều kiện.
+/// biểu thức giống hệt chỉ mục hàm IX-6, rồi lấy tài liệu của từng _id thoả điều kiện (CROSS APPLY).
 /// Mọi giá trị người dùng nhập đều đi qua BIND VARIABLE (:name), không nối chuỗi vào SQL.
 /// </summary>
 public class ProductRepository(OracleConnectionFactory db, DualityViewStore store)
 {
+    /// <summary>Số sản phẩm tối đa trả về mỗi lần lọc (màn hình M1 không phân trang).</summary>
+    public const int MaxRows = 200;
+
     /// <summary>Danh sách tài liệu PRODUCT_DV theo bộ lọc. Trả (mảng JSON, mệnh đề WHERE đã dùng).</summary>
     public async Task<(string JsonArray, int Count, string WhereSql)> ListAsync(ProductFilter f, CancellationToken ct)
     {
@@ -63,17 +66,26 @@ public class ProductRepository(OracleConnectionFactory db, DualityViewStore stor
         if (f.ActiveOnly) where.Add("p.status = 'ACTIVE'");
 
         var whereSql = where.Count == 0 ? "1 = 1" : string.Join("\n   AND ", where);
+
+        // TỐI ƯU (đo ở docs/TOI_UU.md, Q2b -> Q2c): lọc trên bảng nền trước (dùng IX-6, tối đa
+        // MaxRows dòng), rồi với TỪNG product_id lấy tài liệu bằng điều kiện bằng "_id" = ...
+        // (CROSS APPLY) - điều kiện bằng trên _id được Oracle đẩy xuống khoá chính của bảng nền.
+        // Bản cũ "WHERE d.data."_id".number() IN (subquery)" KHÔNG được đẩy xuống: Oracle dựng tài
+        // liệu cho MỌI sản phẩm rồi mới lọc (50.036 sản phẩm: ~101.000 block, ~1,5-1,9 giây).
         var sql = $"""
             SELECT JSON_SERIALIZE(d.data RETURNING CLOB)
-              FROM product_dv d
-             WHERE d.data."_id".number() IN (SELECT p.product_id FROM products p
-                                              WHERE {whereSql})
-             ORDER BY d.data."_id".number()
+              FROM (SELECT p.product_id FROM products p
+                     WHERE {whereSql}
+                     ORDER BY p.product_id
+                     FETCH FIRST :max_rows ROWS ONLY) f
+             CROSS APPLY (SELECT x.data FROM product_dv x WHERE x.data."_id" = f.product_id) d
+             ORDER BY f.product_id
             """;
 
         await using var conn = await db.OpenAsync(ct: ct);
         await using var cmd = new OracleCommand(sql, conn) { BindByName = true };
         cmd.Parameters.AddRange(binds.ToArray());
+        cmd.Parameters.Add(new OracleParameter("max_rows", MaxRows));
 
         var sb = new StringBuilder("[");
         var count = 0;
@@ -84,7 +96,8 @@ public class ProductRepository(OracleConnectionFactory db, DualityViewStore stor
             sb.Append(r.GetString(0));   // tài liệu JSON nguyên vẹn do Oracle sinh ra
         }
         sb.Append(']');
-        return (sb.ToString(), count, "SELECT p.product_id FROM products p\n WHERE " + whereSql);
+        return (sb.ToString(), count, "SELECT p.product_id FROM products p\n WHERE " + whereSql
+                                      + $"\n ORDER BY p.product_id FETCH FIRST {MaxRows} ROWS ONLY");
     }
 
     // Đọc / ghi đè / thêm tài liệu PRODUCT_DV: dùng chung DualityViewStore (xem lớp đó)

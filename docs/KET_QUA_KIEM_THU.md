@@ -15,6 +15,8 @@ Kiểm thử ở hai tầng chứng minh điều cốt lõi của đề tài: **
 mọi kênh ghi** — ghi bằng tài liệu JSON qua web hay bằng SQL trực tiếp đều bị cùng một trigger /
 ràng buộc kiểm tra.
 
+Bộ kiểm thử được chạy lại sau bước tối ưu (thêm chỉ mục IX-1/5/6, viết lại câu SQL của M1, M3): vẫn toàn bộ PASS.
+
 Chạy lại (cần Oracle đang chạy; tầng web cần thêm `dotnet run`):
 ```powershell
 .\scripts\db.ps1 reset
@@ -30,7 +32,7 @@ node tests/api_test_cases.mjs
 |---|---|
 | CSDL (t01 + t02) | **14/14 PASS** (TC-01..09, 11..13, 15, 16) |
 | Web/API | **16/16 PASS** (TC-01..16) |
-| TC-10 đồng thời, lặp lại | **5/5 lần** đúng 5 thành công / 15 từ chối / tồn = 0 |
+| TC-10 đồng thời, lặp lại | **6/6 lần** đúng 5 thành công / 15 từ chối / tồn = 0 |
 
 ## 3. Chi tiết từng kịch bản
 
@@ -49,7 +51,7 @@ node tests/api_test_cases.mjs
 | TC-11 | `attributes` thiếu `brand` | Bị ràng buộc từ chối | PASS (SQL + DV) | PASS | thêm → 422 (ORA-02290 PRODUCTS_ATTR_CHK); sửa → 422 (ORA-40875) |
 | TC-12 | UPDATE bảng bằng SQL rồi GET tài liệu JSON | JSON phản ánh ngay | PASS | PASS | `UPDATE orders SET ship_phone` bằng sqlplus → GET thấy ngay `0999888777` |
 | TC-13 | Giảm giá > tiền hàng | ORA-20007 | PASS (SQL + JSON) | PASS | 422 ORA-20007 |
-| TC-14 | Lọc sản phẩm theo thuộc tính JSON | Kết quả đúng; plan dùng chỉ mục | — | PASS (kết quả) | 4 bộ lọc (`brand`+`storageGb`, `brand`, `size[*]`, danh mục + `ramGb`) đều khớp kết quả lọc độc lập. **Phần execution plan đo ở bước tối ưu (Q2, chỉ mục IX-6)** |
+| TC-14 | Lọc sản phẩm theo thuộc tính JSON | Kết quả đúng; plan dùng chỉ mục | — | PASS | 4 bộ lọc (`brand`+`storageGb`, `brand`, `size[*]`, danh mục + `ramGb`) đều khớp kết quả lọc độc lập. **Plan** (đo trên 50.036 sản phẩm, `docs/TOI_UU.md` Q2): trước `TABLE ACCESS FULL PRODUCTS` 1.452 block → sau `INDEX RANGE SCAN IX_PRODUCTS_BRAND` 271 block |
 | TC-15 | *(bổ sung)* Sửa / xoá / thêm dòng hàng qua JSON khi PENDING | 200; tổng + tồn kho đúng; đổi `status` trong tài liệu bị chặn | PASS | PASS | subtotal 14.250.000 = 3×4.490.000 + 2×390.000; đổi status qua JSON → ORA-40940 |
 | TC-16 | *(bổ sung, BR-12)* Huỷ / trả hàng đơn đã thanh toán | Thanh toán PAID → REFUNDED | PASS | PASS | `payments=[REFUNDED]` |
 
@@ -58,7 +60,7 @@ tiền) — xem `docs/THAY_DOI_THIET_KE.md` mục 2b, 2d.
 
 ## 4. TC-10 — vì sao không bán vượt tồn khi 20 request chạy đồng thời
 
-**Kết quả 5 lần chạy (mỗi lần reset dữ liệu trước):**
+**Kết quả 6 lần chạy (mỗi lần reset dữ liệu trước):**
 
 | Lần | 201 | 409 ORA-20001 | Khác | Tồn sau | Thời gian 20 request |
 |---|---|---|---|---|---|
@@ -66,7 +68,8 @@ tiền) — xem `docs/THAY_DOI_THIET_KE.md` mục 2b, 2d.
 | 2 | 5 | 15 | 0 | 0 | 173 ms |
 | 3 | 5 | 15 | 0 | 0 | 225 ms |
 | 4 | 5 | 15 | 0 | 0 | 149 ms |
-| 5 | 5 | 15 | 0 | 0 | 148 ms (lần ghi vào `2026-11-20_api_test_cases.txt`) |
+| 5 | 5 | 15 | 0 | 0 | 148 ms |
+| 6 | 5 | 15 | 0 | 0 | 521 ms (chạy lại sau khi thêm chỉ mục và sửa câu SQL M1/M3 ở bước tối ưu; web vừa khởi động, pool còn lạnh; đây là lần ghi trong `2026-11-20_api_test_cases.txt`) |
 
 **Cơ chế (để vấn đáp):** 20 request được gửi cùng lúc; ASP.NET xử lý song song, mỗi request lấy một
 kết nối riêng từ connection pool của ODP.NET → 20 giao dịch Oracle chạy đồng thời. Trừ kho nằm trong

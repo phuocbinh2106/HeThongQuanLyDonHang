@@ -1,5 +1,5 @@
 TC-10 PASS  20 request đồng thời mua sản phẩm #5 (còn 5) -> đúng 5 thành công, tồn = 0
-       tồn trước=5; 201=5, 409 ORA-20001=15, khác=0; tồn sau=0; 148 ms
+       tồn trước=5; 201=5, 409 ORA-20001=15, khác=0; tồn sau=0; 521 ms
 TC-01 PASS  Tạo đơn hợp lệ 2 dòng bằng một tài liệu JSON
        HTTP 201, ORD-20261119-000081, subtotal=23388000 (mong đợi 23388000), total=23413000, lịch sử null->PENDING bởi customer:1
 TC-02 PASS  Client gửi giá / tổng / trạng thái / số đơn giả -> bị bỏ qua

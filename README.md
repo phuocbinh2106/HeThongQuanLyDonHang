@@ -36,13 +36,16 @@ nằm ở 10 bảng chuẩn hoá — nơi đặt toàn bộ ràng buộc, trigge
 | `00_setup_pdb.sql` | Tạo PDB `ecom`, tablespace, user `ecom_schema`, cấp quyền | SYS (CDB `FREE`) |
 | `01_drop_all.sql` | Xoá sạch schema (khi cần cài lại) | ecom_schema |
 | `02_tables.sql` | 10 bảng, sequence, ràng buộc, JSON Schema cho `products.attributes` | ecom_schema |
-| `03_indexes.sql` | Chỉ mục IX-2..IX-4 (IX-1, 5, 6 để dành cho phần tối ưu) | ecom_schema |
+| `03_indexes.sql` | Chỉ mục IX-2..IX-4 | ecom_schema |
+| `03b_indexes_toi_uu.sql` | Chỉ mục IX-1, IX-5, IX-6 thêm sau khi đo tối ưu (xem `docs/TOI_UU.md`) | ecom_schema |
 | `04_pkg_order.sql` | Package nghiệp vụ `PKG_ORDER` | ecom_schema |
 | `05_triggers.sql` | 6 trigger (2 compound) | ecom_schema |
 | `06_duality_views.sql` | `ORDER_DV`, `PRODUCT_DV`, `CUSTOMER_DV` | ecom_schema |
 | `07_pkg_order_rpt.sql` | Package báo cáo R1–R6 | ecom_schema |
 | `08_seed.sql` | Dữ liệu mẫu (60 đơn, 36 sản phẩm, 10 khách...) | ecom_schema |
-| `install_all.sql` | Gọi 01→08 theo thứ tự | ecom_schema |
+| `09_bulk_data.sql` | (Tuỳ chọn) dữ liệu lớn để đo tối ưu: 200.000 đơn, 50.000 sản phẩm… | ecom_schema |
+| `10_toi_uu_Q1_Q3.sql` + `toi_uu/` | Đo execution plan trước / sau tối ưu (Q1–Q3 và câu SQL của M1, M3) | ecom_schema |
+| `install_all.sql` | Gọi 01→08 theo thứ tự (kể cả 03b) | ecom_schema |
 | `t00_reset.sql` | Đưa dữ liệu về ban đầu trước khi demo | ecom_schema |
 | `t01_smoke_test.sql`, `t02_test_cases.sql` | Kiểm thử mức CSDL, tự in PASS/FAIL | ecom_schema |
 
@@ -157,6 +160,7 @@ xoá `brand` trong `attributes` → **422** (JSON Schema, ORA-40875 / ORA-02290)
 
 - [`docs/THAY_DOI_THIET_KE.md`](docs/THAY_DOI_THIET_KE.md): các thay đổi so với thiết kế ban đầu và
   phát hiện khi chạy trên Oracle thật (đọc trước khi cập nhật báo cáo).
+- [`docs/TOI_UU.md`](docs/TOI_UU.md): tối ưu hoá – execution plan và số liệu trước / sau trên 200.000 đơn (cho Chương 4).
 - [`docs/KET_QUA_KIEM_THU.md`](docs/KET_QUA_KIEM_THU.md): tổng hợp kết quả kiểm thử TC-01..TC-16 ở tầng CSDL và tầng web (cho Chương 4).
 - [`docs/test-logs/`](docs/test-logs/): log kiểm thử thật.
 - `docs/Nganh_HTTT__CNPM_DBMS_25_De_Tai_Do_An_Cuoi_Ky.pdf`: đề bài và rubric.

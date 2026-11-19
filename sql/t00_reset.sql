@@ -58,3 +58,10 @@ END;
 SELECT object_name, object_type FROM user_objects WHERE status <> 'VALID';
 
 @@08_seed.sql
+
+-- Thu thập lại thống kê: nếu trước đó đã nạp 09_bulk_data.sql, thống kê cũ vẫn ghi 200.000 đơn
+-- (TRUNCATE không xoá thống kê) -> optimizer ước lượng sai trên dữ liệu demo nhỏ.
+BEGIN
+  DBMS_STATS.GATHER_SCHEMA_STATS(ownname => USER, cascade => TRUE);
+END;
+/

@@ -17,6 +17,8 @@ PROMPT ===== 02_tables.sql
 @@02_tables.sql
 PROMPT ===== 03_indexes.sql
 @@03_indexes.sql
+PROMPT ===== 03b_indexes_toi_uu.sql
+@@03b_indexes_toi_uu.sql
 PROMPT ===== 04_pkg_order.sql
 @@04_pkg_order.sql
 PROMPT ===== 05_triggers.sql

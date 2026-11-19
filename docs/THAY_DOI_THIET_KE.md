@@ -109,6 +109,17 @@ cùng rồi tự UPDATE REFUNDED cho đơn trả hàng). Sau khi seed: 5 đơn h
 trả hàng đều có thanh toán REFUNDED — do trigger sinh ra, không sửa tay.
 Kiểm thử: **TC-16**.
 
+## 2e. Tối ưu: thêm chỉ mục IX-1/5/6 và viết lại câu SQL của M1, M3
+
+Chi tiết và số liệu: `docs/TOI_UU.md`. Thay đổi so với thiết kế:
+- **Chỉ mục:** IX-1, IX-5, IX-6 (CLAUDE.md mục 7) được giữ lại vĩnh viễn trong `sql/03b_indexes_toi_uu.sql`,
+  đã đưa vào `install_all.sql`.
+- **M3 (danh sách đơn):** câu SQL cắt 1 trang đơn trong inline view trước rồi mới tính cột phụ; thêm gợi ý
+  `NO_UNNEST` vì `OFFSET/FETCH` dùng bind variable làm optimizer ước lượng sai số dòng.
+- **M1 (sản phẩm):** bỏ `WHERE d.data."_id".number() IN (...)` (không được đẩy xuống bảng nền, dựng tài liệu
+  cho mọi sản phẩm); thay bằng lọc trên bảng nền + `CROSS APPLY` lấy tài liệu theo `_id`; giới hạn 200 dòng.
+- `t00_reset.sql` thu thập lại thống kê sau khi nạp dữ liệu demo (TRUNCATE không xoá thống kê của dữ liệu lớn).
+
 ## 3. Báo cáo `PKG_ORDER_RPT` viết lại theo đúng đặc tả R1–R5
 
 Trong CSDL cũ có sẵn một `PKG_ORDER_RPT` (không có file nguồn trong `sql/`) với R1 theo ngày,
