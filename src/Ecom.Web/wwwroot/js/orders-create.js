@@ -133,7 +133,7 @@ async function submitOrder() {
           ${sent.status ? `<div class="text-success">Client gửi status="${sent.status}", subtotal=${sent.subtotal}, unitPrice=1 → CSDL đã bỏ qua.</div>` : ''}
           <div>Lịch sử: ${doc.history.map(h => `${h.oldStatus ?? 'NULL'} → ${h.newStatus} (bởi ${escapeHtml(h.changedBy)})`).join('; ')}</div>
           <div>ETag: <code>${escapeHtml(etag)}</code></div>
-          <a class="btn btn-sm btn-outline-success mt-2" href="/api/orders/${doc._id}" target="_blank">Xem tài liệu ORDER_DV</a>
+          <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết đơn (JSON ↔ bảng quan hệ)</a>
           <details class="mt-2"><summary>Tài liệu server trả về</summary>
             <pre class="mb-0">${escapeHtml(JSON.stringify(doc, null, 2))}</pre></details>
         </div>

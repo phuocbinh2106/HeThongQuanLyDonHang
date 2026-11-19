@@ -132,6 +132,10 @@ Oracle 23ai – PDB ecom – schema ecom_schema
 
 | M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
 
+| M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
+
+Minh hoạ TC-12 ở M4: sửa bảng bằng SQL thuần (DBeaver) → bấm "Đọc lại cả hai" → tài liệu JSON đổi ngay.
+
 Ca lỗi minh hoạ được ở M2: một dòng vượt tồn → **409** (ORA-20001), cả đơn huỷ, tồn kho không đổi (TC-03);
 sản phẩm ngừng bán → **422** (ORA-20003, TC-04); giảm giá > tiền hàng → **422** (ORA-20007, TC-13);
 gửi `status`/`unitPrice`/`subtotal` giả → bị bỏ qua (TC-02).

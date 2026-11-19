@@ -12,6 +12,7 @@ builder.Services.AddSingleton<OracleConnectionFactory>();
 builder.Services.AddScoped<DualityViewStore>();
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<CustomerRepository>();
+builder.Services.AddScoped<OrderRepository>();
 
 var app = builder.Build();
 

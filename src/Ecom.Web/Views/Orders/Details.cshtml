@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Chi tiết đơn";
+    var orderId = (long)ViewData["OrderId"]!;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h1 class="h3 mb-0">Đơn <span id="hdrOrderNo">#@orderId</span> <span id="hdrStatus"></span></h1>
+    <form class="d-flex gap-1" onsubmit="location.href='/Orders/Details/' + this.id.value; return false;">
+        <input name="id" type="number" min="1" class="form-control form-control-sm" style="width:110px" placeholder="ID đơn" />
+        <button class="btn btn-sm btn-outline-secondary">Mở</button>
+        <button type="button" id="btnRefresh" class="btn btn-sm btn-primary">Đọc lại cả hai</button>
+    </form>
+</div>
+<p class="text-muted small mb-2">
+    <strong>Một nguồn dữ liệu – hai cách nhìn.</strong> Tab JSON đọc <code>GET /api/orders/@orderId</code>
+    (một tài liệu từ <code>ORDER_DV</code>); tab quan hệ đọc <code>GET /api/orders/@orderId/relational</code>
+    (các dòng thật trong 5 bảng nền). Không có bảng nào lưu tài liệu JSON: Oracle sinh tài liệu từ chính các dòng đó.
+</p>
+
+<div id="msg"></div>
+<div id="compare" class="mb-3"></div>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
+</ul>
+<div class="tab-content border border-top-0 p-3 mb-3">
+    <div class="tab-pane fade show active" id="tabJson">
+        <div class="small mb-2">
+            ETag: <code id="etag">—</code>
+            <span class="text-muted ms-2">asof (SCN lúc đọc): <code id="asof">—</code></span>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <pre id="jsonDoc" class="bg-light p-2 small mb-0" style="max-height:600px; overflow:auto"></pre>
+            </div>
+            <div class="col-lg-5 small">
+                <div class="fw-semibold mb-1">Trường JSON ↔ cột / bảng nền</div>
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light"><tr><th>Trường JSON</th><th>Bảng.cột</th><th>Ghi qua JSON?</th></tr></thead>
+                    <tbody>
+                        <tr><td>_id</td><td>orders.order_id</td><td>khoá</td></tr>
+                        <tr><td>orderNo, orderDate</td><td>orders.order_no, order_date</td><td>NOUPDATE (trigger sinh)</td></tr>
+                        <tr><td>status</td><td>orders.status</td><td>có, nhưng trigger kiểm tra sơ đồ</td></tr>
+                        <tr><td>ship*, shippingFee, discount</td><td>orders.ship_*, shipping_fee, discount_amount</td><td>có</td></tr>
+                        <tr><td>subtotal, totalAmount</td><td>orders.subtotal, total_amount</td><td>NOUPDATE (trigger tính)</td></tr>
+                        <tr><td>customer{}</td><td>customers</td><td>chỉ đọc; fullName/email NOCHECK</td></tr>
+                        <tr><td>items[]</td><td>order_items</td><td>thêm/sửa/xoá khi PENDING</td></tr>
+                        <tr><td>items[].productId, sku, productName</td><td>products (UNNEST)</td><td>chỉ đọc</td></tr>
+                        <tr><td>items[].unitPrice</td><td>order_items.unit_price</td><td>NOUPDATE (trigger chốt giá)</td></tr>
+                        <tr><td>payments[]</td><td>payments</td><td>thêm/sửa, không xoá</td></tr>
+                        <tr><td>shipments[]</td><td>shipments</td><td>thêm/sửa, không xoá</td></tr>
+                        <tr><td>history[]</td><td>order_status_history</td><td>chỉ đọc (trigger ghi)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="tabRel">
+        <div id="relTables"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>const ORDER_ID = @orderId;</script>
+    <script src="~/js/orders-details.js" asp-append-version="true"></script>
+}
