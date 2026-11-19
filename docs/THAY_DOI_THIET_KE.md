@@ -165,6 +165,6 @@ toán (kể cả REFUNDED), vận đơn, lịch sử.
 
 ## 7. Kết quả kiểm thử mức CSDL (chạy thật)
 
-Log đầy đủ: `docs/test-logs/2026-11-19_db_t01_t02.txt`. Tóm tắt: **14/14 PASS**
-(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15, 16). TC-10 (đồng thời) và TC-14 (execution plan)
-sẽ làm ở bước ứng dụng / tối ưu.
+Log đầy đủ: `docs/test-logs/2026-11-20_db_t01_t02.txt`. Tóm tắt: **14/14 PASS** (xem thêm kết quả qua kênh web và tổng hợp ở `docs/KET_QUA_KIEM_THU.md`)
+(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15, 16). TC-10 (đồng thời) và TC-14 (lọc JSON) kiểm
+qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan của TC-14 đo ở bước tối ưu (Q2).

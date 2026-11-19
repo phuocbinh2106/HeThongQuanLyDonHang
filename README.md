@@ -140,7 +140,7 @@ Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng k
 huỷ đơn SHIPPING → 422), TC-08 (vượt tổng → 422 ở cả hai kênh), **TC-09 (mở đơn ở hai tab, tab lưu sau → 412)**.
 Đổi `status` bằng cách ghi tài liệu → 422 (ORA-40940, trạng thái chỉ đổi qua procedure).
 
-Kiểm thử API tự động: `node tests/api_order_lifecycle.mjs`, `node tests/api_customer_doc.mjs` (cần web đang chạy; xong thì `.\scripts\db.ps1 reset`).
+Kiểm thử qua kênh web (PASS/FAIL, gồm TC-10 đồng thời): `node tests/api_test_cases.mjs`; kịch bản minh hoạ thêm: `node tests/api_order_lifecycle.mjs`, `node tests/api_customer_doc.mjs` (cần web đang chạy; xong thì `.\scripts\db.ps1 reset`).
 
 Minh hoạ TH-2 ở M6: giao xong một đơn ở màn hình xử lý đơn → báo cáo R1/R4 có ngay số liệu mới (không đồng bộ, không bản sao).
 
@@ -157,5 +157,6 @@ xoá `brand` trong `attributes` → **422** (JSON Schema, ORA-40875 / ORA-02290)
 
 - [`docs/THAY_DOI_THIET_KE.md`](docs/THAY_DOI_THIET_KE.md): các thay đổi so với thiết kế ban đầu và
   phát hiện khi chạy trên Oracle thật (đọc trước khi cập nhật báo cáo).
+- [`docs/KET_QUA_KIEM_THU.md`](docs/KET_QUA_KIEM_THU.md): tổng hợp kết quả kiểm thử TC-01..TC-16 ở tầng CSDL và tầng web (cho Chương 4).
 - [`docs/test-logs/`](docs/test-logs/): log kiểm thử thật.
 - `docs/Nganh_HTTT__CNPM_DBMS_25_De_Tai_Do_An_Cuoi_Ky.pdf`: đề bài và rubric.
