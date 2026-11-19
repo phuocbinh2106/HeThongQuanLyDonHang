@@ -6,15 +6,25 @@ CREATE OR REPLACE JSON RELATIONAL DUALITY VIEW order_dv AS
 SELECT JSON {
   '_id'          : o.order_id,
   'orderNo'      : o.order_no     WITH NOUPDATE,
-  'status'       : o.status,
+  -- status: NOUPDATE -> KHÔNG đổi trạng thái bằng cách ghi tài liệu (ORA-40940). Đổi trạng thái
+  -- phải qua pkg_order.sp_change_status (đường quan hệ). Lý do: trigger trg_ord_audit_aiu chèn
+  -- dòng mới vào order_status_history (= mảng history[] của chính tài liệu này) ngay trong câu
+  -- UPDATE order_dv -> Oracle báo ORA-40896 "concurrent modification" (kiểm chứng trên 23.26.3).
+  'status'       : o.status       WITH NOUPDATE,
   'orderDate'    : o.order_date   WITH NOUPDATE,
   'shipReceiver' : o.ship_receiver,
   'shipPhone'    : o.ship_phone,
   'shipAddress'  : o.ship_address,
-  'subtotal'     : o.subtotal     WITH NOUPDATE,
+  -- subtotal/totalAmount: NOUPDATE (client không sửa được, trigger tính) + NOCHECK (không tham
+  -- gia ETag). LÝ DO NOCHECK (kiểm chứng trên 23.26.3): khi PUT tài liệu có sửa items[], trigger
+  -- trg_oi_totals chạy UPDATE orders để tính lại tổng NGAY TRONG câu UPDATE order_dv; nếu hai
+  -- trường này có tham gia ETag thì Oracle coi là "tài liệu bị sửa đồng thời" -> ORA-40896.
+  -- Không mất an toàn: tổng chỉ đổi khi items/shippingFee/discount đổi, mà các trường đó vẫn
+  -- tham gia ETag, nên ETag vẫn đổi và ghi đè bằng ETag cũ vẫn bị chặn (ORA-42699).
+  'subtotal'     : o.subtotal     WITH NOUPDATE NOCHECK,
   'shippingFee'  : o.shipping_fee,
   'discount'     : o.discount_amount,
-  'totalAmount'  : o.total_amount WITH NOUPDATE,
+  'totalAmount'  : o.total_amount WITH NOUPDATE NOCHECK,
   'customer' : (
     SELECT JSON {'customerId' : c.customer_id,
                  'fullName'   : c.full_name WITH NOCHECK,

@@ -129,10 +129,15 @@ Oracle 23ai – PDB ecom – schema ecom_schema
 |---|---|---|---|
 | — | Trang chủ, kiểm tra kết nối | `GET /api/system/health` | `v$version`, `user_json_duality_views` |
 | M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
-
 | M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
-
 | M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
+| M5 | Xử lý đơn (khu "Xử lý đơn" trên trang chi tiết): đổi trạng thái (nút hợp lệ do CSDL tính + ô "thử chuyển sai"), huỷ, ghi thanh toán qua **procedure hoặc payments[]**, sửa địa chỉ/dòng hàng, thêm vận đơn | `PUT /api/orders/{id}` (If-Match), `GET .../next-statuses`, `POST .../status`, `POST .../cancel`, `POST .../payments` | Đường JSON: `UPDATE order_dv`; đường quan hệ: `pkg_order.sp_change_status`, `sp_cancel_order`, `sp_record_payment`; `fn_is_valid_transition` gọi trong SQL (BOOLEAN 23ai) |
+
+Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng khi đã khoá → 409), TC-07 (huỷ → hoàn kho;
+huỷ đơn SHIPPING → 422), TC-08 (vượt tổng → 422 ở cả hai kênh), **TC-09 (mở đơn ở hai tab, tab lưu sau → 412)**.
+Đổi `status` bằng cách ghi tài liệu → 422 (ORA-40940, trạng thái chỉ đổi qua procedure).
+
+Kiểm thử API tự động: `node tests/api_order_lifecycle.mjs` (cần web đang chạy; xong thì `.\scripts\db.ps1 reset`).
 
 Minh hoạ TC-12 ở M4: sửa bảng bằng SQL thuần (DBeaver) → bấm "Đọc lại cả hai" → tài liệu JSON đổi ngay.
 

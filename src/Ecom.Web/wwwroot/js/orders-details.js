@@ -30,6 +30,7 @@ async function load() {
     renderJson(json.data, json.etag);
     renderRelational(rel.data);
     renderCompare(json.data, rel.data);
+    renderActions(json.data, json.etag);
   } catch (err) { showError('msg', err); }
 }
 
@@ -84,6 +85,132 @@ function renderCompare(doc, t) {
       </div>
     </div>`;
 }
+
+// =============================================================================
+// M5 – XỬ LÝ ĐƠN
+//   Đường quan hệ : POST /api/orders/{id}/status | /cancel | /payments  -> PKG_ORDER
+//   Đường JSON    : PUT  /api/orders/{id} + If-Match                    -> UPDATE order_dv
+// "held" = tài liệu + ETag đọc được lần gần nhất. Mọi lần PUT đều gửi ETag này: nếu ai đó
+// (tab khác, người bán, procedure) đã sửa đơn sau lần đọc đó -> 412, không ghi đè mất dữ liệu.
+// =============================================================================
+let held = { doc: null, etag: null };
+
+async function renderActions(doc, etag) {
+  held = { doc, etag };
+  $('etagHeld').textContent = etag;
+
+  // Trạng thái kế tiếp hợp lệ: hỏi CSDL
+  const { data } = await api(`/api/orders/${ORDER_ID}/next-statuses`);
+  $('nextButtons').innerHTML = data.next.length
+    ? data.next.map(s => `<button class="btn btn-sm ${s === 'CANCELLED' ? 'btn-outline-dark' : 'btn-outline-primary'}"
+          data-status="${s}">${s === 'CANCELLED' ? 'Huỷ đơn' : '→ ' + s}</button>`).join('')
+    : '<span class="text-muted">Trạng thái cuối, không chuyển tiếp được.</span>';
+
+  // Thanh toán: gợi ý số tiền còn lại
+  const paid = doc.payments.filter(p => p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
+  $('paidSoFar').textContent = fmtMoney(paid);
+  $('totalAmt').textContent = fmtMoney(doc.totalAmount);
+  $('payAmount').value = Math.max(doc.totalAmount - paid, 0) || '';
+
+  // Form sửa tài liệu
+  $('edReceiver').value = doc.shipReceiver;
+  $('edPhone').value = doc.shipPhone;
+  $('edAddress').value = doc.shipAddress;
+  $('edFee').value = doc.shippingFee;
+  $('edDiscount').value = doc.discount;
+  renderEditItems(doc.items);
+}
+
+function renderEditItems(items) {
+  $('edItems').innerHTML = items.map((it, i) => `
+    <tr data-i="${i}">
+      <td>#${it.productId} ${escapeHtml(it.productName ?? '(sản phẩm mới)')}</td>
+      <td><input type="number" min="1" value="${it.quantity}" class="form-control form-control-sm ed-qty"></td>
+      <td><button class="btn btn-sm btn-link text-danger ed-del">Xoá</button></td>
+    </tr>`).join('');
+}
+
+// Ghép tài liệu mới từ tài liệu đang giữ + giá trị trên form (giữ nguyên các mảng khác)
+function docFromForm() {
+  const d = structuredClone(held.doc);
+  d.shipReceiver = $('edReceiver').value;
+  d.shipPhone = $('edPhone').value;
+  d.shipAddress = $('edAddress').value;
+  d.shippingFee = Number($('edFee').value || 0);
+  d.discount = Number($('edDiscount').value || 0);
+  d.items = [...$('edItems').querySelectorAll('tr')].map(tr => ({
+    ...held.doc.items[tr.dataset.i] ?? editExtra[tr.dataset.i - held.doc.items.length],
+    quantity: Number(tr.querySelector('.ed-qty').value),
+  }));
+  return d;
+}
+let editExtra = [];   // dòng hàng mới thêm trên form (chưa có orderItemId)
+
+async function putDoc(doc, okText) {
+  $('actionMsg').innerHTML = '';
+  try {
+    const r = await api(`/api/orders/${ORDER_ID}`, { method: 'PUT', body: doc, ifMatch: held.etag });
+    showOk('actionMsg', `${okText} (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
+    editExtra = [];
+    await load();
+  } catch (err) { showError('actionMsg', err); }
+}
+
+async function postAction(path, body, okText) {
+  $('actionMsg').innerHTML = '';
+  try {
+    const r = await api(`/api/orders/${ORDER_ID}/${path}`, { method: 'POST', body });
+    showOk('actionMsg', `${okText} (HTTP ${r.status}). Trạng thái hiện tại: ${statusBadge(r.data.status)}`);
+    await load();
+  } catch (err) { showError('actionMsg', err); }
+}
+
+// ---- 1. Trạng thái ----
+$('nextButtons').addEventListener('click', e => {
+  const s = e.target.dataset.status; if (!s) return;
+  const note = $('statusNote').value || null;
+  if (s === 'CANCELLED') postAction('cancel', { reason: note }, 'Đã huỷ đơn (hoàn tồn kho)');
+  else postAction('status', { status: s, note }, `Đã chuyển sang ${s}`);
+});
+$('btnAnyStatus').addEventListener('click', () =>
+  postAction('status', { status: $('anyStatus').value, note: $('statusNote').value || null },
+             `Đã chuyển sang ${$('anyStatus').value}`));
+
+// ---- 2. Thanh toán: hai kênh, cùng một quy tắc ở bảng nền ----
+$('btnPay').addEventListener('click', () => {
+  const method = $('payMethod').value, amount = Number($('payAmount').value), reference = $('payRef').value || null;
+  if (document.querySelector('input[name=payChannel]:checked').value === 'proc') {
+    postAction('payments', { method, amount, reference }, 'Đã ghi thanh toán qua procedure');
+  } else {
+    const d = structuredClone(held.doc);
+    d.payments.push({ method, amount, status: 'PAID' });
+    putDoc(d, 'Đã ghi thanh toán qua payments[] của tài liệu');
+  }
+});
+
+// ---- 3. Sửa tài liệu ----
+$('edItems').addEventListener('click', e => {
+  if (!e.target.classList.contains('ed-del')) return;
+  e.target.closest('tr').remove();
+});
+$('btnEdAdd').addEventListener('click', () => {
+  const pid = Number($('edNewPid').value), qty = Number($('edNewQty').value || 1);
+  if (!pid) return;
+  const i = held.doc.items.length + editExtra.length;
+  editExtra.push({ productId: pid, quantity: qty });
+  $('edItems').insertAdjacentHTML('beforeend', `
+    <tr data-i="${i}"><td>#${pid} (sản phẩm mới)</td>
+      <td><input type="number" min="1" value="${qty}" class="form-control form-control-sm ed-qty"></td>
+      <td><button class="btn btn-sm btn-link text-danger ed-del">Xoá</button></td></tr>`);
+});
+$('btnSaveDoc').addEventListener('click', () => putDoc(docFromForm(), 'Đã lưu tài liệu đơn'));
+
+// ---- 4. Vận đơn ----
+$('btnShip').addEventListener('click', () => {
+  const d = structuredClone(held.doc);
+  d.shipments.push({ carrier: $('shipCarrier').value, trackingNo: $('shipTracking').value || null, status: 'PREPARING' });
+  putDoc(d, 'Đã thêm vận đơn qua shipments[]');
+});
 
 $('btnRefresh').addEventListener('click', load);
 load();

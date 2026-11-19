@@ -12,7 +12,7 @@ BEGIN
     :NEW.order_date   := SYSTIMESTAMP;
     :NEW.subtotal     := 0;
     :NEW.total_amount := NVL(:NEW.shipping_fee, 0);
-  ELSIF NOT pkg_order.g_internal THEN
+  ELSIF NOT pkg_order_ctx.g_internal THEN
     :NEW.order_no   := :OLD.order_no;
     :NEW.order_date := :OLD.order_date;
     :NEW.subtotal   := :OLD.subtotal;
@@ -58,7 +58,7 @@ BEGIN
     INSERT INTO order_status_history
       (order_id, old_status, new_status, changed_by, note)
     VALUES (:NEW.order_id, :OLD.status, :NEW.status,
-            pkg_order.fn_current_user, pkg_order.g_note);
+            pkg_order.fn_current_user, pkg_order_ctx.g_note);
     IF :NEW.status IN ('CANCELLED', 'RETURNED') THEN
       pkg_order.sp_release_order_stock(:NEW.order_id);
     END IF;

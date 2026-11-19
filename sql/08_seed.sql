@@ -292,12 +292,12 @@ BEGIN
               + NUMTODSINTERVAL(8 + MOD(i * 5, 12), 'HOUR');
     -- g_internal = TRUE: cho phép sửa order_date / order_no (trigger bình thường chặn).
     -- order_no dạng ORD-yyyymmdd-nnnnnn: thay phần ngày (ký tự 5..12) bằng ngày đặt mới.
-    pkg_order.g_internal := TRUE;
+    pkg_order_ctx.g_internal := TRUE;
     UPDATE orders
        SET order_date = l_date, updated_at = l_date,
            order_no   = 'ORD-' || TO_CHAR(l_date, 'YYYYMMDD') || SUBSTR(order_no, 13)
      WHERE order_id = l_order_id;
-    pkg_order.g_internal := FALSE;
+    pkg_order_ctx.g_internal := FALSE;
 
     l_k := 0;
     FOR h IN (SELECT history_id FROM order_status_history
@@ -317,7 +317,7 @@ BEGIN
   COMMIT;
 EXCEPTION
   WHEN OTHERS THEN
-    pkg_order.g_internal := FALSE;
+    pkg_order_ctx.g_internal := FALSE;
     ROLLBACK;
     RAISE;
 END;

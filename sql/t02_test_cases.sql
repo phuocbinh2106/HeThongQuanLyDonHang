@@ -1,5 +1,5 @@
 -- ==============================================================================
--- T02_TEST_CASES: các kịch bản kiểm thử nghiệp vụ lõi ở mức CSDL (TC-02 .. TC-13).
+-- T02_TEST_CASES: các kịch bản kiểm thử nghiệp vụ lõi ở mức CSDL (TC-02 .. TC-13, TC-15).
 -- (TC-01, 03, 05 nằm trong t01; TC-10 cần nhiều kết nối đồng thời -> làm ở ứng dụng;
 --  TC-14 đo bằng execution plan -> toi_uu_Q1_Q3.sql.)
 -- Chạy SAU 08_seed.sql. Mỗi khối tự kiểm tra, in PASS/FAIL rồi ROLLBACK
@@ -260,6 +260,64 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE(CASE WHEN l_sql_ok AND l_json_ok THEN 'TC-13 PASS' ELSE 'TC-13 FAIL' END
     || ' (SQL chặn=' || CASE WHEN l_sql_ok THEN 'có' ELSE 'không' END
     || ', JSON chặn=' || CASE WHEN l_json_ok THEN 'có' ELSE 'không' END || ')');
+  ROLLBACK;
+END;
+/
+
+-- TC-15: sửa / xoá / thêm dòng hàng qua JSON khi đơn còn PENDING -> thành công trong MỘT câu
+-- UPDATE order_dv; tổng tiền do trigger tính lại; tồn kho trả / trừ đúng.
+-- (Hồi quy cho lỗi ORA-40896: xem docs/THAY_DOI_THIET_KE.md mục "ORA-40896".)
+-- Kèm: đổi trạng thái bằng cách ghi tài liệu phải bị TỪ CHỐI (status là NOUPDATE -> ORA-40940);
+-- trạng thái chỉ đổi qua pkg_order.sp_change_status.
+DECLARE
+  l_id NUMBER; l_doc JSON; l_sub NUMBER; l_st VARCHAR2(12);
+  s2a NUMBER; s3a NUMBER; s12a NUMBER; s2b NUMBER; s3b NUMBER; s12b NUMBER;
+  p2 NUMBER; p12 NUMBER; l_status_ok BOOLEAN := FALSE;
+BEGIN
+  SELECT price INTO p2  FROM products WHERE product_id = 2;
+  SELECT price INTO p12 FROM products WHERE product_id = 12;
+  INSERT INTO order_dv VALUES ('{
+    "customer": {"customerId": 2}, "shipReceiver": "TC-15", "shipPhone": "0900000002",
+    "shipAddress": "45 Lê Lợi", "items": [ {"productId": 2, "quantity": 1}, {"productId": 3, "quantity": 1} ]}')
+  RETURNING JSON_VALUE(data, '$._id' RETURNING NUMBER) INTO l_id;
+  SELECT stock_qty INTO s2a  FROM products WHERE product_id = 2;
+  SELECT stock_qty INTO s3a  FROM products WHERE product_id = 3;
+  SELECT stock_qty INTO s12a FROM products WHERE product_id = 12;
+
+  -- SP2: 1 -> 3, xoá SP3, thêm SP12 x 2 (tất cả trong một tài liệu, một câu lệnh)
+  SELECT d.data INTO l_doc FROM order_dv d WHERE d.data."_id" = l_id;
+  UPDATE order_dv d
+     SET d.data = JSON_TRANSFORM(l_doc,
+                    SET    '$.items[*]?(@.productId == 2).quantity' = 3,
+                    REMOVE '$.items[*]?(@.productId == 3)',
+                    APPEND '$.items' = JSON('{"productId": 12, "quantity": 2}'))
+   WHERE d.data."_id" = l_id;
+
+  SELECT subtotal INTO l_sub FROM orders WHERE order_id = l_id;
+  SELECT stock_qty INTO s2b  FROM products WHERE product_id = 2;
+  SELECT stock_qty INTO s3b  FROM products WHERE product_id = 3;
+  SELECT stock_qty INTO s12b FROM products WHERE product_id = 12;
+
+  -- Thử đổi trạng thái qua tài liệu JSON: phải bị chặn bằng ORA-40940
+  SELECT d.data INTO l_doc FROM order_dv d WHERE d.data."_id" = l_id;
+  BEGIN
+    UPDATE order_dv d SET d.data = JSON_TRANSFORM(l_doc, SET '$.status' = 'CONFIRMED')
+     WHERE d.data."_id" = l_id;
+    DBMS_OUTPUT.PUT_LINE('TC-15: đổi trạng thái qua JSON KHÔNG bị chặn');
+  EXCEPTION WHEN OTHERS THEN
+    l_status_ok := SQLCODE = -40940;
+  END;
+
+  IF l_status_ok AND l_sub = p2 * 3 + p12 * 2 AND s2b = s2a - 2 AND s3b = s3a + 1 AND s12b = s12a - 2 THEN
+    DBMS_OUTPUT.PUT_LINE('TC-15 PASS (subtotal=' || l_sub || '; tồn SP2 ' || s2a || '->' || s2b
+      || ', SP3 ' || s3a || '->' || s3b || ', SP12 ' || s12a || '->' || s12b
+      || '; đổi trạng thái qua JSON bị chặn ORA-40940' || ')');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('TC-15 FAIL subtotal=' || l_sub);
+  END IF;
+  ROLLBACK;
+EXCEPTION WHEN OTHERS THEN
+  DBMS_OUTPUT.PUT_LINE('TC-15 FAIL: ' || SUBSTR(SQLERRM, 1, 200));
   ROLLBACK;
 END;
 /

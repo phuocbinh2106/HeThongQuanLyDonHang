@@ -20,6 +20,95 @@
 <div id="msg"></div>
 <div id="compare" class="mb-3"></div>
 
+<!-- ===================== M5 – XỬ LÝ ĐƠN ===================== -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between">
+        <span><b>Xử lý đơn</b> <span class="text-muted small">— kết quả hiện ngay ở cả hai tab bên dưới</span></span>
+        <span class="small">ETag đang giữ: <code id="etagHeld">—</code></span>
+    </div>
+    <div class="card-body small">
+        <div id="actionMsg"></div>
+        <div class="row g-3">
+            <!-- Đổi trạng thái / huỷ: đường quan hệ (PKG_ORDER) -->
+            <div class="col-lg-6">
+                <div class="fw-semibold">1. Trạng thái <span class="text-muted">(POST → pkg_order.sp_change_status / sp_cancel_order)</span></div>
+                <div class="text-muted mb-1">Trạng thái kế tiếp hợp lệ do hàm <code>fn_is_valid_transition</code> trong CSDL tính:</div>
+                <div id="nextButtons" class="d-flex flex-wrap gap-1 mb-2"></div>
+                <div class="input-group input-group-sm mb-1">
+                    <span class="input-group-text">Ghi chú</span>
+                    <input id="statusNote" class="form-control" placeholder="lý do / ghi chú (lưu vào lịch sử)" />
+                </div>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Thử chuyển tới</span>
+                    <select id="anyStatus" class="form-select">
+                        <option>PENDING</option><option>CONFIRMED</option><option>PACKING</option><option>SHIPPING</option>
+                        <option>DELIVERED</option><option>CANCELLED</option><option>RETURNED</option>
+                    </select>
+                    <button id="btnAnyStatus" class="btn btn-outline-danger">Gửi (kể cả sai)</button>
+                </div>
+                <div class="form-text">Dùng để demo TC-05: chuyển sai sơ đồ → CSDL từ chối (ORA-20002).</div>
+            </div>
+
+            <!-- Thanh toán: chọn kênh -->
+            <div class="col-lg-6">
+                <div class="fw-semibold">2. Ghi thanh toán</div>
+                <div class="row g-1 mb-1">
+                    <div class="col-4"><select id="payMethod" class="form-select form-select-sm">
+                        <option>COD</option><option>BANK_TRANSFER</option><option>E_WALLET</option><option>CARD</option></select></div>
+                    <div class="col-4"><input id="payAmount" type="number" min="1" class="form-control form-control-sm" /></div>
+                    <div class="col-4"><input id="payRef" class="form-control form-control-sm" placeholder="Mã giao dịch" /></div>
+                </div>
+                <div class="d-flex gap-3 mb-1">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="payChannel" id="payProc" value="proc" checked>
+                        <label class="form-check-label" for="payProc">Qua procedure <code>sp_record_payment</code></label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="payChannel" id="payJson" value="json">
+                        <label class="form-check-label" for="payJson">Qua tài liệu: thêm vào <code>payments[]</code> (PUT)</label></div>
+                </div>
+                <button id="btnPay" class="btn btn-sm btn-outline-success">Ghi thanh toán</button>
+                <span class="text-muted ms-2">Đã trả: <b id="paidSoFar">0</b> / <b id="totalAmt">0</b></span>
+                <div class="form-text">TC-08: nhập số tiền lớn hơn phần còn lại → bị chặn ở <b>cả hai kênh</b> (ORA-20005).</div>
+            </div>
+
+            <!-- Sửa đơn bằng tài liệu JSON -->
+            <div class="col-lg-8">
+                <div class="fw-semibold">3. Sửa đơn bằng tài liệu JSON <span class="text-muted">(PUT /api/orders/{id} + If-Match → UPDATE order_dv)</span></div>
+                <div class="row g-1 mb-1">
+                    <div class="col-sm-4"><input id="edReceiver" class="form-control form-control-sm" placeholder="Người nhận" /></div>
+                    <div class="col-sm-3"><input id="edPhone" class="form-control form-control-sm" placeholder="Điện thoại" /></div>
+                    <div class="col-sm-5"><input id="edAddress" class="form-control form-control-sm" placeholder="Địa chỉ" /></div>
+                    <div class="col-sm-3"><div class="input-group input-group-sm"><span class="input-group-text">Ship</span><input id="edFee" type="number" min="0" class="form-control" /></div></div>
+                    <div class="col-sm-3"><div class="input-group input-group-sm"><span class="input-group-text">Giảm</span><input id="edDiscount" type="number" min="0" class="form-control" /></div></div>
+                </div>
+                <table class="table table-sm mb-1">
+                    <thead><tr><th>Sản phẩm</th><th style="width:90px">SL</th><th></th></tr></thead>
+                    <tbody id="edItems"></tbody>
+                </table>
+                <div class="input-group input-group-sm mb-1" style="max-width:360px">
+                    <span class="input-group-text">Thêm SP id</span>
+                    <input id="edNewPid" type="number" min="1" class="form-control" />
+                    <span class="input-group-text">SL</span>
+                    <input id="edNewQty" type="number" min="1" value="1" class="form-control" />
+                    <button id="btnEdAdd" class="btn btn-outline-secondary">+</button>
+                </div>
+                <button id="btnSaveDoc" class="btn btn-sm btn-primary">Lưu tài liệu</button>
+                <div class="form-text">
+                    Dòng hàng chỉ sửa được khi đơn <b>PENDING</b> (đã khoá → 409 ORA-20004, TC-06).
+                    TC-09: mở đơn này ở <b>hai tab</b>, lưu ở tab 1 rồi lưu ở tab 2 → tab 2 nhận <b>412</b>.
+                </div>
+            </div>
+
+            <!-- Vận đơn -->
+            <div class="col-lg-4">
+                <div class="fw-semibold">4. Thêm vận đơn <span class="text-muted">(thêm vào shipments[], PUT)</span></div>
+                <select id="shipCarrier" class="form-select form-select-sm mb-1">
+                    <option>GHN</option><option>GHTK</option><option>Viettel Post</option><option>Ninja Van</option></select>
+                <input id="shipTracking" class="form-control form-control-sm mb-1" placeholder="Mã vận đơn" />
+                <button id="btnShip" class="btn btn-sm btn-outline-primary">Thêm vận đơn</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
@@ -41,7 +130,7 @@
                     <tbody>
                         <tr><td>_id</td><td>orders.order_id</td><td>khoá</td></tr>
                         <tr><td>orderNo, orderDate</td><td>orders.order_no, order_date</td><td>NOUPDATE (trigger sinh)</td></tr>
-                        <tr><td>status</td><td>orders.status</td><td>có, nhưng trigger kiểm tra sơ đồ</td></tr>
+                        <tr><td>status</td><td>orders.status</td><td>NOUPDATE: chỉ đổi qua sp_change_status</td></tr>
                         <tr><td>ship*, shippingFee, discount</td><td>orders.ship_*, shipping_fee, discount_amount</td><td>có</td></tr>
                         <tr><td>subtotal, totalAmount</td><td>orders.subtotal, total_amount</td><td>NOUPDATE (trigger tính)</td></tr>
                         <tr><td>customer{}</td><td>customers</td><td>chỉ đọc; fullName/email NOCHECK</td></tr>

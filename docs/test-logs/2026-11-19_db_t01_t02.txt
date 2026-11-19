@@ -1,4 +1,4 @@
-TC-01 order_id=69 order_no=ORD-20261119-000069 status=PENDING subtotal=23388000 total=23413000
+TC-01 order_id=61 order_no=ORD-20261119-000061 status=PENDING subtotal=23388000 total=23413000
 TC-01 PASS
 
 PL/SQL procedure successfully completed.
@@ -24,11 +24,11 @@ PL/SQL procedure successfully completed.
 ORDER_DOC
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 {
-  "_id" : 69,
+  "_id" : 61,
   "_metadata" :
   {
-    "etag" : "B8865FE6340E650A5EF1E29D60BFA28A",
-    "asof" : "00000000014127B0"
+    "etag" : "3D5E9DAA8A054D158458D2DADA58F149",
+    "asof" : "0000000001419D33"
   },
   "shipments" :
   [
@@ -39,7 +39,7 @@ ORDER_DOC
     "fullName" : "Nguyễn Văn An",
     "email" : "an.nguyen@mail.vn"
   },
-  "orderNo" : "ORD-20261119-000069",
+  "orderNo" : "ORD-20261119-000061",
   "shipAddress" : "12 Nguyễn Huệ, Quận 1, TP.HCM",
   "payments" :
   [
@@ -50,7 +50,7 @@ ORDER_DOC
   "items" :
   [
     {
-      "orderItemId" : 129,
+      "orderItemId" : 121,
       "quantity" : 2,
       "unitPrice" : 199000,
       "productId" : 3,
@@ -58,7 +58,7 @@ ORDER_DOC
       "productName" : "Áo thun Coolmate Cotton trắng"
     },
     {
-      "orderItemId" : 130,
+      "orderItemId" : 122,
       "quantity" : 1,
       "unitPrice" : 22990000,
       "productId" : 1,
@@ -71,22 +71,22 @@ ORDER_DOC
   "history" :
   [
     {
-      "historyId" : 274,
+      "historyId" : 261,
       "oldStatus" : null,
       "newStatus" : "PENDING",
-      "changedAt" : "2026-11-19T13:07:18.961095",
+      "changedAt" : "2026-11-19T13:42:57.556189",
       "changedBy" : "ECOM_SCHEMA"
     },
     {
-      "historyId" : 276,
+      "historyId" : 263,
       "oldStatus" : "PENDING",
       "newStatus" : "CONFIRMED",
-      "changedAt" : "2026-11-19T13:07:19.012081",
+      "changedAt" : "2026-11-19T13:42:57.601289",
       "changedBy" : "tester"
     }
   ],
   "status" : "CONFIRMED",
-  "orderDate" : "2026-11-19T13:07:18.960730",
+  "orderDate" : "2026-11-19T13:42:57.555880",
   "shipPhone" : "0900000001"
 }
 
@@ -111,7 +111,7 @@ TC-08 PASS (procedure chặn=có, payments[] chặn=có)
 
 PL/SQL procedure successfully completed.
 
-TC-09 lỗi nhận được: ORA-42699: Cannot update JSON Relational Duality View 'ORDER_DV': The ETAG of document with ID 'FB03C14E00' in the database did not match the ETAG pas
+TC-09 lỗi nhận được: ORA-42699: Cannot update JSON Relational Duality View 'ORDER_DV': The ETAG of document with ID 'FB03C14600' in the database did not match the ETAG pas
 TC-09 PASS
 
 PL/SQL procedure successfully completed.
@@ -127,6 +127,10 @@ TC-12 PASS (productName trong JSON = "TÊN ĐÃ ĐỔI BẰNG SQL"; etag KHÔNG 
 PL/SQL procedure successfully completed.
 
 TC-13 PASS (SQL chặn=có, JSON chặn=có)
+
+PL/SQL procedure successfully completed.
+
+TC-15 PASS (subtotal=14250000; tồn SP2 19->17, SP3 47->48, SP12 197->195; đổi trạng thái qua JSON bị chặn ORA-40940)
 
 PL/SQL procedure successfully completed.
 

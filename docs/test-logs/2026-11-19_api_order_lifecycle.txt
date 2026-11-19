@@ -1,0 +1,16 @@
+Tạo đơn                                          201 id=61 total=4719000
+Tồn SP2/SP3/SP12 trước sửa                       19/49/197
+PUT sửa dòng hàng khi PENDING                    200 subtotal=14250000 items=2x3,12x2
+Tồn SP2/SP3/SP12 sau sửa                         17/50/195
+TC-09 PUT với ETag cũ                            412 ORA-42699
+next-statuses                                    {"current":"PENDING","next":["CONFIRMED","CANCELLED"]}
+TC-05 PENDING->SHIPPING                          422 ORA-20002 Không thể chuyển trạng thái PENDING -> SHIPPING
+PENDING->CONFIRMED                               200 status=CONFIRMED changedBy=admin
+TC-06 PUT sửa dòng hàng khi CONFIRMED            409 ORA-20004
+TC-08 procedure vượt tổng                        422 ORA-20005
+TC-08 payments[] vượt tổng                       422 ORA-20005
+Thanh toán đủ (procedure)                        200 payments=1
+Thêm vận đơn qua shipments[]                     200 shipments=1  
+TC-07 huỷ đơn SHIPPING                           422 ORA-20002
+TC-07 huỷ đơn PENDING, tồn SP3 trước->sau        200 CANCELLED 46->50
+PUT đổi status trong tài liệu                    422 ORA-40940 Trường chỉ đọc trong tài liệu (NOUPDATE) — ví dụ trạng thái phải đổi bằng chức năng Đổi trạng thái

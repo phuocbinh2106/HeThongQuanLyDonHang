@@ -38,6 +38,55 @@ ORA-06512: at "ECOM_SCHEMA.PKG_ORDER", ...
 chuỗi lỗi** tìm `ORA-200xx` đầu tiên để ánh xạ đúng HTTP status (409/422...). Script kiểm thử dùng
 `INSTR(SQLERRM, 'ORA-200xx')` vì lý do này. Riêng xung đột ETag trả thẳng **ORA-42699** (không bọc).
 
+## 2b. ORA-40896 "Concurrent modification" khi trigger sửa chính tài liệu đang ghi (quan trọng)
+
+**Phát hiện (2026-11-19, khi làm M5):** `PUT` tài liệu `ORDER_DV` có sửa `items[]` (đơn PENDING)
+bị lỗi:
+```
+ORA-40896: Cannot update JSON Relational Duality View 'ORDER_DV':
+           Concurrent modification detected to document with ID '...'
+```
+**Nguyên nhân (đã cô lập bằng cách tắt từng trigger):** trong cùng câu `UPDATE order_dv`, sau khi
+Oracle ghi `order_items`, compound trigger `trg_oi_totals` gọi `sp_recalc_totals` → `UPDATE orders`
+(đổi `subtotal`, `total_amount`) — tức là sửa **chính dòng gốc của tài liệu đang được ghi**, ở các
+cột **có tham gia ETag**. Oracle coi đó là tài liệu bị sửa đồng thời. (Trigger trừ kho
+`UPDATE products` thì không gây lỗi vì các cột đó không nằm trong tài liệu / là NOCHECK.)
+INSERT tài liệu mới không bị ảnh hưởng.
+
+**Cách sửa:** trong `ORDER_DV`, gắn `subtotal`, `totalAmount` là `WITH NOUPDATE NOCHECK`
+(bản đầu chỉ `NOUPDATE`). Không mất an toàn: tổng tiền chỉ đổi khi `items` / `shippingFee` /
+`discount` đổi, mà các trường này vẫn tham gia ETag → ETag vẫn đổi, ghi bằng ETag cũ vẫn bị 412.
+Kiểm thử hồi quy: **TC-15** (sửa SL, xoá dòng, thêm dòng trong một tài liệu → tổng và tồn kho đúng).
+
+**Hệ quả thứ hai — `status` thành `NOUPDATE`:** đổi `status` bằng cách ghi tài liệu cũng gặp
+ORA-40896, vì trigger `trg_ord_audit_aiu` chèn dòng vào `order_status_history` (= mảng `history[]`
+của chính tài liệu). Vì thiết kế vốn quy định đổi trạng thái qua `pkg_order.sp_change_status`, ta
+gắn `'status' : o.status WITH NOUPDATE`: client cố đổi trạng thái trong tài liệu → **ORA-40940**
+(API trả 422 "Trường chỉ đọc"). Khi tạo đơn, giá trị `status` client gửi vẫn bị trigger ép về PENDING.
+
+**Ý nghĩa cho vấn đáp:** Duality View + trigger dùng được, nhưng trigger **không được sửa các
+trường tham gia ETag của chính tài liệu đang ghi**. Đây là câu trả lời cụ thể cho câu hỏi gợi ý
+"Trigger có gây mutating table không…": compound trigger tránh được ORA-04091 (mutating table),
+còn với Duality View còn phải tránh thêm ORA-40896.
+
+## 2c. ORA-04068 sau khi reset dữ liệu lúc web đang chạy → tách `PKG_ORDER_CTX`
+
+**Phát hiện (2026-11-19):** chạy `t00_reset.sql` trong khi web đang chạy, lần gọi procedure kế
+tiếp của mỗi kết nối trong pool lỗi:
+```
+ORA-04068: existing state of packages has been discarded
+ORA-04061: existing state of package body "ECOM_SCHEMA.PKG_ORDER" has been invalidated
+```
+**Nguyên nhân:** bản đầu khai báo `g_internal`, `g_user`, `g_note` trong `PKG_ORDER` → package có
+trạng thái theo phiên. `t00_reset` chạy `ALTER TABLE` → `PKG_ORDER` bị INVALID → biên dịch lại →
+Oracle huỷ trạng thái của mọi phiên đang giữ package.
+
+**Cách sửa:** chuyển 3 biến sang package mới **`PKG_ORDER_CTX`** (chỉ có biến, không tham chiếu
+bảng nào → không bao giờ bị DDL làm INVALID). `PKG_ORDER` không còn biến → được biên dịch lại mà
+không gây ORA-04068. Trigger và seed đổi `pkg_order.g_*` thành `pkg_order_ctx.g_*`. Đã kiểm chứng:
+reset khi web đang chạy rồi chạy ngay `tests/api_order_lifecycle.mjs` → không còn ORA-04068.
+(Cài lại TOÀN BỘ bằng `install` thì vẫn nên khởi động lại web, vì package bị xoá hẳn.)
+
 ## 3. Báo cáo `PKG_ORDER_RPT` viết lại theo đúng đặc tả R1–R5
 
 Trong CSDL cũ có sẵn một `PKG_ORDER_RPT` (không có file nguồn trong `sql/`) với R1 theo ngày,
@@ -94,6 +143,6 @@ toán (kể cả REFUNDED), vận đơn, lịch sử.
 
 ## 7. Kết quả kiểm thử mức CSDL (chạy thật)
 
-Log đầy đủ: `docs/test-logs/2026-11-19_db_t01_t02.txt`. Tóm tắt: **12/12 PASS**
-(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13). TC-10 (đồng thời) và TC-14 (execution plan)
+Log đầy đủ: `docs/test-logs/2026-11-19_db_t01_t02.txt`. Tóm tắt: **13/13 PASS**
+(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15). TC-10 (đồng thời) và TC-14 (execution plan)
 sẽ làm ở bước ứng dụng / tối ưu.

@@ -1,6 +1,25 @@
 -- ==============================================================================
 -- 04_PKG_ORDER: package nghiệp vụ đơn hàng
 -- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- PKG_ORDER_CTX: biến trạng thái theo PHIÊN, dùng chung giữa procedure và trigger.
+--   g_internal : TRUE khi chính package đang sửa orders (tính lại tổng) -> trigger cho phép
+--   g_user     : người thao tác, ghi vào order_status_history.changed_by
+--   g_note     : ghi chú đổi trạng thái
+-- Vì sao tách riêng, không để trong PKG_ORDER? Package có biến (stateful) mà bị biên dịch lại
+-- (ví dụ t00_reset chạy ALTER TABLE làm PKG_ORDER bị INVALID) thì mọi phiên đang mở (connection
+-- pool của web) gặp ORA-04068 "existing state of packages has been discarded" ở lần gọi kế tiếp.
+-- PKG_ORDER_CTX chỉ có biến, không tham chiếu bảng nào -> không bao giờ bị DDL làm INVALID;
+-- PKG_ORDER không còn biến -> biên dịch lại thoải mái, không gây ORA-04068 (kiểm chứng 23.26.3).
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE PACKAGE pkg_order_ctx AS
+  g_internal BOOLEAN := FALSE;
+  g_user     VARCHAR2(60);
+  g_note     VARCHAR2(300);
+END pkg_order_ctx;
+/
+
 CREATE OR REPLACE PACKAGE pkg_order AS
   e_out_of_stock          EXCEPTION; PRAGMA EXCEPTION_INIT(e_out_of_stock, -20001);
   e_invalid_transition    EXCEPTION; PRAGMA EXCEPTION_INIT(e_invalid_transition, -20002);
@@ -9,10 +28,7 @@ CREATE OR REPLACE PACKAGE pkg_order AS
   e_payment_exceeds_total EXCEPTION; PRAGMA EXCEPTION_INIT(e_payment_exceeds_total, -20005);
   e_order_not_found       EXCEPTION; PRAGMA EXCEPTION_INIT(e_order_not_found, -20006);
   e_discount_exceeds      EXCEPTION; PRAGMA EXCEPTION_INIT(e_discount_exceeds, -20007);
-
-  g_internal BOOLEAN := FALSE;
-  g_user     VARCHAR2(60);
-  g_note     VARCHAR2(300);
+  -- (biến trạng thái nằm ở pkg_order_ctx, xem phía trên)
 
   FUNCTION  fn_is_valid_transition(p_old VARCHAR2, p_new VARCHAR2) RETURN BOOLEAN;
   FUNCTION  fn_current_user RETURN VARCHAR2;
@@ -46,7 +62,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_order AS
 
   FUNCTION fn_current_user RETURN VARCHAR2 IS
   BEGIN
-    RETURN COALESCE(g_user, SYS_CONTEXT('USERENV', 'CLIENT_IDENTIFIER'), USER);
+    RETURN COALESCE(pkg_order_ctx.g_user, SYS_CONTEXT('USERENV', 'CLIENT_IDENTIFIER'), USER);
   END fn_current_user;
 
   FUNCTION fn_available_stock(p_product_id NUMBER) RETURN NUMBER IS
@@ -121,32 +137,32 @@ CREATE OR REPLACE PACKAGE BODY pkg_order AS
     IF l_disc > l_sub THEN
       RAISE_APPLICATION_ERROR(-20007, 'Giảm giá vượt tổng tiền hàng');
     END IF;
-    g_internal := TRUE;
+    pkg_order_ctx.g_internal := TRUE;
     UPDATE orders
        SET subtotal = l_sub, total_amount = l_sub + l_ship - l_disc,
            updated_at = SYSTIMESTAMP
      WHERE order_id = p_order_id;
-    g_internal := FALSE;
+    pkg_order_ctx.g_internal := FALSE;
   EXCEPTION
     WHEN NO_DATA_FOUND THEN
-      g_internal := FALSE;
+      pkg_order_ctx.g_internal := FALSE;
       RAISE_APPLICATION_ERROR(-20006, 'Không tìm thấy đơn ' || p_order_id);
     WHEN OTHERS THEN
-      g_internal := FALSE;
+      pkg_order_ctx.g_internal := FALSE;
       RAISE;
   END sp_recalc_totals;
 
   PROCEDURE sp_change_status(p_order_id NUMBER, p_new_status VARCHAR2,
                              p_user VARCHAR2, p_note VARCHAR2 DEFAULT NULL) IS
   BEGIN
-    g_user := p_user;  g_note := p_note;
+    pkg_order_ctx.g_user := p_user;  pkg_order_ctx.g_note := p_note;
     UPDATE orders SET status = p_new_status WHERE order_id = p_order_id;
     IF SQL%ROWCOUNT = 0 THEN
       RAISE_APPLICATION_ERROR(-20006, 'Không tìm thấy đơn ' || p_order_id);
     END IF;
-    g_user := NULL;  g_note := NULL;
+    pkg_order_ctx.g_user := NULL;  pkg_order_ctx.g_note := NULL;
   EXCEPTION WHEN OTHERS THEN
-    g_user := NULL;  g_note := NULL;
+    pkg_order_ctx.g_user := NULL;  pkg_order_ctx.g_note := NULL;
     RAISE;
   END sp_change_status;
 

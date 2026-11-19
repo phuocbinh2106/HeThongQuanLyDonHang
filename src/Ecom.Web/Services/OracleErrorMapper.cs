@@ -38,6 +38,8 @@ public static class OracleErrorMapper
     private static readonly Dictionary<int, (int Status, string Title)> System = new()
     {
         [42699] = (412, "Xung đột ETag: tài liệu đã bị người khác sửa, hãy tải lại"),
+        [40940] = (422, "Trường chỉ đọc trong tài liệu (NOUPDATE) — ví dụ trạng thái phải đổi bằng chức năng Đổi trạng thái"),
+        [40896] = (409, "Tài liệu bị thay đổi trong lúc ghi (concurrent modification)"),
         [40875] = (422, "Thuộc tính JSON không đúng JSON Schema"),
         [2290]  = (422, "Vi phạm ràng buộc CHECK"),
         [1]     = (409, "Trùng giá trị duy nhất (UNIQUE)"),

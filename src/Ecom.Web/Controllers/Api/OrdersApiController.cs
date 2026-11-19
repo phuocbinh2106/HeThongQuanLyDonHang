@@ -54,6 +54,62 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
     {
         var doc = await store.GetAsync(DualityView.ORDER_DV, id, ct);
         if (doc is null) return Problem(statusCode: 404, title: "Không tìm thấy đơn hàng");
+        return Doc(doc);
+    }
+
+    /// <summary>
+    /// PUT /api/orders/{id} + If-Match: ghi đè CẢ tài liệu đơn (sửa địa chỉ, thêm/sửa/xoá dòng hàng,
+    /// thêm vận đơn/thanh toán vào mảng) bằng MỘT câu UPDATE order_dv.
+    /// ETag sai -> 412; sửa dòng hàng khi đơn đã khoá -> 409 (ORA-20004 do trigger ném ra).
+    /// </summary>
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Put(long id, [FromBody] JsonObject doc, CancellationToken ct)
+    {
+        var etag = DocEtag.Normalize(Request.Headers.IfMatch.ToString())
+                   ?? doc["_metadata"]?["etag"]?.GetValue<string>();
+        if (etag is null)
+            return Problem(statusCode: 428, title: "Thiếu If-Match",
+                           detail: "Hãy GET tài liệu để lấy ETag rồi gửi kèm header If-Match.");
+        var updated = await store.UpdateAsync(DualityView.ORDER_DV, id, DocEtag.PrepareForUpdate(doc, id, etag),
+                                              HttpContext.CurrentUser(), ct);
+        return updated is null ? Problem(statusCode: 404, title: "Không tìm thấy đơn hàng") : Doc(updated);
+    }
+
+    // ----------------------- Đường quan hệ: gọi PKG_ORDER -----------------------
+
+    /// <summary>GET /api/orders/{id}/next-statuses: trạng thái kế tiếp hợp lệ (tính bằng hàm trong CSDL).</summary>
+    [HttpGet("{id:long}/next-statuses")]
+    public async Task<IActionResult> NextStatuses(long id, CancellationToken ct)
+    {
+        var r = await orders.NextStatusesAsync(id, ct);
+        return r is null ? Problem(statusCode: 404, title: "Không tìm thấy đơn hàng")
+                         : Ok(new { current = r.Value.Current, next = r.Value.Next });
+    }
+
+    public record StatusRequest(string Status, string? Note);
+    public record CancelRequest(string? Reason);
+    public record PaymentRequest(string Method, decimal Amount, string? Reference);
+
+    /// <summary>POST /api/orders/{id}/status {status, note} -> pkg_order.sp_change_status</summary>
+    [HttpPost("{id:long}/status")]
+    public async Task<IActionResult> ChangeStatus(long id, StatusRequest req, CancellationToken ct)
+        => Doc(await orders.ChangeStatusAsync(id, req.Status.ToUpperInvariant(), req.Note,
+                                              HttpContext.CurrentUser(), ct));
+
+    /// <summary>POST /api/orders/{id}/cancel {reason} -> pkg_order.sp_cancel_order</summary>
+    [HttpPost("{id:long}/cancel")]
+    public async Task<IActionResult> Cancel(long id, CancelRequest req, CancellationToken ct)
+        => Doc(await orders.CancelAsync(id, req.Reason, HttpContext.CurrentUser(), ct));
+
+    /// <summary>POST /api/orders/{id}/payments {method, amount, reference} -> pkg_order.sp_record_payment</summary>
+    [HttpPost("{id:long}/payments")]
+    public async Task<IActionResult> RecordPayment(long id, PaymentRequest req, CancellationToken ct)
+        => Doc(await orders.RecordPaymentAsync(id, req.Method, req.Amount, req.Reference,
+                                               HttpContext.CurrentUser(), ct));
+
+    /// <summary>Trả tài liệu JSON nguyên bản kèm header ETag.</summary>
+    private ContentResult Doc(string doc)
+    {
         Response.Headers.ETag = DocEtag.FromDoc(doc);
         return Content(doc, "application/json");
     }
