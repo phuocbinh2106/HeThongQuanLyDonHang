@@ -36,7 +36,8 @@ async function api(url, { method = 'GET', body, ifMatch } = {}) {
 function showError(elId, err) {
   const el = document.getElementById(elId);
   if (!el) return;
-  const p = err instanceof ApiError ? err.problem : { title: String(err) };
+  // ApiError hoặc đối tượng tự tạo dạng { problem: {...} }; còn lại (lỗi mạng...) thì in chuỗi
+  const p = err?.problem ?? { title: String(err) };
   el.innerHTML = `
     <div class="alert alert-danger">
       <div><strong>${escapeHtml(p.title || 'Lỗi')}</strong>

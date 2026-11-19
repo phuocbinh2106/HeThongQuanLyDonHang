@@ -19,6 +19,10 @@ PDB `ecom`, schema `ecom_schema`.
 CHECK rời bị bỏ qua khi ghi qua Duality View. Với cách khai báo trên kiểu cột, cả hai kênh đều bị
 chặn. Các CHECK thường (ví dụ `price >= 0`) vẫn được kiểm tra bình thường qua Duality View.
 
+Mã lỗi thực tế khi vi phạm (đã thử qua web): INSERT qua `PRODUCT_DV` → `ORA-42692` bọc
+`ORA-02290 (PRODUCTS_ATTR_CHK)`; UPDATE qua `PRODUCT_DV` → `ORA-40875 JSON schema validation error`.
+`OracleErrorMapper` đổi cả hai thành HTTP 422 với cùng một thông báo.
+
 **Ý nghĩa cho vấn đáp:** "Mọi quy tắc nằm ở bảng nền nên có hiệu lực ở cả hai kênh" là đúng về
 nguyên tắc, **nhưng phải kiểm chứng bằng kiểm thử**, không được mặc định. TC-11 kiểm tra cả hai kênh.
 

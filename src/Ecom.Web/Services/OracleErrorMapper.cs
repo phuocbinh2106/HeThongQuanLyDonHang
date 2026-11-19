@@ -62,7 +62,14 @@ public static class OracleErrorMapper
             if (Business.TryGetValue(code, out var b))
                 return new ApiError(b.Status, $"ORA-{code}", b.Title, text);
 
-        // 2) Lỗi hệ thống đã biết: lấy mã "sâu nhất" có trong bảng (bỏ qua 42692 nếu có lỗi cụ thể hơn)
+        // 2a) Ràng buộc JSON Schema của products.attributes (khai báo trên kiểu cột) báo ORA-02290
+        //     kèm tên ràng buộc PRODUCTS_ATTR_CHK -> đổi sang thông báo dễ hiểu
+        foreach (var (code, text) in lines)
+            if ((code == 2290 && text.Contains("PRODUCTS_ATTR_CHK")) || code == 40875)
+                return new ApiError(422, $"ORA-{code:D5}",
+                    "Thuộc tính JSON không đúng JSON Schema (bắt buộc có \"brand\" kiểu chuỗi; warrantyMonths là số ≥ 0)", text);
+
+        // 2b) Lỗi hệ thống đã biết: lấy mã "sâu nhất" có trong bảng (bỏ qua 42692 nếu có lỗi cụ thể hơn)
         foreach (var (code, text) in lines.Where(l => l.Code != 42692))
             if (System.TryGetValue(code, out var s))
                 return new ApiError(s.Status, $"ORA-{code:D5}", s.Title, text);

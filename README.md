@@ -123,6 +123,16 @@ Oracle 23ai – PDB ecom – schema ecom_schema
   └─ 10 bảng + PKG_ORDER + trigger + PKG_ORDER_RPT    (đường quan hệ / báo cáo)
 ```
 
+### Màn hình và API đã có
+
+| Mã | Màn hình | API | CSDL |
+|---|---|---|---|
+| — | Trang chủ, kiểm tra kết nối | `GET /api/system/health` | `v$version`, `user_json_duality_views` |
+| M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
+
+Ca lỗi minh hoạ được ở M1: sửa tài liệu bằng ETag cũ → **412** (ORA-42699);
+xoá `brand` trong `attributes` → **422** (JSON Schema, ORA-40875 / ORA-02290).
+
 ## Tài liệu
 
 - [`docs/THAY_DOI_THIET_KE.md`](docs/THAY_DOI_THIET_KE.md): các thay đổi so với thiết kế ban đầu và

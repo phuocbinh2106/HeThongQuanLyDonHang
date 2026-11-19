@@ -9,6 +9,7 @@ builder.Services.AddControllersWithViews(o => o.Filters.Add<OracleExceptionFilte
 
 // Một factory dùng cho cả ứng dụng; bản thân kết nối được ODP.NET gom pool.
 builder.Services.AddSingleton<OracleConnectionFactory>();
+builder.Services.AddScoped<ProductRepository>();
 
 var app = builder.Build();
 

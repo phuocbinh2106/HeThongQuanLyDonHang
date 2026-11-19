@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Sản phẩm";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h1 class="h3 mb-0">Sản phẩm</h1>
+    <button id="btnNew" class="btn btn-sm btn-outline-success">+ Thêm sản phẩm bằng tài liệu JSON</button>
+</div>
+<p class="text-muted small">
+    Lọc chạy trên bảng <code>products</code> bằng SQL/JSON (<code>JSON_VALUE</code>, <code>JSON_EXISTS</code>);
+    dữ liệu hiển thị là tài liệu đọc thẳng từ Duality View <code>PRODUCT_DV</code>.
+</p>
+
+<div class="row g-3">
+    <!-- BỘ LỌC -->
+    <div class="col-md-3">
+        <form id="filterForm" class="card card-body small">
+            <label class="form-label mb-1">Danh mục</label>
+            <select name="categoryId" class="form-select form-select-sm mb-2"></select>
+
+            <label class="form-label mb-1">Thương hiệu <span class="text-muted">($.brand)</span></label>
+            <select name="brand" class="form-select form-select-sm mb-2"></select>
+
+            <label class="form-label mb-1">RAM tối thiểu (GB) <span class="text-muted">($.ramGb)</span></label>
+            <select name="minRamGb" class="form-select form-select-sm mb-2">
+                <option value="">— bất kỳ —</option><option>6</option><option>8</option><option>12</option><option>16</option>
+            </select>
+
+            <label class="form-label mb-1">Bộ nhớ tối thiểu (GB) <span class="text-muted">($.storageGb)</span></label>
+            <select name="minStorageGb" class="form-select form-select-sm mb-2">
+                <option value="">— bất kỳ —</option><option>128</option><option>256</option><option>512</option>
+            </select>
+
+            <label class="form-label mb-1">Có size <span class="text-muted">($.size[*])</span></label>
+            <select name="size" class="form-select form-select-sm mb-2">
+                <option value="">— bất kỳ —</option>
+                <option>S</option><option>M</option><option>L</option><option>XL</option><option>30</option><option>32</option>
+            </select>
+
+            <label class="form-label mb-1">Tên chứa</label>
+            <input name="q" class="form-control form-control-sm mb-2" placeholder="ví dụ: iPhone" />
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="activeOnly" value="true" id="activeOnly">
+                <label class="form-check-label" for="activeOnly">Chỉ sản phẩm đang bán</label>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-primary flex-fill" type="submit">Lọc</button>
+                <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá lọc</button>
+            </div>
+
+            <hr />
+            <div class="fw-semibold mb-1">Thuộc tính JSON có trong danh mục</div>
+            <div class="text-muted mb-1">(JSON_DATAGUIDE tự suy ra từ dữ liệu)</div>
+            <div id="attrKeys"></div>
+        </form>
+    </div>
+
+    <!-- DANH SÁCH -->
+    <div class="col-md-9">
+        <div id="listMsg"></div>
+        <details class="mb-2 small">
+            <summary>Câu SQL lọc vừa chạy (<span id="count">0</span> sản phẩm)</summary>
+            <pre id="filterSql" class="bg-light p-2 mb-0"></pre>
+        </details>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th><th>Sản phẩm</th><th>Danh mục / Người bán</th>
+                        <th class="text-end">Giá</th><th class="text-end">Tồn</th><th>Thuộc tính (attributes)</th><th></th>
+                    </tr>
+                </thead>
+                <tbody id="productRows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- HỘP THOẠI XEM / SỬA TÀI LIỆU JSON -->
+<div class="modal fade" id="docModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="docTitle">Tài liệu PRODUCT_DV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="small mb-2">
+                    ETag đang giữ: <code id="docEtag">—</code>
+                    <span class="text-muted ms-2">(gửi kèm header <code>If-Match</code> khi lưu)</span>
+                </div>
+                <div id="docMsg"></div>
+                <textarea id="docText" class="form-control font-monospace small" rows="20" spellcheck="false"></textarea>
+                <div class="form-text">
+                    Thử TH-5: mở cùng sản phẩm ở hai tab, lưu ở tab 1, rồi lưu ở tab 2 → tab 2 nhận <b>412</b>.
+                    Thử TH-6/TC-11: xoá <code>"brand"</code> trong <code>attributes</code> rồi lưu → bị JSON Schema từ chối (422).
+                    Các trường <code>seller.shopName</code>, <code>category.categoryName</code> chỉ đọc.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnReload" class="btn btn-outline-secondary">Tải lại (GET)</button>
+                <button id="btnSave" class="btn btn-primary">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/products.js" asp-append-version="true"></script>
+}
