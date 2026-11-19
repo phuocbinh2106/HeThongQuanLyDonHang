@@ -53,7 +53,7 @@ SQL*Plus có sẵn trong container.)
 
 **1. Lấy mã nguồn và cấu hình**
 ```powershell
-git clone https://github.com/<tai-khoan>/HeThongQuanLyDonHang.git
+git clone https://github.com/phuocbinh2106/HeThongQuanLyDonHang.git
 cd HeThongQuanLyDonHang
 copy .env.example .env
 ```
