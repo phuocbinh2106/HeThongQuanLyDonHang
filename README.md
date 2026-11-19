@@ -90,7 +90,38 @@ Kết quả mong đợi: không có dòng lỗi trong phần "Kiểm tra đối 
 mở và chạy (Alt+X) lần lượt từng file `01` → `08`. DBeaver không hiểu lệnh `@file`. Nếu DBeaver
 hỏi *Bind parameters* (`:NEW`, `:OLD`) thì tắt ở *Preferences → Editors → SQL Editor → SQL Processing*.
 
-**5. Ứng dụng web (ASP.NET Core MVC)** — *đang xây dựng*, hướng dẫn sẽ bổ sung tại đây.
+**5. Chạy ứng dụng web (ASP.NET Core MVC, .NET 10)**
+
+Mật khẩu CSDL **không** nằm trong mã nguồn. Lưu một lần bằng user-secrets (nằm ngoài thư mục repo):
+```powershell
+cd src\Ecom.Web
+dotnet user-secrets set "EcomDb:Password" "oracle"
+```
+(hoặc đặt biến môi trường `ECOM_DB_PASSWORD`). Chuỗi kết nối không mật khẩu nằm ở
+`src/Ecom.Web/appsettings.json` (`localhost:1521/ecom`, user `ecom_schema`).
+
+```powershell
+dotnet run --launch-profile http
+```
+Mở <http://localhost:5148>. Trang chủ có ô **Kiểm tra kết nối** gọi `GET /api/system/health`;
+phải thấy "Kết nối Oracle thành công" và "Đối tượng INVALID = 0".
+
+### Kiến trúc ứng dụng
+
+```
+Trình duyệt (Razor View + JavaScript fetch, wwwroot/js/api.js)
+        │  JSON
+ASP.NET Core MVC (src/Ecom.Web)
+  ├─ Controllers/        → trả View (HTML)
+  ├─ Controllers/Api/    → /api/... trả JSON (REST)
+  ├─ Infrastructure/     → OracleExceptionFilter: OracleException → ProblemDetails + mã HTTP
+  ├─ Services/           → OracleErrorMapper: ORA-200xx / 42699 / 40875... → 409 / 412 / 422
+  └─ Data/               → OracleConnectionFactory (ODP.NET, gắn CLIENT_IDENTIFIER)
+        │
+Oracle 23ai – PDB ecom – schema ecom_schema
+  ├─ Duality View ORDER_DV, PRODUCT_DV, CUSTOMER_DV   (đường JSON)
+  └─ 10 bảng + PKG_ORDER + trigger + PKG_ORDER_RPT    (đường quan hệ / báo cáo)
+```
 
 ## Tài liệu
 

@@ -1,0 +1,54 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<h1 class="h3">Hệ thống quản lý đơn hàng cho sàn thương mại điện tử</h1>
+<p class="text-muted">
+    Một nguồn dữ liệu, hai cách nhìn: <strong>tài liệu JSON</strong> (Duality View, phục vụ REST API)
+    và <strong>bảng quan hệ chuẩn hoá</strong> (phục vụ báo cáo SQL).
+</p>
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Kiểm tra kết nối: Giao diện → API → Oracle</span>
+        <button id="btnHealth" class="btn btn-sm btn-outline-primary">Kiểm tra lại</button>
+    </div>
+    <div class="card-body">
+        <div id="healthMsg"></div>
+        <table class="table table-sm mb-0" id="healthTable" hidden>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Gọi GET /api/system/health rồi hiển thị kết quả thành bảng
+    async function checkHealth() {
+        const tbody = document.querySelector('#healthTable tbody');
+        document.getElementById('healthMsg').innerHTML = '<span class="text-muted">Đang kiểm tra...</span>';
+        try {
+            const { data } = await api('/api/system/health');
+            const rows = [
+                ['CSDL', data.banner.split('\n')[0]],
+                ['Kết nối', data.dataSource],
+                ['PDB / user', `${data.pdb} / ${data.dbUser}`],
+                ['CLIENT_IDENTIFIER', data.clientIdentifier],
+                ['Duality View', data.dualityViews],
+                ['Đối tượng INVALID', data.invalidObjects],
+                ['Số đơn / sản phẩm / khách', `${data.counts.orders} / ${data.counts.products} / ${data.counts.customers}`],
+            ];
+            tbody.innerHTML = rows.map(([k, v]) =>
+                `<tr><th class="w-25">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
+            document.getElementById('healthTable').hidden = false;
+            if (data.invalidObjects === 0) showOk('healthMsg', 'Kết nối Oracle thành công.');
+            else showError('healthMsg', { status: 0, problem: { title: `Có ${data.invalidObjects} đối tượng INVALID trong schema` } });
+        } catch (err) {
+            document.getElementById('healthTable').hidden = true;
+            showError('healthMsg', err);
+        }
+    }
+    document.getElementById('btnHealth').addEventListener('click', checkHealth);
+    checkHealth();
+</script>
+}

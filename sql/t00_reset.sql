@@ -45,10 +45,16 @@ BEGIN
   -- 5) Đặt lại sequence sinh số đơn
   EXECUTE IMMEDIATE 'ALTER SEQUENCE seq_order_no RESTART START WITH 1';
 
-  -- 6) Biến trạng thái của package về mặc định
-  pkg_order.g_internal := FALSE;
   DBMS_OUTPUT.PUT_LINE('Đã xoá dữ liệu. Tiếp theo: chạy 08_seed.sql');
 END;
 /
+
+-- 6) Các lệnh DDL ở trên (ALTER TABLE ... MODIFY identity) làm Duality View và package phụ
+--    thuộc bị đánh dấu INVALID. Biên dịch lại ngay để ứng dụng không gặp đối tượng INVALID.
+BEGIN
+  DBMS_UTILITY.COMPILE_SCHEMA(schema => USER, compile_all => FALSE);
+END;
+/
+SELECT object_name, object_type FROM user_objects WHERE status <> 'VALID';
 
 @@08_seed.sql
