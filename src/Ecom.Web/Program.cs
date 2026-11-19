@@ -13,6 +13,7 @@ builder.Services.AddScoped<DualityViewStore>();
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<CustomerRepository>();
 builder.Services.AddScoped<OrderRepository>();
+builder.Services.AddScoped<ReportRepository>();
 
 var app = builder.Build();
 

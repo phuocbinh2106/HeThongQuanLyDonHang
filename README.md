@@ -133,12 +133,15 @@ Oracle 23ai – PDB ecom – schema ecom_schema
 | M3 | Danh sách đơn (`/Orders`): lọc theo khách ("Đơn của tôi"), trạng thái (nút lọc nhanh có số đếm), khoảng ngày, số đơn; phân trang 20 đơn | `GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize=` | Bảng quan hệ `orders` (không qua Duality View); lọc theo khách có đúng dạng truy vấn **Q1** (`WHERE customer_id = :cust ORDER BY order_date DESC FETCH NEXT 20`) để đo tối ưu với chỉ mục IX-1 |
 | M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
 | M5 | Xử lý đơn (khu "Xử lý đơn" trên trang chi tiết): đổi trạng thái (nút hợp lệ do CSDL tính + ô "thử chuyển sai"), huỷ, ghi thanh toán qua **procedure hoặc payments[]**, sửa địa chỉ/dòng hàng, thêm vận đơn | `PUT /api/orders/{id}` (If-Match), `GET .../next-statuses`, `POST .../status`, `POST .../cancel`, `POST .../payments` | Đường JSON: `UPDATE order_dv`; đường quan hệ: `pkg_order.sp_change_status`, `sp_cancel_order`, `sp_record_payment`; `fn_is_valid_transition` gọi trong SQL (BOOLEAN 23ai) |
+| M6 | Báo cáo (`/Reports`): R1 doanh thu tháng + luỹ kế + tăng trưởng, R2 người bán × danh mục có tổng phụ, R3 top N mỗi danh mục, R4 ma trận tháng × trạng thái, R5 tỉ lệ huỷ/trả, R6 doanh thu theo thương hiệu (JSON); bảng + biểu đồ CSS; xem mã PL/SQL từ `USER_SOURCE` | `GET /api/reports/{r1..r6}?from=&to=&top=&months=`, `GET /api/reports/{code}/source` | `PKG_ORDER_RPT` trả `SYS_REFCURSOR` (ODP.NET `OracleRefCursor`); `SUM() OVER`, `LAG`, `ROLLUP`, `DENSE_RANK`, `PIVOT`, `JSON_VALUE`; tham số sai → 422 (ORA-20010) |
 
 Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng khi đã khoá → 409), TC-07 (huỷ → hoàn kho, khoản đã trả chuyển REFUNDED – TC-16;
 huỷ đơn SHIPPING → 422), TC-08 (vượt tổng → 422 ở cả hai kênh), **TC-09 (mở đơn ở hai tab, tab lưu sau → 412)**.
 Đổi `status` bằng cách ghi tài liệu → 422 (ORA-40940, trạng thái chỉ đổi qua procedure).
 
 Kiểm thử API tự động: `node tests/api_order_lifecycle.mjs` (cần web đang chạy; xong thì `.\scripts\db.ps1 reset`).
+
+Minh hoạ TH-2 ở M6: giao xong một đơn ở màn hình xử lý đơn → báo cáo R1/R4 có ngay số liệu mới (không đồng bộ, không bản sao).
 
 Minh hoạ TC-12 ở M4: sửa bảng bằng SQL thuần (DBeaver) → bấm "Đọc lại cả hai" → tài liệu JSON đổi ngay.
 
