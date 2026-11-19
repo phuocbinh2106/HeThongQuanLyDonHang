@@ -1,0 +1,132 @@
+TC-01 order_id=69 order_no=ORD-20261119-000069 status=PENDING subtotal=23388000 total=23413000
+TC-01 PASS
+
+PL/SQL procedure successfully completed.
+
+TC-03 lỗi nhận được: ORA-42692: Cannot insert into JSON Relational Duality View 'ECOM_SCHEMA'.'ORDER_DV': Error while inserting into table 'ORDER_ITEMS'
+ORA-20001: Không đủ tồn kho cho sản phẩm 2
+ORA-06512: at "ECOM_SCHEMA.PKG_ORDER", line
+63
+ORA-06512: at "ECOM_SCHEMA.TRG_OI_BIUD_ROW", line 12
+ORA-04088: error during execution of trigger 'ECOM_SCHEMA.TRG_OI_BIUD_ROW'
+TC-03 PASS (không tạo đơn, tồn kho giữ nguyên 9)
+
+PL/SQL procedure successfully completed.
+
+TC-05 lỗi nhận được: ORA-20002: Không thể chuyển trạng thái PENDING -> SHIPPING
+ORA-06512: at "ECOM_SCHEMA.TRG_ORD_STATUS_BU", line 5
+ORA-04088: error during execution of trigger 'ECOM_SCHEMA.TRG_ORD_STATUS_BU'
+TC-05 PASS
+
+PL/SQL procedure successfully completed.
+
+
+ORDER_DOC
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+{
+  "_id" : 69,
+  "_metadata" :
+  {
+    "etag" : "B8865FE6340E650A5EF1E29D60BFA28A",
+    "asof" : "00000000014127B0"
+  },
+  "shipments" :
+  [
+  ],
+  "customer" :
+  {
+    "customerId" : 1,
+    "fullName" : "Nguyễn Văn An",
+    "email" : "an.nguyen@mail.vn"
+  },
+  "orderNo" : "ORD-20261119-000069",
+  "shipAddress" : "12 Nguyễn Huệ, Quận 1, TP.HCM",
+  "payments" :
+  [
+  ],
+  "totalAmount" : 23413000,
+  "discount" : 0,
+  "subtotal" : 23388000,
+  "items" :
+  [
+    {
+      "orderItemId" : 129,
+      "quantity" : 2,
+      "unitPrice" : 199000,
+      "productId" : 3,
+      "sku" : "CM-TEE-W-M",
+      "productName" : "Áo thun Coolmate Cotton trắng"
+    },
+    {
+      "orderItemId" : 130,
+      "quantity" : 1,
+      "unitPrice" : 22990000,
+      "productId" : 1,
+      "sku" : "SS-S24-256",
+      "productName" : "Samsung Galaxy S24 256GB"
+    }
+  ],
+  "shippingFee" : 25000,
+  "shipReceiver" : "TC-01 Nguyễn Văn An",
+  "history" :
+  [
+    {
+      "historyId" : 274,
+      "oldStatus" : null,
+      "newStatus" : "PENDING",
+      "changedAt" : "2026-11-19T13:07:18.961095",
+      "changedBy" : "ECOM_SCHEMA"
+    },
+    {
+      "historyId" : 276,
+      "oldStatus" : "PENDING",
+      "newStatus" : "CONFIRMED",
+      "changedAt" : "2026-11-19T13:07:19.012081",
+      "changedBy" : "tester"
+    }
+  ],
+  "status" : "CONFIRMED",
+  "orderDate" : "2026-11-19T13:07:18.960730",
+  "shipPhone" : "0900000001"
+}
+
+
+TC-02 PASS (status=PENDING, unit_price=4490000, total=4520000)
+
+PL/SQL procedure successfully completed.
+
+TC-04 PASS -> ORA-42692: Cannot insert into JSON Relational Duality View '
+
+PL/SQL procedure successfully completed.
+
+TC-06 PASS (JSON chặn=có, SQL chặn=có, sửa địa chỉ qua JSON=được)
+
+PL/SQL procedure successfully completed.
+
+TC-07 PASS (tồn 20 -> 17 -> huỷ -> 20; huỷ đơn SHIPPING bị chặn)
+
+PL/SQL procedure successfully completed.
+
+TC-08 PASS (procedure chặn=có, payments[] chặn=có)
+
+PL/SQL procedure successfully completed.
+
+TC-09 lỗi nhận được: ORA-42699: Cannot update JSON Relational Duality View 'ORDER_DV': The ETAG of document with ID 'FB03C14E00' in the database did not match the ETAG pas
+TC-09 PASS
+
+PL/SQL procedure successfully completed.
+
+TC-11 (SQL) lỗi: ORA-02290: check constraint (ECOM_SCHEMA.PRODUCTS_ATTR_CHK) violated
+TC-11 (DV) lỗi: ORA-42692: Cannot insert into JSON Relational Duality View 'ECOM_SCHEMA'.'PRODUCT_DV': Error while inserting into table 'PRODUCTS' | ORA-02290: check constraint (ECOM_SCHEMA.PRODUCTS_ATTR_CHK) violated
+TC-11 PASS
+
+PL/SQL procedure successfully completed.
+
+TC-12 PASS (productName trong JSON = "TÊN ĐÃ ĐỔI BẰNG SQL"; etag KHÔNG đổi vì trường NOCHECK)
+
+PL/SQL procedure successfully completed.
+
+TC-13 PASS (SQL chặn=có, JSON chặn=có)
+
+PL/SQL procedure successfully completed.
+
