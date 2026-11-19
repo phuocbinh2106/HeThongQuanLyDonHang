@@ -21,6 +21,9 @@ async function loadCustomers() {
   // Vai trò khách hàng (cookie ecom_user=customer:N) -> mặc định xem "đơn của tôi"
   const m = decodeURIComponent(document.cookie).match(/ecom_user=customer:(\d+)/);
   if (m) form.customerId.value = m[1];
+  // Link từ trang khách hàng: /Orders?customerId=N
+  const fromUrl = new URLSearchParams(location.search).get('customerId');
+  if (fromUrl) form.customerId.value = fromUrl;
 }
 
 function query() {

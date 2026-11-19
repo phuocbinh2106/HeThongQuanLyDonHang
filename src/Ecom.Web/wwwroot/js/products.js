@@ -117,6 +117,18 @@ async function saveDoc() {
   } catch (err) { showError('docMsg', err); }
 }
 
+// ---------- Vai trò người bán: mặc định chỉ xem / thêm sản phẩm của shop mình ----------
+const role = getRole();
+if (role?.kind === 'seller') {
+  document.getElementById('sellerFilter').innerHTML = `
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" name="sellerId" value="${role.id}" id="mine" checked>
+      <label class="form-check-label" for="mine">Chỉ sản phẩm của shop tôi (seller ${role.id})</label>
+    </div>`;
+  NEW_TEMPLATE.seller.sellerId = role.id;
+  document.getElementById('mine').addEventListener('change', loadProducts);
+}
+
 // ---------- Sự kiện ----------
 form.addEventListener('submit', e => { e.preventDefault(); loadProducts(); });
 form.addEventListener('reset', () => setTimeout(() => { loadFacets(); loadProducts(); }, 0));

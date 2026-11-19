@@ -4,6 +4,7 @@ namespace Ecom.Web.Models;
 public class ProductFilter
 {
     public long? CategoryId { get; set; }      // lọc cả danh mục con (CONNECT BY)
+    public long? SellerId { get; set; }        // vai trò người bán: "sản phẩm của tôi"
     public string? Brand { get; set; }         // JSON_VALUE(attributes,'$.brand')
     public decimal? MinRamGb { get; set; }     // JSON_VALUE(attributes,'$.ramGb' RETURNING NUMBER)
     public decimal? MinStorageGb { get; set; } // JSON_VALUE(attributes,'$.storageGb' RETURNING NUMBER)

@@ -31,4 +31,28 @@ public class CustomerRepository(OracleConnectionFactory db, DualityViewStore sto
 
     public Task<string?> UpdateDocAsync(long id, string doc, string user, CancellationToken ct)
         => store.UpdateAsync(DualityView.CUSTOMER_DV, id, doc, user, ct);
+
+    /// <summary>Tạo khách + sổ địa chỉ bằng MỘT tài liệu: INSERT INTO customer_dv (2 bảng, 1 câu lệnh).</summary>
+    public Task<(long Id, string Doc)> InsertDocAsync(string doc, string user, CancellationToken ct)
+        => store.InsertAsync(DualityView.CUSTOMER_DV, doc, user, ct);
+
+    /// <summary>Danh sách người bán (cho màn hình chọn vai trò).</summary>
+    public async Task<List<SellerItem>> SellersAsync(CancellationToken ct)
+    {
+        const string sql = """
+            SELECT s.seller_id, s.shop_name, s.status,
+                   (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.seller_id)
+              FROM sellers s
+             ORDER BY s.seller_id
+            """;
+        await using var conn = await db.OpenAsync(ct: ct);
+        await using var cmd = new OracleCommand(sql, conn);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        var list = new List<SellerItem>();
+        while (await r.ReadAsync(ct))
+            list.Add(new SellerItem(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetInt32(3)));
+        return list;
+    }
 }
+
+public record SellerItem(long Id, string ShopName, string Status, int Products);

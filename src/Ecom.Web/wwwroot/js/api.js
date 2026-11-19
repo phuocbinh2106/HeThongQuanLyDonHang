@@ -60,3 +60,40 @@ function escapeHtml(s) {
 
 // Định dạng tiền VNĐ
 const fmtMoney = n => n == null ? '' : Number(n).toLocaleString('vi-VN') + ' đ';
+
+// =============================================================================
+// VAI TRÒ (M0) – mô phỏng, không đăng nhập thật. Lưu trong cookie "ecom_user":
+//   "customer:3" | "seller:2" | "admin". Server đọc cookie này (HttpContext.CurrentUser) và gửi
+//   xuống Oracle qua CLIENT_IDENTIFIER -> trigger ghi vào order_status_history.changed_by.
+// =============================================================================
+function getRole() {
+  const m = document.cookie.match(/(?:^|;\s*)ecom_user=([^;]+)/);
+  const raw = m ? decodeURIComponent(m[1]) : null;
+  if (!raw) return null;
+  const [kind, id] = raw.split(':');
+  let label = raw;
+  try { label = localStorage.getItem('ecom_user_label') || raw; } catch { /* trình duyệt chặn storage */ }
+  return { raw, kind, id: id ? Number(id) : null, label };
+}
+
+function setRole(raw, label) {
+  document.cookie = `ecom_user=${raw}; path=/; max-age=2592000; samesite=lax`;
+  try { localStorage.setItem('ecom_user_label', label || raw); } catch { /* bỏ qua */ }
+}
+
+function clearRole() {
+  document.cookie = 'ecom_user=; path=/; max-age=0';
+  try { localStorage.removeItem('ecom_user_label'); } catch { /* bỏ qua */ }
+}
+
+// Hiện vai trò hiện tại trên thanh menu
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('roleBadge');
+  if (!el) return;
+  const r = getRole();
+  const icon = { customer: 'Khách hàng', seller: 'Người bán', admin: 'Quản trị' };
+  el.innerHTML = r
+    ? `<span class="badge text-bg-warning">${escapeHtml(icon[r.kind] || r.kind)}</span>
+       <span class="text-white-50 small ms-1">${escapeHtml(r.label)}</span>`
+    : '<span class="badge text-bg-secondary">Chưa chọn vai trò</span>';
+});

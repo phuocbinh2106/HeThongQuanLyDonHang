@@ -1,0 +1,8 @@
+Khách 1: số địa chỉ                            2 (1,2)
+PUT sửa + xoá + thêm địa chỉ                   200 địa chỉ=1,12* phone=0909999999
+PUT bằng ETag cũ                               412 ORA-42699
+Đổi email trùng khách 2                        409 ORA-00001 Trùng giá trị duy nhất (UNIQUE)
+Đơn cũ vẫn giữ địa chỉ chụp lại                ĐÚNG (12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM)
+POST khách mới kèm 2 địa chỉ                   201 _id=11 địa chỉ=2
+Lọc sản phẩm theo người bán 2                  8 sản phẩm, seller=Coolmate
+Danh sách người bán                            1:Samsung Store(7), 2:Coolmate(8), 3:Laptop Pro Shop(11), 4:Mỹ Phẩm Xinh(5), 5:Nhà Sách Tri Thức(5)

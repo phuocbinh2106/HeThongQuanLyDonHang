@@ -8,6 +8,62 @@
     và <strong>bảng quan hệ chuẩn hoá</strong> (phục vụ báo cáo SQL).
 </p>
 
+<!-- M0 – CHỌN VAI TRÒ (mô phỏng, không đăng nhập thật) -->
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><b>Chọn vai trò</b> <span class="text-muted small">— mô phỏng, không cần đăng nhập</span></span>
+        <span class="small">Hiện tại: <b id="currentRole">—</b> <button id="btnClearRole" class="btn btn-sm btn-link p-0 ms-1">bỏ chọn</button></span>
+    </div>
+    <div class="card-body small">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="fw-semibold mb-1">Khách hàng</div>
+                <select id="selCustomer" class="form-select form-select-sm mb-1"></select>
+                <button id="btnCustomer" class="btn btn-sm btn-primary w-100">Vào vai khách hàng</button>
+                <div class="form-text">Tạo đơn, xem "đơn của tôi", sửa sổ địa chỉ.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold mb-1">Người bán</div>
+                <select id="selSeller" class="form-select form-select-sm mb-1"></select>
+                <button id="btnSeller" class="btn btn-sm btn-primary w-100">Vào vai người bán</button>
+                <div class="form-text">Quản lý sản phẩm của shop (thuộc tính JSON, tồn kho), xử lý đơn.</div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold mb-1">Quản trị sàn</div>
+                <div class="text-muted mb-1" style="height: 31px">Xem toàn bộ đơn, báo cáo.</div>
+                <button id="btnAdmin" class="btn btn-sm btn-primary w-100">Vào vai quản trị</button>
+            </div>
+        </div>
+        <div class="form-text mt-2">
+            Vai trò lưu trong cookie <code>ecom_user</code>; API gửi giá trị này xuống Oracle qua
+            <code>CLIENT_IDENTIFIER</code> → trigger ghi vào cột <code>changed_by</code> của lịch sử trạng thái.
+        </div>
+    </div>
+</div>
+
+<!-- LỐI TẮT DEMO CÁC TÌNH HUỐNG KHÓ -->
+<div class="card mb-3">
+    <div class="card-header"><b>Lối tắt demo</b> <span class="text-muted small">— 6 tình huống chỉ giải quyết gọn được bằng Duality View</span></div>
+    <div class="card-body p-0">
+        <table class="table table-sm small mb-0">
+            <tbody>
+                <tr><th class="ps-3">TH-1</th><td>Đọc / ghi cả một đơn bằng một tài liệu JSON, một request</td>
+                    <td><a href="/Orders/Create">Tạo đơn</a> · <a href="/Orders/Details/3">Chi tiết đơn #3</a></td></tr>
+                <tr><th class="ps-3">TH-2</th><td>Cùng dữ liệu cho REST JSON và báo cáo SQL, luôn nhất quán</td>
+                    <td><a href="/Orders/Details/3">Hai tab JSON ↔ bảng</a> · <a href="/Reports">Báo cáo</a></td></tr>
+                <tr><th class="ps-3">TH-3</th><td>Ghi tài liệu nhiều dòng là một giao dịch: một dòng hết hàng → cả đơn huỷ</td>
+                    <td><a href="/Orders/Create">Tạo đơn với SL 999</a></td></tr>
+                <tr><th class="ps-3">TH-4</th><td>Client không tự quyết giá, tổng tiền, trạng thái sai thứ tự</td>
+                    <td><a href="/Orders/Create">Chế độ thử TC-02</a> · <a href="/Orders/Details/53">Thử chuyển sai</a></td></tr>
+                <tr><th class="ps-3">TH-5</th><td>Hai người cùng sửa → ETag chặn ghi đè (412); không bán vượt tồn</td>
+                    <td><a href="/Orders/Details/60" target="_blank">Mở đơn #60 tab 1</a> · <a href="/Orders/Details/60" target="_blank">tab 2</a></td></tr>
+                <tr><th class="ps-3">TH-6</th><td>Thuộc tính sản phẩm linh hoạt theo ngành hàng (JSON + JSON Schema + chỉ mục)</td>
+                    <td><a href="/Products">Sản phẩm</a></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Kiểm tra kết nối: Giao diện → API → Oracle</span>
@@ -50,5 +106,31 @@
     }
     document.getElementById('btnHealth').addEventListener('click', checkHealth);
     checkHealth();
+
+    // ---------- M0: chọn vai trò ----------
+    const sel = id => document.getElementById(id);
+    async function loadRoles() {
+        const [{ data: cs }, { data: ss }] = await Promise.all([api('/api/customers'), api('/api/sellers')]);
+        sel('selCustomer').innerHTML = cs.map(c =>
+            `<option value="${c.id}">#${c.id} – ${escapeHtml(c.fullName)}${c.status !== 'ACTIVE' ? ' [' + c.status + ']' : ''}</option>`).join('');
+        sel('selSeller').innerHTML = ss.map(s =>
+            `<option value="${s.id}">#${s.id} – ${escapeHtml(s.shopName)} (${s.products} SP)</option>`).join('');
+        const r = getRole();
+        sel('currentRole').textContent = r ? r.label : 'chưa chọn';
+        if (r?.kind === 'customer') sel('selCustomer').value = r.id;
+        if (r?.kind === 'seller') sel('selSeller').value = r.id;
+    }
+    const pick = (raw, label, go) => { setRole(raw, label); location.href = go; };
+    sel('btnCustomer').addEventListener('click', () => {
+        const o = sel('selCustomer').selectedOptions[0];
+        pick(`customer:${o.value}`, o.text, '/Orders');
+    });
+    sel('btnSeller').addEventListener('click', () => {
+        const o = sel('selSeller').selectedOptions[0];
+        pick(`seller:${o.value}`, o.text, '/Products');
+    });
+    sel('btnAdmin').addEventListener('click', () => pick('admin', 'Quản trị sàn', '/Orders'));
+    sel('btnClearRole').addEventListener('click', () => { clearRole(); location.reload(); });
+    loadRoles().catch(err => showError('healthMsg', err));
 </script>
 }

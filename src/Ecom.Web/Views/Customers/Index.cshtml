@@ -1,0 +1,65 @@
+@{
+    ViewData["Title"] = "Khách hàng";
+}
+
+<h1 class="h3">Khách hàng</h1>
+<p class="text-muted small">
+    Hồ sơ và sổ địa chỉ của một khách là <strong>một tài liệu</strong> <code>CUSTOMER_DV</code>
+    (bảng <code>customers</code> + <code>customer_addresses</code>). Thêm / sửa / xoá địa chỉ = sửa mảng
+    <code>addresses[]</code> rồi gửi cả tài liệu bằng <code>PUT</code> kèm ETag.
+</p>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="d-flex gap-1 mb-2">
+            <input id="search" class="form-control form-control-sm" placeholder="Tìm tên / email..." />
+            <button id="btnNew" class="btn btn-sm btn-outline-success text-nowrap">+ Khách mới</button>
+        </div>
+        <div id="custList" class="list-group small" style="max-height: 600px; overflow-y: auto;"></div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span id="docTitle">Chọn một khách bên trái</span>
+                <span class="small">ETag: <code id="etag">—</code></span>
+            </div>
+            <div class="card-body small">
+                <div id="msg"></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-5"><label class="form-label mb-0">Họ tên</label><input id="fullName" class="form-control form-control-sm" /></div>
+                    <div class="col-md-4"><label class="form-label mb-0">Email (UNIQUE)</label><input id="email" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label mb-0">Điện thoại</label><input id="phone" class="form-control form-control-sm" /></div>
+                    <div class="col-md-3"><label class="form-label mb-0">Trạng thái</label>
+                        <select id="status" class="form-select form-select-sm"><option>ACTIVE</option><option>LOCKED</option></select></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">Sổ địa chỉ – <code>addresses[]</code></div>
+                    <button id="btnAddAddr" class="btn btn-sm btn-outline-secondary">+ Thêm địa chỉ</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>ID</th><th>Người nhận</th><th>Điện thoại</th><th>Địa chỉ</th><th>Phường</th><th>Quận</th><th>Tỉnh/TP</th><th>Mặc định</th><th></th></tr></thead>
+                        <tbody id="addrRows"></tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button id="btnSave" class="btn btn-sm btn-primary">Lưu tài liệu</button>
+                    <button id="btnReload" class="btn btn-sm btn-outline-secondary">Tải lại (GET)</button>
+                    <a id="lnkOrders" class="btn btn-sm btn-link" href="#">Xem đơn của khách →</a>
+                </div>
+                <div class="form-text">
+                    Đơn hàng lưu <b>bản chụp</b> địa chỉ (orders.ship_*), không trỏ tới sổ địa chỉ → sửa / xoá địa chỉ ở đây
+                    không làm đổi đơn cũ. Email trùng khách khác → 409 (ORA-00001). Hai tab cùng sửa → tab sau 412.
+                </div>
+                <details class="mt-2"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light p-2 mb-0"></pre></details>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/customers.js" asp-append-version="true"></script>
+}

@@ -40,4 +40,20 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
         Response.Headers.ETag = DocEtag.FromDoc(updated);
         return Content(updated, "application/json");
     }
+
+    /// <summary>POST /api/customers: tạo khách kèm addresses[] bằng một tài liệu CUSTOMER_DV.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] JsonObject doc, CancellationToken ct)
+    {
+        doc.Remove("_id");
+        doc.Remove("_metadata");
+        var (id, created) = await repo.InsertDocAsync(doc.ToJsonString(), HttpContext.CurrentUser(), ct);
+        Response.Headers.ETag = DocEtag.FromDoc(created);
+        Response.Headers.Location = $"/api/customers/{id}";
+        return new ContentResult { StatusCode = 201, Content = created, ContentType = "application/json" };
+    }
+
+    /// <summary>GET /api/sellers: danh sách người bán (màn hình chọn vai trò).</summary>
+    [HttpGet("/api/sellers")]
+    public async Task<IActionResult> Sellers(CancellationToken ct) => Ok(await repo.SellersAsync(ct));
 }

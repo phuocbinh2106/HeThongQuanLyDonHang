@@ -28,6 +28,11 @@ public class ProductRepository(OracleConnectionFactory db, DualityViewStore stor
                       "START WITH category_id = :cat CONNECT BY PRIOR category_id = parent_id)");
             binds.Add(new OracleParameter("cat", f.CategoryId));
         }
+        if (f.SellerId is not null)
+        {
+            where.Add("p.seller_id = :seller");
+            binds.Add(new OracleParameter("seller", f.SellerId));
+        }
         if (!string.IsNullOrWhiteSpace(f.Brand))
         {
             // ĐÚNG biểu thức của chỉ mục hàm IX-6 để optimizer dùng được chỉ mục
