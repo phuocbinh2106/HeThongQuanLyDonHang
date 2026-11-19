@@ -1,0 +1,12 @@
+# Mặc định để Git tự chuẩn hoá xuống dòng
+* text=auto
+# Script SQL chạy bằng SQL*Plus trong container Linux: luôn giữ LF
+# (CRLF làm dòng "/" thành "/\r", SQL*Plus không nhận là kết thúc khối PL/SQL)
+*.sql text eol=lf
+*.sh  text eol=lf
+*.yml text eol=lf
+# Tệp nhị phân
+*.pdf  binary
+*.docx binary
+*.png  binary
+*.jpg  binary
