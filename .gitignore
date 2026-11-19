@@ -1,0 +1,30 @@
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.rsuser
+.vs/
+TestResults/
+*.log
+
+# ---- VS Code ----
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ---- Bí mật / cấu hình máy cá nhân (KHÔNG commit) ----
+.env
+appsettings.Development.json
+appsettings.Local.json
+
+# ---- Tệp tạm ----
+sql/_run*.sql
+sql/_backup/
+~$*
+*.tmp
+Thumbs.db
+.DS_Store
