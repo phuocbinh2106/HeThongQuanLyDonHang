@@ -253,12 +253,23 @@ BEGIN
       VALUES (l_order_id, 6 + MOD(i * 7 + j * 11, 29), MOD(i + j, 2) + 1);
     END LOOP;
 
+    -- Thanh toán: trả trước (chuyển khoản / ví / thẻ) ghi ngay khi xác nhận đơn; COD ghi khi giao xong.
+    -- Đơn bị huỷ / trả hàng sau khi đã trả tiền sẽ được trigger tự hoàn tiền (BR-12: PAID -> REFUNDED).
+    l_method := CASE MOD(i, 4) WHEN 0 THEN 'COD' WHEN 1 THEN 'BANK_TRANSFER'
+                               WHEN 2 THEN 'E_WALLET' ELSE 'CARD' END;
+    SELECT total_amount INTO l_total FROM orders WHERE order_id = l_order_id;
+
     -- Chạy qua các trạng thái bằng procedure nghiệp vụ
     FOR s IN 1 .. l_path.COUNT LOOP
       pkg_order.sp_change_status(l_order_id, l_path(s),
         CASE WHEN l_path(s) = 'CANCELLED' THEN 'customer' ELSE 'seller' END,
         CASE WHEN l_path(s) = 'CANCELLED' THEN N'Khách đổi ý'
              WHEN l_path(s) = 'RETURNED'  THEN N'Hàng lỗi, khách trả lại' END);
+
+      IF (l_path(s) = 'CONFIRMED' AND l_method <> 'COD')
+         OR (l_path(s) = 'DELIVERED' AND l_method = 'COD') THEN
+        pkg_order.sp_record_payment(l_order_id, l_method, l_total, 'TXN' || LPAD(l_order_id, 8, '0'));
+      END IF;
 
       -- Đơn chuyển sang SHIPPING thì có vận đơn
       IF l_path(s) = 'SHIPPING' THEN
@@ -273,18 +284,6 @@ BEGIN
          WHERE order_id = l_order_id;
       END IF;
     END LOOP;
-
-    -- Thanh toán: COD trả khi nhận hàng; các phương thức khác trả trước khi giao
-    l_method := CASE MOD(i, 4) WHEN 0 THEN 'COD' WHEN 1 THEN 'BANK_TRANSFER'
-                               WHEN 2 THEN 'E_WALLET' ELSE 'CARD' END;
-    SELECT total_amount INTO l_total FROM orders WHERE order_id = l_order_id;
-    IF l_target IN ('DELIVERED','RETURNED')
-       OR (l_target IN ('CONFIRMED','PACKING','SHIPPING') AND l_method <> 'COD') THEN
-      pkg_order.sp_record_payment(l_order_id, l_method, l_total, 'TXN' || LPAD(l_order_id, 8, '0'));
-    END IF;
-    IF l_target = 'RETURNED' THEN
-      UPDATE payments SET status = 'REFUNDED' WHERE order_id = l_order_id;
-    END IF;
 
     -- Lùi ngày: đơn 1 cách đây ~244 ngày, đơn 60 cách đây 2 ngày (mỗi đơn cách nhau 4 ngày)
     l_date := CAST(TRUNC(SYSDATE) AS TIMESTAMP)

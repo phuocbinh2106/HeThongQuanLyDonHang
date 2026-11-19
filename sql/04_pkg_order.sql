@@ -37,6 +37,7 @@ CREATE OR REPLACE PACKAGE pkg_order AS
   PROCEDURE sp_reserve_stock(p_product_id NUMBER, p_qty NUMBER, p_price OUT NUMBER);
   PROCEDURE sp_release_stock(p_product_id NUMBER, p_qty NUMBER);
   PROCEDURE sp_release_order_stock(p_order_id NUMBER);
+  PROCEDURE sp_refund_order_payments(p_order_id NUMBER);
   PROCEDURE sp_recalc_totals(p_order_id NUMBER);
   PROCEDURE sp_change_status(p_order_id NUMBER, p_new_status VARCHAR2,
                              p_user VARCHAR2, p_note VARCHAR2 DEFAULT NULL);
@@ -124,6 +125,18 @@ CREATE OR REPLACE PACKAGE BODY pkg_order AS
       sp_release_stock(r.product_id, r.quantity);
     END LOOP;
   END sp_release_order_stock;
+
+  -- BR-12: đơn bị huỷ / trả hàng thì mọi khoản đã thanh toán (PAID) chuyển sang REFUNDED.
+  -- Được gọi từ trigger trg_ord_audit_aiu (cùng chỗ với hoàn kho), nên đúng cho mọi kênh đổi
+  -- trạng thái. Lưu ý: chạy BÊN TRONG trigger dòng của orders (orders đang "mutating") ->
+  -- trigger trg_pay_check phải bỏ qua dòng không còn PAID, nếu không sẽ đọc orders -> ORA-04091.
+  PROCEDURE sp_refund_order_payments(p_order_id NUMBER) IS
+  BEGIN
+    UPDATE payments
+       SET status = 'REFUNDED'
+     WHERE order_id = p_order_id
+       AND status = 'PAID';
+  END sp_refund_order_payments;
 
   PROCEDURE sp_recalc_totals(p_order_id IN NUMBER) IS
     l_sub  orders.subtotal%TYPE;

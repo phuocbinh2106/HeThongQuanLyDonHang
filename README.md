@@ -133,7 +133,7 @@ Oracle 23ai – PDB ecom – schema ecom_schema
 | M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
 | M5 | Xử lý đơn (khu "Xử lý đơn" trên trang chi tiết): đổi trạng thái (nút hợp lệ do CSDL tính + ô "thử chuyển sai"), huỷ, ghi thanh toán qua **procedure hoặc payments[]**, sửa địa chỉ/dòng hàng, thêm vận đơn | `PUT /api/orders/{id}` (If-Match), `GET .../next-statuses`, `POST .../status`, `POST .../cancel`, `POST .../payments` | Đường JSON: `UPDATE order_dv`; đường quan hệ: `pkg_order.sp_change_status`, `sp_cancel_order`, `sp_record_payment`; `fn_is_valid_transition` gọi trong SQL (BOOLEAN 23ai) |
 
-Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng khi đã khoá → 409), TC-07 (huỷ → hoàn kho;
+Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng khi đã khoá → 409), TC-07 (huỷ → hoàn kho, khoản đã trả chuyển REFUNDED – TC-16;
 huỷ đơn SHIPPING → 422), TC-08 (vượt tổng → 422 ở cả hai kênh), **TC-09 (mở đơn ở hai tab, tab lưu sau → 412)**.
 Đổi `status` bằng cách ghi tài liệu → 422 (ORA-40940, trạng thái chỉ đổi qua procedure).
 

@@ -59,8 +59,10 @@ BEGIN
       (order_id, old_status, new_status, changed_by, note)
     VALUES (:NEW.order_id, :OLD.status, :NEW.status,
             pkg_order.fn_current_user, pkg_order_ctx.g_note);
+    -- BR-10 + BR-12: huỷ / trả hàng -> hoàn tồn kho và hoàn tiền các khoản đã thanh toán
     IF :NEW.status IN ('CANCELLED', 'RETURNED') THEN
       pkg_order.sp_release_order_stock(:NEW.order_id);
+      pkg_order.sp_refund_order_payments(:NEW.order_id);
     END IF;
   END IF;
 END trg_ord_audit_aiu;
@@ -136,9 +138,16 @@ COMPOUND TRIGGER
   TYPE t_ids IS TABLE OF NUMBER INDEX BY VARCHAR2(20);
   g_orders t_ids;
 
+  -- Chỉ ghi nhận đơn có dòng thanh toán ĐANG ở trạng thái PAID: chỉ khi đó tổng đã trả mới có thể
+  -- tăng và vượt total_amount. Dòng chuyển sang REFUNDED/FAILED chỉ làm tổng đã trả giảm -> không
+  -- cần kiểm tra. Điều này cũng tránh ORA-04091: khi huỷ đơn, trigger của orders gọi
+  -- sp_refund_order_payments (UPDATE payments) trong lúc bảng orders đang "mutating"; nếu ở đây
+  -- vẫn SELECT ... FROM orders thì sẽ lỗi.
   AFTER EACH ROW IS
   BEGIN
-    g_orders(TO_CHAR(:NEW.order_id)) := :NEW.order_id;
+    IF :NEW.status = 'PAID' THEN
+      g_orders(TO_CHAR(:NEW.order_id)) := :NEW.order_id;
+    END IF;
   END AFTER EACH ROW;
 
   AFTER STATEMENT IS

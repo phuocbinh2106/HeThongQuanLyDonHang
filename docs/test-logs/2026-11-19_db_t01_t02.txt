@@ -27,8 +27,8 @@ ORDER_DOC
   "_id" : 61,
   "_metadata" :
   {
-    "etag" : "3D5E9DAA8A054D158458D2DADA58F149",
-    "asof" : "0000000001419D33"
+    "etag" : "4017C766E4FC0545E12DA363A2F7BEF8",
+    "asof" : "000000000141B4C3"
   },
   "shipments" :
   [
@@ -74,19 +74,19 @@ ORDER_DOC
       "historyId" : 261,
       "oldStatus" : null,
       "newStatus" : "PENDING",
-      "changedAt" : "2026-11-19T13:42:57.556189",
+      "changedAt" : "2026-11-19T13:45:56.349463",
       "changedBy" : "ECOM_SCHEMA"
     },
     {
       "historyId" : 263,
       "oldStatus" : "PENDING",
       "newStatus" : "CONFIRMED",
-      "changedAt" : "2026-11-19T13:42:57.601289",
+      "changedAt" : "2026-11-19T13:45:56.440307",
       "changedBy" : "tester"
     }
   ],
   "status" : "CONFIRMED",
-  "orderDate" : "2026-11-19T13:42:57.555880",
+  "orderDate" : "2026-11-19T13:45:56.349102",
   "shipPhone" : "0900000001"
 }
 
@@ -131,6 +131,10 @@ TC-13 PASS (SQL chặn=có, JSON chặn=có)
 PL/SQL procedure successfully completed.
 
 TC-15 PASS (subtotal=14250000; tồn SP2 19->17, SP3 47->48, SP12 197->195; đổi trạng thái qua JSON bị chặn ORA-40940)
+
+PL/SQL procedure successfully completed.
+
+TC-16 PASS (huỷ: PAID->REFUNDED; trả hàng: PAID->REFUNDED; tồn SP3 48 -> 48)
 
 PL/SQL procedure successfully completed.
 

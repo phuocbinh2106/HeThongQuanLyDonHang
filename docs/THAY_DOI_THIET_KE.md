@@ -87,6 +87,28 @@ không gây ORA-04068. Trigger và seed đổi `pkg_order.g_*` thành `pkg_order
 reset khi web đang chạy rồi chạy ngay `tests/api_order_lifecycle.mjs` → không còn ORA-04068.
 (Cài lại TOÀN BỘ bằng `install` thì vẫn nên khởi động lại web, vì package bị xoá hẳn.)
 
+## 2d. Quy tắc mới BR-12: huỷ / trả hàng thì tự hoàn tiền
+
+**Vấn đề:** bản đầu chỉ hoàn **tồn kho** khi đơn sang CANCELLED/RETURNED; khoản đã thanh toán vẫn
+`PAID` → đơn huỷ mà vẫn ghi nhận khách đã trả tiền.
+
+**Bổ sung:**
+| Mã | Quy tắc | Cơ chế |
+|---|---|---|
+| BR-12 | Đơn sang CANCELLED / RETURNED thì mọi thanh toán `PAID` của đơn chuyển `REFUNDED` | `pkg_order.sp_refund_order_payments`, gọi trong `trg_ord_audit_aiu` ngay sau hoàn kho |
+
+**Điểm kỹ thuật (để vấn đáp):** `UPDATE payments` này chạy **bên trong trigger dòng của `orders`**
+→ bảng `orders` đang "mutating". Compound trigger `trg_pay_check` (kiểm tra tổng PAID ≤ tổng đơn) ở
+bản đầu ghi nhận MỌI dòng payments bị sửa rồi `SELECT ... FROM orders` ở AFTER STATEMENT → sẽ lỗi
+**ORA-04091 (mutating table)**. Sửa: `trg_pay_check` chỉ ghi nhận dòng có `:NEW.status = 'PAID'`.
+Đúng cả về nghiệp vụ: chỉ khi một dòng đang PAID thì tổng đã trả mới có thể vượt tổng đơn; chuyển
+sang REFUNDED chỉ làm tổng giảm, không cần kiểm tra.
+
+**Dữ liệu mẫu:** thanh toán trả trước được ghi lúc CONFIRMED, COD ghi lúc DELIVERED (bản đầu ghi sau
+cùng rồi tự UPDATE REFUNDED cho đơn trả hàng). Sau khi seed: 5 đơn huỷ sau khi đã trả trước và 5 đơn
+trả hàng đều có thanh toán REFUNDED — do trigger sinh ra, không sửa tay.
+Kiểm thử: **TC-16**.
+
 ## 3. Báo cáo `PKG_ORDER_RPT` viết lại theo đúng đặc tả R1–R5
 
 Trong CSDL cũ có sẵn một `PKG_ORDER_RPT` (không có file nguồn trong `sql/`) với R1 theo ngày,
@@ -143,6 +165,6 @@ toán (kể cả REFUNDED), vận đơn, lịch sử.
 
 ## 7. Kết quả kiểm thử mức CSDL (chạy thật)
 
-Log đầy đủ: `docs/test-logs/2026-11-19_db_t01_t02.txt`. Tóm tắt: **13/13 PASS**
-(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15). TC-10 (đồng thời) và TC-14 (execution plan)
+Log đầy đủ: `docs/test-logs/2026-11-19_db_t01_t02.txt`. Tóm tắt: **14/14 PASS**
+(TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15, 16). TC-10 (đồng thời) và TC-14 (execution plan)
 sẽ làm ở bước ứng dụng / tối ưu.

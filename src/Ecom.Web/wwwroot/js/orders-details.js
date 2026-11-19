@@ -169,7 +169,7 @@ async function postAction(path, body, okText) {
 $('nextButtons').addEventListener('click', e => {
   const s = e.target.dataset.status; if (!s) return;
   const note = $('statusNote').value || null;
-  if (s === 'CANCELLED') postAction('cancel', { reason: note }, 'Đã huỷ đơn (hoàn tồn kho)');
+  if (s === 'CANCELLED') postAction('cancel', { reason: note }, 'Đã huỷ đơn (hoàn tồn kho; khoản đã trả chuyển REFUNDED)');
   else postAction('status', { status: s, note }, `Đã chuyển sang ${s}`);
 });
 $('btnAnyStatus').addEventListener('click', () =>

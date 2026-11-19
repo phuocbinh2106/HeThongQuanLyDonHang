@@ -1,5 +1,5 @@
 -- ==============================================================================
--- T02_TEST_CASES: các kịch bản kiểm thử nghiệp vụ lõi ở mức CSDL (TC-02 .. TC-13, TC-15).
+-- T02_TEST_CASES: các kịch bản kiểm thử nghiệp vụ lõi ở mức CSDL (TC-02 .. TC-13, TC-15, TC-16).
 -- (TC-01, 03, 05 nằm trong t01; TC-10 cần nhiều kết nối đồng thời -> làm ở ứng dụng;
 --  TC-14 đo bằng execution plan -> toi_uu_Q1_Q3.sql.)
 -- Chạy SAU 08_seed.sql. Mỗi khối tự kiểm tra, in PASS/FAIL rồi ROLLBACK
@@ -318,6 +318,55 @@ BEGIN
   ROLLBACK;
 EXCEPTION WHEN OTHERS THEN
   DBMS_OUTPUT.PUT_LINE('TC-15 FAIL: ' || SUBSTR(SQLERRM, 1, 200));
+  ROLLBACK;
+END;
+/
+
+-- TC-16 (BR-12): huỷ đơn ĐÃ thanh toán -> thanh toán PAID chuyển REFUNDED, tồn kho được hoàn;
+-- tương tự với đơn đã giao rồi trả hàng (RETURNED).
+DECLARE
+  l_a NUMBER; l_b NUMBER; l_total NUMBER; s_before NUMBER; s_after NUMBER;
+  l_paid_a NUMBER; l_ref_a NUMBER; l_paid_b NUMBER; l_ref_b NUMBER;
+BEGIN
+  SELECT stock_qty INTO s_before FROM products WHERE product_id = 3;
+
+  -- (a) CONFIRMED + đã trả tiền -> huỷ
+  INSERT INTO order_dv VALUES ('{"customer":{"customerId":2},"shipReceiver":"TC-16a","shipPhone":"1",
+    "shipAddress":"x","items":[{"productId":3,"quantity":2}]}')
+  RETURNING JSON_VALUE(data, '$._id' RETURNING NUMBER) INTO l_a;
+  pkg_order.sp_change_status(l_a, 'CONFIRMED', 'tester');
+  SELECT total_amount INTO l_total FROM orders WHERE order_id = l_a;
+  pkg_order.sp_record_payment(l_a, 'CARD', l_total);
+  pkg_order.sp_cancel_order(l_a, 'Khách đổi ý', 'tester');
+
+  -- (b) đã giao, đã trả tiền -> khách trả hàng
+  INSERT INTO order_dv VALUES ('{"customer":{"customerId":2},"shipReceiver":"TC-16b","shipPhone":"1",
+    "shipAddress":"x","items":[{"productId":3,"quantity":1}]}')
+  RETURNING JSON_VALUE(data, '$._id' RETURNING NUMBER) INTO l_b;
+  pkg_order.sp_change_status(l_b, 'CONFIRMED', 'tester');
+  SELECT total_amount INTO l_total FROM orders WHERE order_id = l_b;
+  pkg_order.sp_record_payment(l_b, 'E_WALLET', l_total);
+  pkg_order.sp_change_status(l_b, 'PACKING',   'tester');
+  pkg_order.sp_change_status(l_b, 'SHIPPING',  'tester');
+  pkg_order.sp_change_status(l_b, 'DELIVERED', 'tester');
+  pkg_order.sp_change_status(l_b, 'RETURNED',  'tester', 'Hàng lỗi');
+
+  SELECT COUNT(CASE WHEN status = 'PAID' THEN 1 END), COUNT(CASE WHEN status = 'REFUNDED' THEN 1 END)
+    INTO l_paid_a, l_ref_a FROM payments WHERE order_id = l_a;
+  SELECT COUNT(CASE WHEN status = 'PAID' THEN 1 END), COUNT(CASE WHEN status = 'REFUNDED' THEN 1 END)
+    INTO l_paid_b, l_ref_b FROM payments WHERE order_id = l_b;
+  SELECT stock_qty INTO s_after FROM products WHERE product_id = 3;
+
+  IF l_paid_a = 0 AND l_ref_a = 1 AND l_paid_b = 0 AND l_ref_b = 1 AND s_after = s_before THEN
+    DBMS_OUTPUT.PUT_LINE('TC-16 PASS (huỷ: PAID->REFUNDED; trả hàng: PAID->REFUNDED; tồn SP3 '
+                         || s_before || ' -> ' || s_after || ')');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('TC-16 FAIL a=' || l_paid_a || '/' || l_ref_a || ' b=' || l_paid_b || '/' || l_ref_b
+                         || ' stock ' || s_before || '->' || s_after);
+  END IF;
+  ROLLBACK;
+EXCEPTION WHEN OTHERS THEN
+  DBMS_OUTPUT.PUT_LINE('TC-16 FAIL: ' || SUBSTR(SQLERRM, 1, 200));
   ROLLBACK;
 END;
 /
