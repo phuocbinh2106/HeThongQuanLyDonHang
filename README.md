@@ -144,18 +144,25 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
 - Lệnh tạo đơn / sản phẩm / khách có sẵn **ví dụ tài liệu JSON**, bấm *Try it out → Execute* là chạy.
 - Phần mô tả có bảng ánh xạ mã lỗi Oracle → HTTP.
 
+### Tìm khách hàng phía server
+
+Không màn hình nào tải danh sách **tất cả** khách: các ô chọn khách (lọc đơn của quản trị, tạo đơn, chọn vai trò) là ô
+"gõ để gợi ý" (`customerPicker` trong `wwwroot/js/shopia.js`), mỗi lần gõ gọi `GET /api/customers?q=...&limit=8`;
+trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
+`OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
+
 ### Màn hình và API đã có
 
 | Mã | Màn hình | API | CSDL |
 |---|---|---|---|
-| M0 | Trang chủ: **chọn vai trò** (khách hàng / người bán / quản trị – mô phỏng), lối tắt demo TH-1..TH-6, kiểm tra kết nối | `GET /api/system/health`, `GET /api/sellers`, `GET /api/customers` | Vai trò (cookie `ecom_user`) → `CLIENT_IDENTIFIER` → trigger ghi `changed_by`; khách: tự lọc "đơn của tôi"; người bán: tự lọc sản phẩm của shop |
+| M0 | Trang chủ: **chọn vai trò** (khách hàng / người bán / quản trị – mô phỏng), lối tắt demo TH-1..TH-6, kiểm tra kết nối | `GET /api/system/health`, `GET /api/sellers`, `GET /api/customers?q=&limit=` | Vai trò (cookie `ecom_user`) → `CLIENT_IDENTIFIER` → trigger ghi `changed_by`; khách: tự lọc "đơn của tôi"; người bán: tự lọc sản phẩm của shop |
 | M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
-| M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
+| M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers?q=&limit=`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
 | M3 | Danh sách đơn (`/Orders`): lọc theo khách ("Đơn của tôi"), trạng thái (nút lọc nhanh có số đếm), khoảng ngày, số đơn; phân trang 20 đơn | `GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize=` | Bảng quan hệ `orders` (không qua Duality View); lọc theo khách có đúng dạng truy vấn **Q1** (`WHERE customer_id = :cust ORDER BY order_date DESC FETCH NEXT 20`) để đo tối ưu với chỉ mục IX-1 |
 | M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
 | M5 | Xử lý đơn (khu "Xử lý đơn" trên trang chi tiết): đổi trạng thái (nút hợp lệ do CSDL tính + ô "thử chuyển sai"), huỷ, ghi thanh toán qua **procedure hoặc payments[]**, sửa địa chỉ/dòng hàng, thêm vận đơn | `PUT /api/orders/{id}` (If-Match), `GET .../next-statuses`, `POST .../status`, `POST .../cancel`, `POST .../payments` | Đường JSON: `UPDATE order_dv`; đường quan hệ: `pkg_order.sp_change_status`, `sp_cancel_order`, `sp_record_payment`; `fn_is_valid_transition` gọi trong SQL (BOOLEAN 23ai) |
 | M6 | Báo cáo (`/Reports`): R1 doanh thu tháng + luỹ kế + tăng trưởng, R2 người bán × danh mục có tổng phụ, R3 top N mỗi danh mục, R4 ma trận tháng × trạng thái, R5 tỉ lệ huỷ/trả, R6 doanh thu theo thương hiệu (JSON); bảng + biểu đồ CSS; xem mã PL/SQL từ `USER_SOURCE` | `GET /api/reports/{r1..r6}?from=&to=&top=&months=`, `GET /api/reports/{code}/source` | `PKG_ORDER_RPT` trả `SYS_REFCURSOR` (ODP.NET `OracleRefCursor`); `SUM() OVER`, `LAG`, `ROLLUP`, `DENSE_RANK`, `PIVOT`, `JSON_VALUE`; tham số sai → 422 (ORA-20010) |
-| M7 | Khách hàng (`/Customers`): hồ sơ + sổ địa chỉ là một tài liệu; thêm / sửa / xoá địa chỉ, đổi mặc định rồi lưu một lần; tạo khách mới kèm địa chỉ | `GET/PUT /api/customers/{id}` (If-Match), `POST /api/customers` | `CUSTOMER_DV` (customers + customer_addresses): một câu UPDATE thực hiện cả INSERT/UPDATE/DELETE địa chỉ; email trùng → 409 (ORA-00001) |
+| M7 | Khách hàng (`/Customers`): hồ sơ + sổ địa chỉ là một tài liệu; thêm / sửa / xoá địa chỉ, đổi mặc định rồi lưu một lần; tạo khách mới kèm địa chỉ | `GET /api/customers?q=&limit=&offset=`, `GET/PUT /api/customers/{id}` (If-Match), `POST /api/customers` | `CUSTOMER_DV` (customers + customer_addresses): một câu UPDATE thực hiện cả INSERT/UPDATE/DELETE địa chỉ; email trùng → 409 (ORA-00001) |
 
 Minh hoạ ở M5: TC-05 (sai trạng thái → 422), TC-06 (sửa dòng hàng khi đã khoá → 409), TC-07 (huỷ → hoàn kho, khoản đã trả chuyển REFUNDED – TC-16;
 huỷ đơn SHIPPING → 422), TC-08 (vượt tổng → 422 ở cả hai kênh), **TC-09 (mở đơn ở hai tab, tab lưu sau → 412)**.

@@ -20,7 +20,10 @@
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
                 <label class="form-label mb-0 small">Khách hàng</label>
-                <select name="customerId" class="form-select form-select-sm"><option value="">— tất cả khách —</option></select>
+                <div class="cust-picker" id="custPicker">
+                    <input type="text" class="form-control form-control-sm" placeholder="Tất cả khách – gõ tên, email, SĐT hoặc mã KH…" autocomplete="off" />
+                    <input type="hidden" name="customerId" />
+                </div>
             </div>
             <div class="col-md-2">
                 <label class="form-label mb-0 small">Từ ngày</label>

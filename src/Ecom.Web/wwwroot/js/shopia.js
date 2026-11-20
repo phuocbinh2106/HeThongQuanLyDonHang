@@ -135,3 +135,105 @@ function highlightJson(text) {
 
 // Chữ cái đầu để làm avatar
 const initials = name => String(name || '?').trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase();
+
+// =============================================================================
+// Ô "gõ để tìm khách" (autocomplete) – thay cho dropdown chứa TẤT CẢ khách.
+// Mỗi lần gõ (chờ 250 ms) gọi GET /api/customers?q=...&limit=8: CSDL lọc và cắt trang, trình duyệt
+// chỉ nhận tối đa 8 dòng dù bảng có hàng nghìn khách.
+//   el        : phần tử <div class="cust-picker"> chứa <input type="text"> và <input type="hidden">
+//   onChange  : gọi khi chọn / xoá khách, tham số (id | null, item | null)
+// Trả về { set(id), clear(), get value() }.
+// =============================================================================
+function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 } = {}) {
+  const input = el.querySelector('input[type=text]');
+  const hidden = el.querySelector('input[type=hidden]');
+  const menu = document.createElement('div');
+  menu.className = 'cp-menu'; menu.hidden = true;
+  el.appendChild(menu);
+  let clearBtn = null;
+  if (allowClear) {
+    clearBtn = document.createElement('button');
+    clearBtn.type = 'button'; clearBtn.className = 'cp-clear'; clearBtn.title = 'Bỏ chọn'; clearBtn.innerHTML = '&times;';
+    el.appendChild(clearBtn);
+  }
+  let items = [], active = -1, timer = null, seq = 0;
+  let currentLabel = '';   // nhãn của khách đang chọn (để trả lại khi người dùng gõ dở rồi bỏ đi)
+
+  const label = c => `#${c.id} – ${c.fullName}`;
+  const sync = () => { if (clearBtn) clearBtn.hidden = !hidden.value; el.classList.toggle('has-value', !!hidden.value); };
+
+  function render(total, q) {
+    if (!items.length) {
+      menu.innerHTML = `<div class="cp-empty">Không có khách khớp “${escapeHtml(q)}”</div>`;
+    } else {
+      menu.innerHTML = items.map((c, i) => `
+        <div class="cp-item ${i === active ? 'active' : ''}" data-i="${i}">
+          <span class="avatar ${c.status !== 'ACTIVE' ? 'muted' : ''}">${escapeHtml(initials(c.fullName))}</span>
+          <div class="cp-text"><b>#${c.id} ${escapeHtml(c.fullName)}</b>
+            ${c.status !== 'ACTIVE' ? `<span class="badge text-bg-danger ms-1">${escapeHtml(c.status)}</span>` : ''}
+            <small>${escapeHtml(c.email)}${c.phone ? ' · ' + escapeHtml(c.phone) : ''} · ${c.orders} đơn</small></div>
+        </div>`).join('') +
+        `<div class="cp-foot">Hiển thị ${items.length} / ${total} khách${total > items.length ? ' – gõ thêm để thu hẹp' : ''}</div>`;
+    }
+    menu.hidden = false;
+  }
+
+  async function search() {
+    const q = input.value.trim();
+    const my = ++seq;   // bỏ kết quả của request cũ nếu người dùng đã gõ tiếp
+    try {
+      const { data } = await api(`/api/customers?limit=${limit}` + (q ? `&q=${encodeURIComponent(q)}` : ''));
+      if (my !== seq) return;
+      items = data.items; active = items.length ? 0 : -1;
+      render(data.total, q);
+    } catch (err) {
+      menu.innerHTML = `<div class="cp-empty text-danger">${escapeHtml(err.message)}</div>`; menu.hidden = false;
+    }
+  }
+
+  function choose(c) {
+    hidden.value = c.id; input.value = currentLabel = label(c); menu.hidden = true; sync();
+    onChange(c.id, c);
+  }
+  function clear(fire = true) {
+    hidden.value = ''; input.value = currentLabel = ''; menu.hidden = true; sync();
+    if (fire) onChange(null, null);
+  }
+
+  input.addEventListener('focus', () => { input.select(); search(); });
+  input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 250); });
+  input.addEventListener('keydown', e => {
+    if (menu.hidden || !items.length) return;
+    if (e.key === 'ArrowDown') { active = (active + 1) % items.length; e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { active = (active - 1 + items.length) % items.length; e.preventDefault(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0) choose(items[active]); return; }
+    else if (e.key === 'Escape') { menu.hidden = true; return; }
+    else return;
+    menu.querySelectorAll('.cp-item').forEach((n, i) => n.classList.toggle('active', i === active));
+  });
+  menu.addEventListener('mousedown', e => {   // mousedown để chạy trước sự kiện blur của ô nhập
+    const n = e.target.closest('.cp-item'); if (!n) return;
+    e.preventDefault(); choose(items[Number(n.dataset.i)]);
+  });
+  input.addEventListener('blur', () => setTimeout(() => {
+    menu.hidden = true;
+    input.value = currentLabel;   // gõ dở rồi bỏ đi: trả lại nhãn đang chọn (hoặc trống)
+  }, 150));
+  clearBtn?.addEventListener('click', () => clear());
+
+  // Chọn sẵn theo mã KH (ví dụ từ cookie vai trò, từ URL): đọc tên qua GET /api/customers/{id}
+  async function set(id, fire = false) {
+    if (!id) { clear(fire); return; }
+    const { data } = await api(`/api/customers/${id}`);
+    const c = { id: data._id, fullName: data.fullName, email: data.email, phone: data.phone, status: data.status };
+    hidden.value = c.id; input.value = currentLabel = label(c); sync();
+    if (fire) onChange(c.id, c);
+  }
+  sync();
+  return {
+    set,
+    clear: (fire = true) => clear(fire),
+    get value() { return hidden.value; },
+    get text() { return currentLabel; },
+  };
+}

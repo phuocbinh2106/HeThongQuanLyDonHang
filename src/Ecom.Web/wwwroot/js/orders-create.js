@@ -10,17 +10,19 @@ let products = [];        // tài liệu sản phẩm đang hiển thị
 const cart = new Map();   // productId -> { product, quantity }
 
 // ---------- Khách hàng & địa chỉ ----------
+// Ô tìm khách (shopia.js): tìm phía server theo tên / email / SĐT / mã KH, không tải tất cả khách.
+// Đơn bắt buộc có khách nên không cho bỏ chọn; chọn khách khác thì nạp lại sổ địa chỉ của khách đó.
+const picker = customerPicker($('customerPicker'), { allowClear: false, onChange: () => loadAddresses() });
+
 async function loadCustomers() {
-  const { data } = await api('/api/customers');
-  $('customer').innerHTML = data.map(c =>
-    `<option value="${c.id}">#${c.id} – ${escapeHtml(c.fullName)} (${escapeHtml(c.email)})${c.status !== 'ACTIVE' ? ' [' + c.status + ']' : ''}</option>`).join('');
-  // Nếu đã chọn vai trò khách hàng ở trang chủ (cookie ecom_user=customer:N) thì chọn sẵn
+  // Nếu đã chọn vai trò khách hàng ở trang chủ (cookie ecom_user=customer:N) thì chọn sẵn; không thì khách #1
   const m = document.cookie.match(/ecom_user=customer%3A(\d+)|ecom_user=customer:(\d+)/);
-  if (m) $('customer').value = m[1] || m[2];
+  await picker.set(m ? (m[1] || m[2]) : 1);
   await loadAddresses();
 }
 
 async function loadAddresses() {
+  if (!$('customer').value) return;
   const { data: doc } = await api(`/api/customers/${$('customer').value}`);
   const addrs = doc.addresses || [];
   $('addresses').innerHTML = addrs.map((a, i) => `
@@ -151,7 +153,6 @@ async function submitOrder() {
 }
 
 // ---------- Sự kiện ----------
-$('customer').addEventListener('change', loadAddresses);
 let timer;
 $('search').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(loadProducts, 300); });
 $('productRows').addEventListener('click', e => { const id = e.target.dataset.add; if (id) addToCart(id); });

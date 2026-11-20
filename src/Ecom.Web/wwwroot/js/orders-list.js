@@ -10,16 +10,16 @@ const PAGE_SIZE = 20;
 const STATUSES = ['PENDING', 'CONFIRMED', 'PACKING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'RETURNED'];
 const statusBadge = s => statusPill(s);   // nhãn trạng thái dùng chung (shopia.js)
 
+// Ô tìm khách (shopia.js): gõ để tìm phía server, không tải danh sách tất cả khách.
+// Chọn / bỏ chọn khách thì lọc lại ngay.
+const picker = customerPicker($('custPicker'), { onChange: () => { page = 1; load(); } });
+
 async function loadCustomers() {
-  const { data } = await api('/api/customers');
-  form.customerId.insertAdjacentHTML('beforeend', data.map(c =>
-    `<option value="${c.id}">#${c.id} – ${escapeHtml(c.fullName)} (${c.orders} đơn)</option>`).join(''));
   // Vai trò khách hàng (cookie ecom_user=customer:N) -> mặc định xem "đơn của tôi"
   const m = decodeURIComponent(document.cookie).match(/ecom_user=customer:(\d+)/);
-  if (m) form.customerId.value = m[1];
-  // Link từ trang khách hàng: /Orders?customerId=N
-  const fromUrl = new URLSearchParams(location.search).get('customerId');
-  if (fromUrl) form.customerId.value = fromUrl;
+  // Link từ trang khách hàng: /Orders?customerId=N (ưu tiên hơn cookie)
+  const id = new URLSearchParams(location.search).get('customerId') || m?.[1];
+  if (id) await picker.set(id);
 }
 
 function query() {
@@ -75,8 +75,7 @@ function rowHtml(o) {
 
 // ---------- Sự kiện ----------
 form.addEventListener('submit', e => { e.preventDefault(); page = 1; load(); });
-form.addEventListener('reset', () => setTimeout(() => { form.status.value = ''; page = 1; load(); }, 0));
-form.customerId.addEventListener('change', () => { page = 1; load(); });
+form.addEventListener('reset', () => setTimeout(() => { picker.clear(false); form.status.value = ''; page = 1; load(); }, 0));
 $('statusChips').addEventListener('click', e => {
   const b = e.target.closest('button[data-status]'); if (!b) return;
   form.status.value = b.dataset.status; page = 1; load();

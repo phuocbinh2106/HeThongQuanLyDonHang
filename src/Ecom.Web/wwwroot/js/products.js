@@ -42,9 +42,11 @@ async function loadFacets() {
   form.brand.innerHTML = '<option value="">— tất cả —</option>' +
     data.brands.map(b => `<option ${b === keepBrand ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('');
 
+  // Hiện tên thuộc tính (bỏ tiền tố "$."), kiểu dữ liệu bằng tiếng Việt; đường dẫn JSON gốc để trong tooltip
+  const TYPE_VI = { string: 'chữ', number: 'số', array: 'danh sách', boolean: 'đúng/sai', object: 'đối tượng' };
   document.getElementById('attrKeys').innerHTML = data.attributeKeys.map(k =>
-    `<span class="badge text-bg-light border me-1 mb-1" title="kiểu ${escapeHtml(k.type)}">
-       ${escapeHtml(k.path)} <span class="text-muted">${escapeHtml(k.type)}</span></span>`).join('');
+    `<span class="badge text-bg-light border me-1 mb-1" title="${escapeHtml(k.path)} (kiểu ${escapeHtml(k.type)})">
+       ${escapeHtml(k.path.replace(/^\$\./, ''))} <span class="text-muted">${escapeHtml(TYPE_VI[k.type] || k.type)}</span></span>`).join('');
 }
 
 async function loadProducts() {

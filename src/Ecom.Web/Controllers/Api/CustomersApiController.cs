@@ -14,9 +14,14 @@ namespace Ecom.Web.Controllers.Api;
 [Route("api/customers")]
 public class CustomersApiController(CustomerRepository repo) : ControllerBase
 {
-    /// <summary>Danh sách khách hàng (truy vấn quan hệ, kèm số địa chỉ và số đơn).</summary>
+    /// <summary>
+    /// Tìm khách phía server, có phân trang: ?q=&amp;limit=20&amp;offset=0. q khớp mã KH, hoặc một phần họ tên /
+    /// email / số điện thoại. Trả { total, items } – giao diện dùng cho ô "gõ để tìm khách" thay vì dropdown tất cả khách.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct) => Ok(await repo.ListAsync(ct));
+    public async Task<IActionResult> List([FromQuery] string? q, [FromQuery] int limit = 20, [FromQuery] int offset = 0,
+                                          CancellationToken ct = default)
+        => Ok(await repo.SearchAsync(q, limit, offset, ct));
 
     /// <summary>Đọc tài liệu CUSTOMER_DV (hồ sơ + addresses[]); header ETag.</summary>
     [HttpGet("{id:long}")]

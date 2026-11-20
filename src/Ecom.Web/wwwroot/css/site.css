@@ -338,9 +338,11 @@ details > summary::marker { color: var(--sp-gold-500); }
 /* Thẻ chọn vai trò */
 .role-card {
   background: #fff; border: 1px solid var(--sp-line); border-radius: 18px; padding: 1.25rem; height: 100%;
-  display: flex; flex-direction: column; gap: .6rem; box-shadow: var(--sp-shadow-sm); position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: .6rem; box-shadow: var(--sp-shadow-sm); position: relative;
 }
-.role-card::after { content: ""; position: absolute; right: -40px; top: -40px; width: 120px; height: 120px; border-radius: 50%; background: var(--sp-mint-50); }
+/* góc trang trí: một phần tư hình tròn nằm gọn trong thẻ (thẻ không cắt overflow để ô gợi ý khách hiện được) */
+.role-card::after { content: ""; position: absolute; right: 0; top: 0; width: 80px; height: 80px; border-radius: 0 18px 0 100%; background: var(--sp-mint-50); }
+.role-card .cust-picker { position: relative; z-index: 2; }
 .role-card .head { display: flex; align-items: center; gap: .7rem; position: relative; z-index: 1; }
 .role-card .head .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: var(--sp-green-600); }
 .role-card.seller .head .ic { background: var(--sp-teal-300); }
@@ -485,3 +487,18 @@ details > summary::marker { color: var(--sp-gold-500); }
   .sp-topbar .tech { display: none; }
   .stepper .st b { font-size: .66rem; }
 }
+
+/* ---------------------------------------------------------------- Ô tìm khách (autocomplete) */
+.cust-picker { position: relative; }
+.cust-picker input[type=text] { padding-right: 2rem; padding-left: 2rem; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2366766f' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E") no-repeat .6rem center / 15px; }
+.cust-picker.has-value input[type=text] { font-weight: 600; color: var(--sp-green-800); background-color: var(--sp-mint-50); }
+.cp-clear { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--sp-muted); font-size: 1.15rem; line-height: 1; padding: 0 .3rem; }
+.cp-clear:hover { color: #b23b32; }
+.cp-menu { position: absolute; z-index: 1040; top: calc(100% + 4px); left: 0; right: 0; min-width: 300px; background: #fff; border: 1px solid var(--sp-line); border-radius: 12px; box-shadow: var(--sp-shadow); max-height: 360px; overflow-y: auto; }
+.cp-item { display: flex; gap: .6rem; align-items: center; padding: .5rem .7rem; cursor: pointer; font-size: .84rem; }
+.cp-item .avatar { width: 30px; height: 30px; font-size: .7rem; flex: 0 0 auto; }
+.cp-item .cp-text { min-width: 0; line-height: 1.25; }
+.cp-item .cp-text small { display: block; color: var(--sp-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-item.active, .cp-item:hover { background: var(--sp-mint-50); }
+.cp-empty, .cp-foot { padding: .55rem .75rem; font-size: .78rem; color: var(--sp-muted); }
+.cp-foot { border-top: 1px solid var(--sp-line); background: #fafcfb; position: sticky; bottom: 0; }

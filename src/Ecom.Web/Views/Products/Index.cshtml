@@ -27,27 +27,27 @@
                 <label class="form-label">Danh mục</label>
                 <select name="categoryId" class="form-select form-select-sm mb-2"></select>
 
-                <label class="form-label">Thương hiệu <span class="text-muted">$.brand</span></label>
+                <label class="form-label" title="Lọc theo JSON_VALUE(attributes, '$.brand')">Thương hiệu</label>
                 <select name="brand" class="form-select form-select-sm mb-2"></select>
 
                 <div class="row g-2">
                     <div class="col-6">
-                        <label class="form-label">RAM ≥ <span class="text-muted">$.ramGb</span></label>
+                        <label class="form-label" title="Lọc theo JSON_VALUE(attributes, '$.ramGb' RETURNING NUMBER)">RAM tối thiểu</label>
                         <select name="minRamGb" class="form-select form-select-sm mb-2">
-                            <option value="">bất kỳ</option><option>6</option><option>8</option><option>12</option><option>16</option>
+                            <option value="">Bất kỳ</option><option value="6">6 GB</option><option value="8">8 GB</option><option value="12">12 GB</option><option value="16">16 GB</option>
                         </select>
                     </div>
                     <div class="col-6">
-                        <label class="form-label">Bộ nhớ ≥ <span class="text-muted">$.storageGb</span></label>
+                        <label class="form-label" title="Lọc theo JSON_VALUE(attributes, '$.storageGb' RETURNING NUMBER)">Bộ nhớ tối thiểu</label>
                         <select name="minStorageGb" class="form-select form-select-sm mb-2">
-                            <option value="">bất kỳ</option><option>128</option><option>256</option><option>512</option>
+                            <option value="">Bất kỳ</option><option value="128">128 GB</option><option value="256">256 GB</option><option value="512">512 GB</option>
                         </select>
                     </div>
                 </div>
 
-                <label class="form-label">Có size <span class="text-muted">$.size[*]</span></label>
+                <label class="form-label" title="Lọc theo JSON_EXISTS(attributes, '$.size[*]?(@@ == $s)')">Kích cỡ (size)</label>
                 <select name="size" class="form-select form-select-sm mb-2">
-                    <option value="">— bất kỳ —</option>
+                    <option value="">Bất kỳ</option>
                     <option>S</option><option>M</option><option>L</option><option>XL</option><option>30</option><option>32</option>
                 </select>
 
@@ -65,7 +65,7 @@
 
                 <hr />
                 <div class="fw-semibold mb-1">Thuộc tính JSON có trong danh mục</div>
-                <div class="text-muted small mb-2">(JSON_DATAGUIDE tự suy ra từ dữ liệu)</div>
+                <div class="text-muted small mb-2">Hệ thống tự nhận biết từ dữ liệu (JSON_DATAGUIDE)</div>
                 <div id="attrKeys"></div>
             </div>
         </form>

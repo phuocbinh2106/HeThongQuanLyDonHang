@@ -1,25 +1,29 @@
 // =============================================================================
 // M7 – Khách hàng (CUSTOMER_DV). Gọi:
-//   GET  /api/customers           danh sách
+//   GET  /api/customers?q=&limit=&offset=   tìm khách phía server, mỗi lần một trang (không tải tất cả)
 //   GET  /api/customers/{id}      tài liệu hồ sơ + addresses[] + ETag
 //   PUT  /api/customers/{id}      ghi đè tài liệu (If-Match)
 //   POST /api/customers           tạo khách kèm địa chỉ bằng một tài liệu
 // =============================================================================
 const $ = id => document.getElementById(id);
-let customers = [];
+let customers = [];         // các khách đã tải (cộng dồn khi bấm "Xem thêm")
+let total = 0;              // tổng số khách khớp ô tìm (server trả về)
+const PAGE = 20;
 let held = { id: null, doc: null, etag: null };   // null id = đang tạo khách mới
 
-async function loadList(selectId) {
-  const { data } = await api('/api/customers');
-  customers = data;
+// Tải một trang kết quả tìm khách. append = true: nối thêm vào danh sách đang có (nút "Xem thêm")
+async function loadList(selectId, append = false) {
+  const q = $('search').value.trim();
+  const offset = append ? customers.length : 0;
+  const { data } = await api(`/api/customers?limit=${PAGE}&offset=${offset}` + (q ? `&q=${encodeURIComponent(q)}` : ''));
+  customers = append ? customers.concat(data.items) : data.items;
+  total = data.total;
   renderList();
   if (selectId) openCustomer(selectId);
 }
 
 function renderList() {
-  const q = $('search').value.trim().toLowerCase();
   $('custList').innerHTML = customers
-    .filter(c => !q || c.fullName.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
     .map(c => `<button type="button" data-id="${c.id}"
         class="list-group-item list-group-item-action ${held.id === c.id ? 'active' : ''}">
         <div class="d-flex align-items-center gap-2">
@@ -29,7 +33,9 @@ function renderList() {
               ${c.status !== 'ACTIVE' ? '<span class="badge text-bg-danger">' + c.status + '</span>' : ''}</div>
             <div class="text-truncate opacity-75">${escapeHtml(c.email)} · ${c.addresses} địa chỉ · ${c.orders} đơn</div>
           </div>
-        </div></button>`).join('');
+        </div></button>`).join('') || '<div class="list-group-item text-muted">Không có khách phù hợp</div>';
+  $('custMore').innerHTML = `<span>Hiển thị ${customers.length} / ${total} khách</span>` +
+    (customers.length < total ? '<button type="button" id="btnMore" class="btn btn-sm btn-link p-0">Xem thêm</button>' : '');
 }
 
 async function openCustomer(id) {
@@ -115,7 +121,9 @@ async function save() {
 $('custList').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if (b) openCustomer(Number(b.dataset.id));
 });
-$('search').addEventListener('input', renderList);
+let searchTimer;
+$('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadList(), 250); });
+$('custMore').addEventListener('click', e => { if (e.target.id === 'btnMore') loadList(null, true); });
 $('btnNew').addEventListener('click', newCustomer);
 $('btnAddAddr').addEventListener('click', () => { addAddressRow({}); renderPreview(); });
 $('addrRows').addEventListener('click', e => {
