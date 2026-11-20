@@ -191,3 +191,14 @@ qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan c�
   mọi điểm khác khi cài đặt (mục 1–2e ở trên) được liệt kê ở **Bảng 3.3 (Đ1–Đ12)** của báo cáo.
 - ORDS AutoREST (bước 8, tuỳ chọn) chưa làm → ghi ở Mục 5.3 Hướng phát triển.
 - Bảng 5.2 (đóng góp của từng thành viên) để trống cho nhóm tự điền.
+
+## 9. Sau bước 9: giao diện Shopia, Swagger, tìm khách phía server
+
+- **Đ13 – Tìm khách phía server.** Thiết kế ban đầu (Bảng 2.31) dùng danh sách chọn chứa *tất cả* khách ở
+  màn hình đơn hàng, tạo đơn, chọn vai trò. Không dùng được khi sàn có hàng nghìn khách → `GET /api/customers?q=&limit=&offset=`
+  trả `{ total, items }`; SQL lọc theo mã KH / họ tên (`COLLATE BINARY_AI`, bỏ qua dấu) / email / SĐT,
+  `COUNT(*) OVER ()` + `OFFSET … FETCH`. Giao diện dùng ô "gõ để gợi ý" (`customerPicker` trong `shopia.js`).
+- **Đ14 – Tài liệu OpenAPI / Swagger UI tại `/api-docs`** (Swashbuckle, `Infrastructure/SwaggerSetup.cs`).
+- **Giao diện Shopia:** chỉ đổi phần trình bày (logo, `site.css`, `shopia.js`); id, nhãn nút và luồng gọi API giữ nguyên.
+- Báo cáo `_capnhat.docx` đã cập nhật: mục 2.3.5, 2.6, Bảng 3.1, 3.3 (Đ13, Đ14), 3.9, mục mới 3.7.6–3.7.8
+  (Swagger, tìm khách, giao diện Shopia, 5 ảnh chụp màn hình), Bảng 4.10 (bước dự phòng Swagger), Bảng 5.1.
