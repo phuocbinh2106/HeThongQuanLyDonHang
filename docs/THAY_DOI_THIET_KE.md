@@ -201,4 +201,4 @@ qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan c�
 - **Đ14 – Tài liệu OpenAPI / Swagger UI tại `/api-docs`** (Swashbuckle, `Infrastructure/SwaggerSetup.cs`).
 - **Giao diện Shopia:** chỉ đổi phần trình bày (logo, `site.css`, `shopia.js`); id, nhãn nút và luồng gọi API giữ nguyên.
 - Báo cáo `_capnhat.docx` đã cập nhật: mục 2.3.5, 2.6, Bảng 3.1, 3.3 (Đ13, Đ14), 3.9, mục mới 3.7.6–3.7.8
-  (Swagger, tìm khách, giao diện Shopia, 5 ảnh chụp màn hình), Bảng 4.10 (bước dự phòng Swagger), Bảng 5.1.
+  (Swagger, tìm khách, giao diện Shopia, 5 ảnh chụp màn hình), Bảng 5.1, Bảng 5.2 (phân công, chi tiết ở `docs/PHAN_CONG_THANH_VIEN.md`). Sau đó nhóm tự chỉnh trong Word: đổi dấu "–" thành "-" và bỏ mục 4.5 Kịch bản demo (kịch bản vẫn ở `docs/KICH_BAN_DEMO.md`).
