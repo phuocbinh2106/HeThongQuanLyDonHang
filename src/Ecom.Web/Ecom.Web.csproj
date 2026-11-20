@@ -4,11 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Sinh file XML từ chú thích /// để Swagger hiển thị mô tả endpoint; tắt cảnh báo thiếu chú thích -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <UserSecretsId>73aea38d-e5be-4db8-a44d-53362ae91c10</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.401" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="11.0.1" />
   </ItemGroup>
 
 </Project>

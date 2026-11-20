@@ -13,6 +13,7 @@ namespace Ecom.Web.Controllers.Api;
 [Route("api/system")]
 public class SystemApiController(OracleConnectionFactory db) : ControllerBase
 {
+    /// <summary>Kiểm tra luồng API → Oracle: phiên bản, PDB, CLIENT_IDENTIFIER, Duality View, số đối tượng INVALID, số dòng.</summary>
     [HttpGet("health")]
     public async Task<IActionResult> Health(CancellationToken ct)
     {

@@ -9,7 +9,7 @@ namespace Ecom.Web.Controllers.Api;
 
 /// <summary>
 /// REST API sản phẩm, đọc/ghi qua Duality View PRODUCT_DV.
-///   GET  /api/products?categoryId=&brand=&minRamGb=&minStorageGb=&size=&q=&activeOnly=
+///   GET  /api/products?categoryId=&amp;brand=&amp;minRamGb=&amp;minStorageGb=&amp;size=&amp;q=&amp;activeOnly=
 ///   GET  /api/products/{id}              -> tài liệu + header ETag
 ///   PUT  /api/products/{id}  (If-Match)  -> ghi đè tài liệu; sai ETag -> 412
 ///   POST /api/products                   -> tạo sản phẩm từ một tài liệu JSON
@@ -20,6 +20,7 @@ namespace Ecom.Web.Controllers.Api;
 [Route("api/products")]
 public class ProductsApiController(ProductRepository repo) : ControllerBase
 {
+    /// <summary>Lọc sản phẩm bằng SQL/JSON (JSON_VALUE, JSON_EXISTS) rồi trả các tài liệu PRODUCT_DV (tối đa 200) kèm câu SQL đã chạy.</summary>
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] ProductFilter filter, CancellationToken ct)
     {
@@ -30,6 +31,7 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
         return Content(json, "application/json");
     }
 
+    /// <summary>Đọc một tài liệu PRODUCT_DV (sản phẩm + seller + category + attributes JSON); header ETag.</summary>
     [HttpGet("{id:long}")]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {
@@ -39,6 +41,7 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
         return Content(doc, "application/json");
     }
 
+    /// <summary>Ghi đè tài liệu PRODUCT_DV (UPDATE product_dv) – cần If-Match; sai JSON Schema → 422, ETag cũ → 412.</summary>
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Put(long id, [FromBody] JsonObject doc, CancellationToken ct)
     {
@@ -56,6 +59,7 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
         return Content(updated, "application/json");
     }
 
+    /// <summary>Thêm sản phẩm bằng một tài liệu JSON (INSERT INTO product_dv); attributes phải có brand (JSON Schema).</summary>
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] JsonObject doc, CancellationToken ct)
     {
@@ -66,6 +70,7 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
         return new ContentResult { StatusCode = 201, Content = created, ContentType = "application/json" };
     }
 
+    /// <summary>Dữ liệu cho bộ lọc: cây danh mục (CONNECT BY), danh sách thương hiệu, các khoá JSON (JSON_DATAGUIDE).</summary>
     [HttpGet("facets")]
     public async Task<IActionResult> Facets([FromQuery] long? categoryId, CancellationToken ct)
     {

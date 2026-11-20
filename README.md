@@ -134,6 +134,16 @@ trang tạo đơn kiểu thanh toán, tab trạng thái đơn, thanh tiến trì
 vàng), định nghĩa bằng biến CSS ở `wwwroot/css/site.css`; biểu tượng là SVG vẽ sẵn trong `wwwroot/js/shopia.js`, nên giao
 diện không cần mạng. CSDL không lưu ảnh sản phẩm, nên ảnh trên thẻ là hình minh hoạ vẽ theo danh mục + thương hiệu.
 
+### Tài liệu REST API (Swagger) – `/api-docs`
+
+Mở <http://localhost:5148/api-docs> để xem và gọi thử toàn bộ 22 endpoint (Swagger UI, sinh bằng Swashbuckle từ các
+API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swagger.json`). Cấu hình ở
+`src/Ecom.Web/Infrastructure/SwaggerSetup.cs`:
+- Endpoint chia nhóm theo Duality View / package (`ORDER_DV + PKG_ORDER`, `PRODUCT_DV`, `CUSTOMER_DV`, `PKG_ORDER_RPT`).
+- Các lệnh PUT có ô header **If-Match** (dán ETag từ lần GET trước) để thử TH-5: ETag cũ → 412.
+- Lệnh tạo đơn / sản phẩm / khách có sẵn **ví dụ tài liệu JSON**, bấm *Try it out → Execute* là chạy.
+- Phần mô tả có bảng ánh xạ mã lỗi Oracle → HTTP.
+
 ### Màn hình và API đã có
 
 | Mã | Màn hình | API | CSDL |

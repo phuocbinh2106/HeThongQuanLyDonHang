@@ -20,7 +20,7 @@ namespace Ecom.Web.Controllers.Api;
 public class OrdersApiController(DualityViewStore store, OrderRepository orders) : ControllerBase
 {
     /// <summary>
-    /// GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize= : danh sách đơn (M3),
+    /// GET /api/orders?customerId=&amp;status=&amp;from=&amp;to=&amp;q=&amp;page=&amp;pageSize= : danh sách đơn (M3),
     /// đọc từ bảng quan hệ orders (+ đếm dòng hàng, tiền đã trả, hãng vận chuyển).
     /// </summary>
     [HttpGet]
@@ -38,6 +38,7 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
         return tables is null ? Problem(statusCode: 404, title: "Không tìm thấy đơn hàng") : Ok(tables);
     }
 
+    /// <summary>Tạo CẢ MỘT ĐƠN bằng một tài liệu JSON = một câu INSERT INTO order_dv (TH-1). Một dòng lỗi → cả đơn rollback (TH-3); giá / tổng / trạng thái do CSDL quyết định (TH-4).</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] JsonObject doc, CancellationToken ct)
     {
@@ -57,6 +58,7 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
         return new ContentResult { StatusCode = 201, Content = created, ContentType = "application/json" };
     }
 
+    /// <summary>Đọc cả đơn (khách, dòng hàng, thanh toán, vận đơn, lịch sử) là một tài liệu ORDER_DV; header ETag.</summary>
     [HttpGet("{id:long}")]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {

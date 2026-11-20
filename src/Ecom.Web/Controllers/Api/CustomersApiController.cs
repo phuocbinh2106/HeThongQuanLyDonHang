@@ -14,9 +14,11 @@ namespace Ecom.Web.Controllers.Api;
 [Route("api/customers")]
 public class CustomersApiController(CustomerRepository repo) : ControllerBase
 {
+    /// <summary>Danh sách khách hàng (truy vấn quan hệ, kèm số địa chỉ và số đơn).</summary>
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) => Ok(await repo.ListAsync(ct));
 
+    /// <summary>Đọc tài liệu CUSTOMER_DV (hồ sơ + addresses[]); header ETag.</summary>
     [HttpGet("{id:long}")]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {
@@ -26,6 +28,7 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
         return Content(doc, "application/json");
     }
 
+    /// <summary>Ghi đè hồ sơ và sổ địa chỉ (thêm / sửa / xoá phần tử addresses[]) bằng một câu UPDATE customer_dv – cần If-Match.</summary>
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Put(long id, [FromBody] JsonObject doc, CancellationToken ct)
     {
