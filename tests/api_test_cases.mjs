@@ -15,7 +15,7 @@ const CONTAINER = process.env.ORACLE_CONTAINER ?? 'oracle23ai';
 const DB_PASS = process.env.ECOM_DB_PASSWORD ?? 'oracle';
 
 // ---------- tiện ích ----------
-async function call(method, url, body, { ifMatch, user = 'tester' } = {}) {
+async function call(method, url, body, { ifMatch, user = 'admin' } = {}) {   // mặc định quản trị: các kịch bản này kiểm tra nghiệp vụ, phân quyền kiểm ở api_authz.mjs
   const headers = { 'Content-Type': 'application/json', Cookie: `ecom_user=${user}` };
   if (ifMatch) headers['If-Match'] = ifMatch;
   const r = await fetch(BASE + url, { method, headers, body: body ? JSON.stringify(body) : undefined });

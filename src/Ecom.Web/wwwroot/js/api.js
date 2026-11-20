@@ -86,6 +86,18 @@ function clearRole() {
   try { localStorage.removeItem('ecom_user_label'); } catch { /* bỏ qua */ }
 }
 
+// Loại vai trò hiện tại: 'guest' | 'customer' | 'seller' | 'admin'
+const roleKind = () => getRole()?.kind || 'guest';
+
+// Phần tử có data-roles="seller,admin" chỉ hiện với các vai trò đó (chỉ là HIỂN THỊ:
+// API ở server vẫn kiểm tra quyền và trả 401 / 403 nếu gọi trực tiếp).
+document.addEventListener('DOMContentLoaded', () => {
+  const k = roleKind();
+  document.querySelectorAll('[data-roles]').forEach(el => {
+    if (!el.dataset.roles.split(',').map(x => x.trim()).includes(k)) el.classList.add('d-none');
+  });
+});
+
 // Hiện vai trò hiện tại ở góc phải header (avatar + tên vai trò)
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('roleBadge');

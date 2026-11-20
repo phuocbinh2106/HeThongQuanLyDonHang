@@ -88,7 +88,7 @@ function productCard(p, opts = {}) {
       </div>
       <div class="actions">
         ${opts.json ? `<button class="btn btn-sm btn-outline-primary" data-id="${p._id}" title="Xem / sửa tài liệu PRODUCT_DV">${icon('braces')} JSON</button>` : ''}
-        <a class="btn btn-sm btn-primary" href="/Orders/Create?add=${p._id}">${icon('cart')} Mua</a>
+        ${opts.buy === false ? '' : `<a class="btn btn-sm btn-primary" href="/Orders/Create?add=${p._id}">${icon('cart')} Mua</a>`}
       </div>
     </div>
   </div>`;
@@ -144,7 +144,10 @@ const initials = name => String(name || '?').trim().split(/\s+/).slice(-2).map(w
 //   onChange  : gọi khi chọn / xoá khách, tham số (id | null, item | null)
 // Trả về { set(id), clear(), get value() }.
 // =============================================================================
-function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 } = {}) {
+//   url       : API tìm khách (mặc định /api/customers – chỉ quản trị; màn hình chọn vai trò dùng /api/session/customers)
+//   readonly  : true = khoá ô (khách hàng chỉ được chọn chính mình)
+function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8, url = '/api/customers', readonly = false } = {}) {
+  if (readonly) allowClear = false;
   const input = el.querySelector('input[type=text]');
   const hidden = el.querySelector('input[type=hidden]');
   const menu = document.createElement('div');
@@ -171,7 +174,7 @@ function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 
           <span class="avatar ${c.status !== 'ACTIVE' ? 'muted' : ''}">${escapeHtml(initials(c.fullName))}</span>
           <div class="cp-text"><b>#${c.id} ${escapeHtml(c.fullName)}</b>
             ${c.status !== 'ACTIVE' ? `<span class="badge text-bg-danger ms-1">${escapeHtml(c.status)}</span>` : ''}
-            <small>${escapeHtml(c.email)}${c.phone ? ' · ' + escapeHtml(c.phone) : ''} · ${c.orders} đơn</small></div>
+            <small>${[c.email, c.phone, c.orders != null ? c.orders + ' đơn' : null].filter(Boolean).map(escapeHtml).join(' · ')}</small></div>
         </div>`).join('') +
         `<div class="cp-foot">Hiển thị ${items.length} / ${total} khách${total > items.length ? ' – gõ thêm để thu hẹp' : ''}</div>`;
     }
@@ -182,7 +185,7 @@ function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 
     const q = input.value.trim();
     const my = ++seq;   // bỏ kết quả của request cũ nếu người dùng đã gõ tiếp
     try {
-      const { data } = await api(`/api/customers?limit=${limit}` + (q ? `&q=${encodeURIComponent(q)}` : ''));
+      const { data } = await api(`${url}?limit=${limit}` + (q ? `&q=${encodeURIComponent(q)}` : ''));
       if (my !== seq) return;
       items = data.items; active = items.length ? 0 : -1;
       render(data.total, q);
@@ -200,8 +203,9 @@ function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 
     if (fire) onChange(null, null);
   }
 
-  input.addEventListener('focus', () => { input.select(); search(); });
-  input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 250); });
+  if (readonly) { input.readOnly = true; el.classList.add('locked'); }
+  input.addEventListener('focus', () => { if (readonly) return; input.select(); search(); });
+  input.addEventListener('input', () => { if (readonly) return; clearTimeout(timer); timer = setTimeout(search, 250); });
   input.addEventListener('keydown', e => {
     if (menu.hidden || !items.length) return;
     if (e.key === 'ArrowDown') { active = (active + 1) % items.length; e.preventDefault(); }
@@ -224,8 +228,16 @@ function customerPicker(el, { onChange = () => {}, allowClear = true, limit = 8 
   // Chọn sẵn theo mã KH (ví dụ từ cookie vai trò, từ URL): đọc tên qua GET /api/customers/{id}
   async function set(id, fire = false) {
     if (!id) { clear(fire); return; }
-    const { data } = await api(`/api/customers/${id}`);
-    const c = { id: data._id, fullName: data.fullName, email: data.email, phone: data.phone, status: data.status };
+    // Đọc tên khách: hồ sơ đầy đủ nếu có quyền; chưa có quyền (đang chọn vai trò) thì dùng API tìm khách của trang
+    let c;
+    try {
+      const { data } = await api(`/api/customers/${id}`);
+      c = { id: data._id, fullName: data.fullName, email: data.email, phone: data.phone, status: data.status };
+    } catch {
+      const { data } = await api(`${url}?limit=8&q=${encodeURIComponent(id)}`);
+      c = data.items.find(x => x.id == id);
+      if (!c) { clear(fire); return; }
+    }
     hidden.value = c.id; input.value = currentLabel = label(c); sync();
     if (fire) onChange(c.id, c);
   }

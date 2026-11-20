@@ -57,8 +57,18 @@ public static class SwaggerSetup
                     | 422 | ORA-40875, ORA-02290 | Thuộc tính JSON sai JSON Schema |
                     | 428 | – | PUT thiếu If-Match |
 
-                    Vai trò người thao tác lấy từ cookie `ecom_user` (chọn ở trang chủ) và được gửi xuống Oracle qua
-                    `CLIENT_IDENTIFIER`; nếu không có cookie thì ghi là `web`.
+                    **Phân quyền** (đăng nhập mô phỏng): vai trò lấy từ cookie `ecom_user` = `customer:N` / `seller:N` / `admin`,
+                    đặt khi chọn vai trò ở trang chủ – Swagger UI cùng tên miền nên tự gửi cookie này. Server kiểm tra quyền ở mọi API:
+                    chưa chọn vai trò → **401**, không đủ quyền → **403**.
+
+                    | Vai trò | Được phép |
+                    |---|---|
+                    | Khách vãng lai | Xem sản phẩm, danh mục, người bán, `/api/system/health`, `/api/session/*` |
+                    | Khách hàng | Tạo đơn cho chính mình; xem / sửa (địa chỉ, dòng hàng, thanh toán) / huỷ đơn của mình; hồ sơ của mình |
+                    | Người bán | Thêm / sửa sản phẩm của shop mình; xem đơn có sản phẩm của shop; đổi trạng thái, huỷ, thêm vận đơn |
+                    | Quản trị | Toàn quyền, gồm báo cáo và danh sách khách hàng |
+
+                    Vai trò cũng được gửi xuống Oracle qua `CLIENT_IDENTIFIER` để trigger ghi người thao tác vào lịch sử.
                     """,
             });
 
@@ -209,5 +219,14 @@ public class ShopiaOperationFilter : IOperationFilter
             Add("428", "Thiếu If-Match / _metadata.etag");
         }
         if (path.StartsWith("/api/reports")) Add("422", "Tham số báo cáo không hợp lệ (ORA-20010)");
+
+        // Endpoint cần vai trò: khai báo 401 / 403 (các endpoint công khai thì không)
+        var isPublic = path.StartsWith("/api/system") || path.StartsWith("/api/session") || path == "/api/sellers"
+                       || (path.StartsWith("/api/products") && method == "GET");
+        if (!isPublic)
+        {
+            Add("401", "Chưa chọn vai trò (cookie ecom_user)");
+            Add("403", "Vai trò hiện tại không có quyền với chức năng / dữ liệu này");
+        }
     }
 }

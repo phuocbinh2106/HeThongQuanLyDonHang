@@ -3,6 +3,9 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace Ecom.Web.Data;
 
+/// <summary>Chủ sở hữu của một đơn: khách đặt đơn và các người bán có sản phẩm trong đơn.</summary>
+public record OrderAccess(long CustomerId, HashSet<long> SellerIds);
+
 /// <summary>Kết quả một truy vấn bảng: câu SQL đã chạy, tên cột, các dòng.</summary>
 public record TableRows(string Sql, List<string> Columns, List<Dictionary<string, object?>> Rows);
 
@@ -148,6 +151,15 @@ public class OrderRepository(OracleConnectionFactory db)
             var w = new List<string>();
             var b = new List<OracleParameter>();
             if (f.CustomerId is not null) { w.Add("o.customer_id = :cust"); b.Add(new("cust", f.CustomerId)); }
+            // Người bán chỉ thấy đơn có sản phẩm của shop mình
+            if (f.SellerId is not null)
+            {
+                w.Add("""
+                    EXISTS (SELECT 1 FROM order_items si JOIN products sp ON sp.product_id = si.product_id
+                             WHERE si.order_id = o.order_id AND sp.seller_id = :seller)
+                    """);
+                b.Add(new("seller", f.SellerId));
+            }
             if (withStatus && !string.IsNullOrWhiteSpace(f.Status))
             { w.Add("o.status = :status"); b.Add(new("status", f.Status.ToUpperInvariant())); }
             if (f.From is not null) { w.Add("o.order_date >= :d_from"); b.Add(new("d_from", OracleDbType.Date) { Value = f.From.Value.Date }); }
@@ -220,7 +232,31 @@ public class OrderRepository(OracleConnectionFactory db)
         return new OrderListResult(total, page, pageSize, sql, counts, items);
     }
 
-    /// <summary>Các dòng của đơn trong 5 bảng nền; null nếu không có đơn này.</summary>
+    /// <summary>
+    /// Thông tin để kiểm tra QUYỀN trên một đơn: đơn của khách nào, gồm sản phẩm của những người bán nào.
+    /// null nếu không có đơn. Khách hàng chỉ truy cập đơn của mình; người bán chỉ truy cập đơn có sản phẩm của shop.
+    /// </summary>
+    public async Task<OrderAccess?> GetAccessAsync(long id, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT o.customer_id,
+                   (SELECT LISTAGG(DISTINCT p.seller_id, ',') WITHIN GROUP (ORDER BY p.seller_id)
+                      FROM order_items i JOIN products p ON p.product_id = i.product_id
+                     WHERE i.order_id = o.order_id) AS seller_ids
+              FROM orders o
+             WHERE o.order_id = :id
+            """;
+        await using var conn = await db.OpenAsync(ct: ct);
+        await using var cmd = new OracleCommand(sql, conn);
+        cmd.Parameters.Add(new OracleParameter("id", id));
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        if (!await r.ReadAsync(ct)) return null;
+        var sellers = r.IsDBNull(1) ? new HashSet<long>()
+            : r.GetString(1).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(long.Parse).ToHashSet();
+        return new OrderAccess(r.GetInt64(0), sellers);
+    }
+
+        /// <summary>Các dòng của đơn trong 5 bảng nền; null nếu không có đơn này.</summary>
     public async Task<Dictionary<string, TableRows>?> GetRelationalAsync(long id, CancellationToken ct)
     {
         await using var conn = await db.OpenAsync(ct: ct);

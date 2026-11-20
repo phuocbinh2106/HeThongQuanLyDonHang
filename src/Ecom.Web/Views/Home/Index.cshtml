@@ -207,7 +207,7 @@
                 <div class="ic thumb c${look.c}">${icon(look.icon)}</div>
                 <b>${escapeHtml(c.name)}</b><span>${c.level > 1 ? 'Danh mục con' : 'Ngành hàng'}</span></a>`;
         }).join('');
-        sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p)).join('')
+        sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p, { buy: roleKind() !== 'seller' })).join('')
             || '<div class="empty-state">Chưa có sản phẩm</div>';
     }
     loadShowcase().catch(err => showError('healthMsg', err));
@@ -223,7 +223,9 @@
         await custPicker.set(r?.kind === 'customer' ? r.id : 1);
         if (r?.kind === 'seller') sel('selSeller').value = r.id;
     }
-    const custPicker = customerPicker(sel('custPicker'), { allowClear: false });
+    // Chọn vai trò = đăng nhập mô phỏng: tìm khách qua /api/session/customers (chỉ mã + họ tên),
+    // vì /api/customers (đầy đủ thông tin) chỉ dành cho quản trị
+    const custPicker = customerPicker(sel('custPicker'), { allowClear: false, url: '/api/session/customers' });
     const pick = (raw, label, go) => { setRole(raw, label); location.href = go; };
     sel('btnCustomer').addEventListener('click', () => {
         if (!custPicker.value) return;

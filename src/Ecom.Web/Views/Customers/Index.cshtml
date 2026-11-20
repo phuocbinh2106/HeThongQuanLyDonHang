@@ -8,15 +8,9 @@
         <h1>Khách hàng &amp; sổ địa chỉ</h1>
     </div>
 </div>
-<div class="tech-note">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
-    <div>Hồ sơ và sổ địa chỉ của một khách là <strong>một tài liệu</strong> <code>CUSTOMER_DV</code>
-    (bảng <code>customers</code> + <code>customer_addresses</code>). Thêm / sửa / xoá địa chỉ = sửa mảng
-    <code>addresses[]</code> rồi gửi cả tài liệu bằng <code>PUT</code> kèm ETag.</div>
-</div>
 
 <div class="row g-3">
-    <div class="col-lg-4">
+    <div class="col-lg-4" data-roles="admin">
         <div class="d-flex gap-1 mb-2">
             <input id="search" class="form-control form-control-sm" placeholder="Tìm tên, email, SĐT hoặc mã KH..." />
             <button id="btnNew" class="btn btn-sm btn-outline-success text-nowrap">+ Khách mới</button>

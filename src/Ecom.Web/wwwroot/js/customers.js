@@ -136,4 +136,10 @@ $('btnReload').addEventListener('click', () => held.id && openCustomer(held.id))
 
 // Vai trò khách hàng -> mở hồ sơ của chính mình; quản trị -> mở khách đầu tiên
 const role = getRole();
-loadList(role?.kind === 'customer' ? role.id : 1).catch(err => showError('msg', err));
+if (role?.kind === 'customer') {
+  // Khách hàng: chỉ mở hồ sơ của mình (không gọi API danh sách khách – API đó chỉ dành cho quản trị)
+  $('status').disabled = true;
+  openCustomer(role.id).catch(err => showError('msg', err));
+} else {
+  loadList(1).catch(err => showError('msg', err));
+}

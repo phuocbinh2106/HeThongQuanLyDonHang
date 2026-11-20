@@ -28,20 +28,17 @@ API C# đọc/ghi **trực tiếp** Duality View, còn nghiệp vụ và báo c�
 **Làm:** Trang chủ Shopia → chỉ phần hero "một nguồn – hai cách nhìn" (số sản phẩm / đơn / khách lấy thật từ CSDL)
 → cuộn xuống ô *Kiểm tra kết nối* (phiên bản Oracle, 3 Duality View, INVALID = 0) → khu **"Bạn là ai?"** chọn
 **Khách hàng #1 – Nguyễn Văn An** → "Vào vai khách hàng" (góc phải header hiện avatar + vai trò).
+→ Chỉ menu chỉ còn *Tạo đơn / Đơn của tôi / Hồ sơ của tôi* → gõ thẳng địa chỉ **/Reports** → trang **403 – Không có quyền**.
 
-## 2. TH-6 – Thuộc tính JSON linh hoạt (1:00–2:00)
+**Nói:** "Đăng nhập là mô phỏng, nhưng quyền được kiểm tra ở server: mọi API và mọi trang đều đọc vai trò; khách hàng
+chỉ thấy đơn của mình, không xem được báo cáo – gọi thẳng API cũng nhận 403."
 
-**Làm:** Menu *Sản phẩm* (hoặc bấm ô **Laptop** ở khu Danh mục trang chủ) → bộ lọc RAM ≥ **16** → *Lọc*.
-- Chỉ phần "Thuộc tính JSON có trong danh mục" (JSON_DATAGUIDE tự suy ra `cpu`, `ramGb`…).
-- Bấm "Câu SQL lọc vừa chạy" (góc phải thanh kết quả): `CONNECT BY` (cây danh mục) + `JSON_VALUE(... '$.ramGb' RETURNING NUMBER)`.
-- Bấm nút **JSON** trên một thẻ sản phẩm → xoá dòng `"brand"` trong `attributes` → *Lưu* → **422 – Thuộc tính JSON không đúng JSON Schema**.
+> Thứ tự vai trò trong demo: **khách hàng #1** (bước 1–3) → **người bán #3 – Laptop Pro Shop** (bước 4) →
+> **quản trị sàn** (bước 5–9). Đổi vai trò: bấm avatar góc phải header → khu "Bạn là ai?" ở trang chủ.
 
-**Nói:** "Mỗi ngành hàng một kiểu thuộc tính, lưu ở cột JSON; JSON Schema khai báo ngay trên kiểu cột nên ghi qua
-tài liệu hay qua SQL đều bị chặn."
+## 2. TH-1, TH-4 – Tạo cả một đơn bằng một tài liệu JSON (1:00–2:15) · vai trò khách hàng #1
 
-## 3. TH-1, TH-4 – Tạo cả một đơn bằng một tài liệu JSON (2:00–3:15)
-
-**Làm:** Menu *Tạo đơn* (hoặc nút **Mua** trên thẻ sản phẩm) → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2
+**Làm:** Menu *Tạo đơn* (ô khách bị khoá vào chính mình) → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2
 → ở cột giỏ hàng bên phải tick **"Chế độ thử TC-02"** → chỉ khung *Tài liệu JSON sẽ gửi* bên trái (có `status: DELIVERED`,
 `unitPrice: 1`, `orderNo: HACK-001`) → *Đặt hàng*.
 
@@ -50,10 +47,11 @@ tài liệu hay qua SQL đều bị chặn."
 **Nói:** "Một request, một câu `INSERT INTO order_dv`; Oracle tách ra ORDERS và ORDER_ITEMS, trigger chốt giá, trừ kho,
 tính tổng. Giá và trạng thái client gửi bị bỏ qua vì quy tắc nằm ở bảng nền."
 
-## 4. TH-2 – Một nguồn dữ liệu, hai cách nhìn (3:15–4:30)
+## 3. TH-2 – Một nguồn dữ liệu, hai cách nhìn (2:15–3:30) · vai trò khách hàng #1
 
 **Làm:** Bấm *Xem chi tiết đơn* → chỉ thanh tiến trình trạng thái (vẽ từ `history[]` của tài liệu) → tab **Dạng JSON** (ETag, asof, bảng ánh xạ trường → cột) → tab
-**Dạng bảng quan hệ** (dòng thật trong 5 bảng, có ROWID) → chỉ khối "Hai cách nhìn khớp nhau" (9/9 ✔).
+**Dạng bảng quan hệ** (dòng thật trong 5 bảng, có ROWID) → so sánh vài giá trị giữa hai tab (số đơn, trạng thái, tổng tiền, số dòng hàng).
+Khu *Xử lý đơn* của khách hàng chỉ có nút **Huỷ đơn**, thanh toán và sửa địa chỉ / dòng hàng (không tự đổi trạng thái).
 
 **Làm thêm (TC-12):** Trong DBeaver chạy
 ```sql
@@ -63,14 +61,27 @@ UPDATE orders SET ship_phone = '0999888777' WHERE order_no = '<số đơn vừa 
 
 **Nói:** "Không có bảng nào lưu tài liệu JSON; Oracle sinh tài liệu từ chính các dòng này mỗi lần đọc."
 
-## 5. TH-3 – Giao dịch nguyên tử (4:30–5:15)
+## 4. TH-6 – Thuộc tính JSON linh hoạt (3:30–4:30) · vai trò người bán #3 – Laptop Pro Shop
 
-**Làm:** *Tạo đơn* → *Samsung Galaxy S24* SL 1 + *Samsung Galaxy A15* SL **999** → *Đặt hàng*.
+**Làm:** Trang chủ → "Bạn là ai?" chọn **#3 – Laptop Pro Shop** → "Vào vai người bán" (mở trang sản phẩm, đã lọc sẵn
+"Chỉ sản phẩm của shop tôi") → bộ lọc RAM tối thiểu **16 GB** → *Lọc*.
+- Chỉ phần "Thuộc tính JSON có trong danh mục" (JSON_DATAGUIDE tự suy ra `cpu`, `ramGb`…).
+- Bấm "Câu SQL lọc vừa chạy" (góc phải thanh kết quả): `CONNECT BY` (cây danh mục) + `JSON_VALUE(... '$.ramGb' RETURNING NUMBER)`.
+- Bấm nút **JSON** trên một laptop → xoá dòng `"brand"` trong `attributes` → *Lưu* → **422 – Thuộc tính JSON không đúng JSON Schema**.
+- (Tuỳ chọn) bỏ tick "Chỉ sản phẩm của shop tôi", mở JSON một điện thoại Samsung → hộp thoại **chỉ xem** (không có nút Lưu).
+
+**Nói:** "Mỗi ngành hàng một kiểu thuộc tính, lưu ở cột JSON; JSON Schema khai báo ngay trên kiểu cột nên ghi qua
+tài liệu hay qua SQL đều bị chặn. Người bán chỉ sửa được sản phẩm của shop mình."
+
+## 5. TH-3 – Giao dịch nguyên tử (4:30–5:15) · vai trò quản trị sàn
+
+**Làm:** Trang chủ → "Vào vai quản trị" → *Tạo đơn* (quản trị đặt hộ, mặc định khách #1) → *Samsung Galaxy S24* SL 1
++ *Samsung Galaxy A15* SL **999** → *Đặt hàng*.
 
 **Kết quả:** **409 – Hết hàng (ORA-20001)**; mở "Chuỗi lỗi gốc từ Oracle": ORA-42692 bọc ORA-20001.
 Tồn kho S24 trong bảng sản phẩm **không đổi** – dòng hợp lệ cũng bị huỷ theo.
 
-## 6. TH-5 – Hai người cùng sửa một đơn (5:15–6:30)
+## 6. TH-5 – Hai người cùng sửa một đơn (5:15–6:30) · vai trò quản trị sàn
 
 **Làm:** Trang chủ → khu *Lối tắt demo* → thẻ TH-5 mở **đơn #60** ở hai tab.
 - Tab 1: khu *Xử lý đơn* → mục 3 sửa *Điện thoại* → **Lưu tài liệu** → 200, ETag mới.
@@ -124,6 +135,9 @@ Sau demo: `.\scripts\db.ps1 reset` (kiểm thử tự động có tạo thêm đ
 - **Trigger có gây mutating table không?** Có nếu trigger mức dòng đọc lại chính bảng → dùng compound trigger
   (`trg_oi_totals`, `trg_pay_check`). Với Duality View còn phải tránh trigger sửa các trường tham gia ETag của chính
   tài liệu đang ghi (ORA-40896) → `subtotal/totalAmount` NOCHECK, `status` NOUPDATE.
+- **Phân quyền làm ở đâu?** Ở server: `[RequireRole]` trên controller (vai trò nào được gọi chức năng nào) và
+  kiểm tra trên từng bản ghi (đơn của ai, đơn có sản phẩm của shop nào, PUT được đổi trường nào). Giao diện chỉ ẩn nút cho
+  gọn; gọi thẳng API vẫn nhận 401 / 403 (`tests/api_authz.mjs`, 14 kịch bản). Đăng nhập vẫn mô phỏng (cookie), chưa xác thực thật.
 - **Mức cô lập?** READ COMMITTED; đủ vì điều kiện nằm trong câu UPDATE nguyên tử (TC-10).
 - **Execution plan trước/sau khác ở bước nào?** Q1: `TABLE ACCESS FULL` + `SORT` → `INDEX RANGE SCAN` + `COUNT STOPKEY`;
   Q2: `TABLE ACCESS FULL` → `INDEX RANGE SCAN` trên cột ảo của chỉ mục hàm; Q3: 3 nhánh `TABLE ACCESS FULL` → `INDEX RANGE SCAN`

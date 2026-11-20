@@ -19,7 +19,7 @@ async function loadCustomers() {
   const m = decodeURIComponent(document.cookie).match(/ecom_user=customer:(\d+)/);
   // Link từ trang khách hàng: /Orders?customerId=N (ưu tiên hơn cookie)
   const id = new URLSearchParams(location.search).get('customerId') || m?.[1];
-  if (id) await picker.set(id);
+  if (id && roleKind() === 'admin') await picker.set(id);
 }
 
 function query() {
@@ -33,7 +33,10 @@ async function load() {
   $('msg').innerHTML = '';
   try {
     const { data } = await api('/api/orders?' + query());
-    $('myBadge').hidden = !form.customerId.value;
+    // Nhãn phạm vi dữ liệu: khách hàng luôn là "đơn của tôi" (truy vấn Q1), người bán là đơn có sản phẩm của shop
+    const k = roleKind();
+    $('myBadge').hidden = !(form.customerId.value || k === 'customer' || k === 'seller');
+    $('myBadge').textContent = k === 'seller' ? 'Đơn có sản phẩm của shop' : 'Đơn của tôi · truy vấn Q1';
     $('sql').textContent = data.sql;
     renderChips(data.statusCounts);
     $('rows').innerHTML = data.items.map(rowHtml).join('') ||

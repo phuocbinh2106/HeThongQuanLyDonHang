@@ -19,14 +19,17 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
     /// email / số điện thoại. Trả { total, items } – giao diện dùng cho ô "gõ để tìm khách" thay vì dropdown tất cả khách.
     /// </summary>
     [HttpGet]
+    [RequireRole(RoleKind.Admin)]
     public async Task<IActionResult> List([FromQuery] string? q, [FromQuery] int limit = 20, [FromQuery] int offset = 0,
                                           CancellationToken ct = default)
         => Ok(await repo.SearchAsync(q, limit, offset, ct));
 
     /// <summary>Đọc tài liệu CUSTOMER_DV (hồ sơ + addresses[]); header ETag.</summary>
     [HttpGet("{id:long}")]
+    [RequireRole(RoleKind.Customer, RoleKind.Admin)]
     public async Task<IActionResult> Get(long id, CancellationToken ct)
     {
+        if (Self(id) is { } denied) return denied;
         var doc = await repo.GetDocAsync(id, ct);
         if (doc is null) return Problem(statusCode: 404, title: "Không tìm thấy khách hàng");
         Response.Headers.ETag = DocEtag.FromDoc(doc);
@@ -35,8 +38,19 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
 
     /// <summary>Ghi đè hồ sơ và sổ địa chỉ (thêm / sửa / xoá phần tử addresses[]) bằng một câu UPDATE customer_dv – cần If-Match.</summary>
     [HttpPut("{id:long}")]
+    [RequireRole(RoleKind.Customer, RoleKind.Admin)]
     public async Task<IActionResult> Put(long id, [FromBody] JsonObject doc, CancellationToken ct)
     {
+        if (Self(id) is { } denied) return denied;
+        // Khách hàng sửa được hồ sơ và sổ địa chỉ của mình, nhưng không tự khoá / mở khoá tài khoản (status)
+        var role = HttpContext.Role();
+        if (role.Kind == RoleKind.Customer)
+        {
+            var current = await repo.GetDocAsync(id, ct);
+            if (current is null) return Problem(statusCode: 404, title: "Không tìm thấy khách hàng");
+            if (AccessControl.ChangedFields(JsonNode.Parse(current)!.AsObject(), doc, ["status"]).Count > 0)
+                return AccessControl.Denied(role, "Khách hàng không được tự đổi trạng thái tài khoản (status).");
+        }
         var etag = DocEtag.Normalize(Request.Headers.IfMatch.ToString())
                    ?? doc["_metadata"]?["etag"]?.GetValue<string>();
         if (etag is null)
@@ -51,6 +65,7 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
 
     /// <summary>POST /api/customers: tạo khách kèm addresses[] bằng một tài liệu CUSTOMER_DV.</summary>
     [HttpPost]
+    [RequireRole(RoleKind.Admin)]
     public async Task<IActionResult> Post([FromBody] JsonObject doc, CancellationToken ct)
     {
         doc.Remove("_id");
@@ -62,6 +77,14 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
     }
 
     /// <summary>GET /api/sellers: danh sách người bán (màn hình chọn vai trò).</summary>
+    /// <summary>Khách hàng chỉ truy cập hồ sơ của chính mình; quản trị truy cập mọi hồ sơ.</summary>
+    private IActionResult? Self(long id)
+    {
+        var role = HttpContext.Role();
+        return role.IsAdmin || role.IsCustomer(id) ? null
+            : AccessControl.Denied(role, $"{role.Display} chỉ xem / sửa được hồ sơ của chính mình, không phải khách #{id}.");
+    }
+
     [HttpGet("/api/sellers")]
     public async Task<IActionResult> Sellers(CancellationToken ct) => Ok(await repo.SellersAsync(ct));
 }

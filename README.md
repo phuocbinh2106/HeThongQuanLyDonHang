@@ -144,6 +144,34 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
 - Lệnh tạo đơn / sản phẩm / khách có sẵn **ví dụ tài liệu JSON**, bấm *Try it out → Execute* là chạy.
 - Phần mô tả có bảng ánh xạ mã lỗi Oracle → HTTP.
 
+### Phân quyền theo vai trò
+
+Đăng nhập vẫn **mô phỏng** (chọn vai trò ở trang chủ → cookie `ecom_user` = `customer:N` / `seller:N` / `admin`), nhưng
+**quyền được kiểm tra ở server**, không chỉ ẩn nút trên giao diện:
+
+| Chức năng | Vãng lai | Khách hàng | Người bán | Quản trị |
+|---|---|---|---|---|
+| Trang chủ, xem sản phẩm | ✔ | ✔ | ✔ | ✔ |
+| Thêm / sửa sản phẩm | ✘ | ✘ | chỉ sản phẩm của shop mình | ✔ |
+| Tạo đơn | ✘ | chỉ cho chính mình | ✘ | ✔ |
+| Danh sách / chi tiết đơn | ✘ | chỉ đơn của mình | chỉ đơn có sản phẩm của shop | ✔ |
+| Đổi trạng thái đơn | ✘ | ✘ (chỉ được huỷ) | đơn có sản phẩm của shop | ✔ |
+| Sửa đơn: địa chỉ, dòng hàng, thanh toán | ✘ | đơn của mình | ✘ | ✔ (mọi trường) |
+| Sửa đơn: thêm vận đơn (shipments[]) | ✘ | ✘ | đơn có sản phẩm của shop | ✔ |
+| Khách hàng / sổ địa chỉ | ✘ | chỉ hồ sơ của mình (không tự đổi status) | ✘ | ✔ |
+| Báo cáo | ✘ | ✘ | ✘ | ✔ |
+
+- `Infrastructure/AccessControl.cs`: đọc vai trò (cookie sai định dạng = vãng lai), thuộc tính `[RequireRole(...)]` gắn lên
+  controller / action. API trả **401** (chưa chọn vai trò) / **403** (không đủ quyền) dạng ProblemDetails; trang MVC hiện trang
+  "Không có quyền" (`Views/Shared/Forbidden.cshtml`).
+- Quyền trên **từng bản ghi**: đơn của khách nào / có sản phẩm của người bán nào (`OrderRepository.GetAccessAsync`), sản phẩm
+  thuộc shop nào; khi PUT tài liệu đơn, so tài liệu mới với tài liệu hiện tại để biết **trường nào bị đổi** và chặn trường
+  không thuộc quyền của vai trò (ví dụ khách hàng tự đặt `discount` → 403).
+- Danh sách đơn: khách hàng luôn bị giới hạn `customer_id` = chính mình (bỏ qua tham số client gửi); người bán chỉ thấy đơn có
+  sản phẩm của shop (`EXISTS` trên `order_items` ⋈ `products`).
+- Màn hình chọn vai trò dùng `GET /api/session/customers` (chỉ mã + họ tên); `GET /api/customers` đầy đủ chỉ dành cho quản trị.
+- Kiểm thử: `node tests/api_authz.mjs` – 14 kịch bản AZ-01…AZ-14 (gọi thẳng API và trang bằng từng vai trò).
+
 ### Tìm khách hàng phía server
 
 Không màn hình nào tải danh sách **tất cả** khách: các ô chọn khách (lọc đơn của quản trị, tạo đơn, chọn vai trò) là ô
@@ -159,7 +187,7 @@ trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo m
 | M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
 | M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers?q=&limit=`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
 | M3 | Danh sách đơn (`/Orders`): lọc theo khách ("Đơn của tôi"), trạng thái (nút lọc nhanh có số đếm), khoảng ngày, số đơn; phân trang 20 đơn | `GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize=` | Bảng quan hệ `orders` (không qua Duality View); lọc theo khách có đúng dạng truy vấn **Q1** (`WHERE customer_id = :cust ORDER BY order_date DESC FETCH NEXT 20`) để đo tối ưu với chỉ mục IX-1 |
-| M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID), tự đối chiếu 9 điểm giữa hai cách nhìn | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
+| M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID) | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |
 | M5 | Xử lý đơn (khu "Xử lý đơn" trên trang chi tiết): đổi trạng thái (nút hợp lệ do CSDL tính + ô "thử chuyển sai"), huỷ, ghi thanh toán qua **procedure hoặc payments[]**, sửa địa chỉ/dòng hàng, thêm vận đơn | `PUT /api/orders/{id}` (If-Match), `GET .../next-statuses`, `POST .../status`, `POST .../cancel`, `POST .../payments` | Đường JSON: `UPDATE order_dv`; đường quan hệ: `pkg_order.sp_change_status`, `sp_cancel_order`, `sp_record_payment`; `fn_is_valid_transition` gọi trong SQL (BOOLEAN 23ai) |
 | M6 | Báo cáo (`/Reports`): R1 doanh thu tháng + luỹ kế + tăng trưởng, R2 người bán × danh mục có tổng phụ, R3 top N mỗi danh mục, R4 ma trận tháng × trạng thái, R5 tỉ lệ huỷ/trả, R6 doanh thu theo thương hiệu (JSON); bảng + biểu đồ CSS; xem mã PL/SQL từ `USER_SOURCE` | `GET /api/reports/{r1..r6}?from=&to=&top=&months=`, `GET /api/reports/{code}/source` | `PKG_ORDER_RPT` trả `SYS_REFCURSOR` (ODP.NET `OracleRefCursor`); `SUM() OVER`, `LAG`, `ROLLUP`, `DENSE_RANK`, `PIVOT`, `JSON_VALUE`; tham số sai → 422 (ORA-20010) |
 | M7 | Khách hàng (`/Customers`): hồ sơ + sổ địa chỉ là một tài liệu; thêm / sửa / xoá địa chỉ, đổi mặc định rồi lưu một lần; tạo khách mới kèm địa chỉ | `GET /api/customers?q=&limit=&offset=`, `GET/PUT /api/customers/{id}` (If-Match), `POST /api/customers` | `CUSTOMER_DV` (customers + customer_addresses): một câu UPDATE thực hiện cả INSERT/UPDATE/DELETE địa chỉ; email trùng → 409 (ORA-00001) |
@@ -187,6 +215,7 @@ xoá `brand` trong `attributes` → **422** (JSON Schema, ORA-40875 / ORA-02290)
   (Chương 3–5 viết lại cho ASP.NET Core + ODP.NET, số liệu kiểm thử và tối ưu đo thật; Bảng 5.2 phân công thành viên). Bản gốc trước khi cập nhật đã xoá khỏi
   thư mục, vẫn lấy lại được từ lịch sử git (commit e6c4085 trở về trước).
 - [`docs/PHAN_CONG_THANH_VIEN.md`](docs/PHAN_CONG_THANH_VIEN.md): phân công 3 thành viên, tệp cần nắm và câu hỏi vấn đáp của từng người.
+- [`docs/KICH_BAN_BAO_CAO.docx`](docs/KICH_BAN_BAO_CAO.docx): kịch bản buổi báo cáo với giảng viên (10 phút, chia vai 3 người, lời thoại, dự phòng, chuẩn bị vấn đáp, truy vấn mẫu).
 - [`docs/KICH_BAN_DEMO.md`](docs/KICH_BAN_DEMO.md): kịch bản demo 8–10 phút, phương án dự phòng, câu hỏi vấn đáp hay gặp.
 - [`docs/THAY_DOI_THIET_KE.md`](docs/THAY_DOI_THIET_KE.md): các thay đổi so với thiết kế ban đầu và
   phát hiện khi chạy trên Oracle thật (đọc trước khi cập nhật báo cáo).

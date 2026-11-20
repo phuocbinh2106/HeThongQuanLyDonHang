@@ -7,12 +7,7 @@
         <div class="crumbs"><a href="/">Trang chủ</a> / Sản phẩm</div>
         <h1>Sản phẩm</h1>
     </div>
-    <button id="btnNew" class="btn btn-outline-success">+ Thêm sản phẩm bằng tài liệu JSON</button>
-</div>
-<div class="tech-note">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
-    <div>Lọc chạy trên bảng <code>products</code> bằng SQL/JSON (<code>JSON_VALUE</code>, <code>JSON_EXISTS</code>);
-        mỗi thẻ là một tài liệu đọc thẳng từ Duality View <code>PRODUCT_DV</code>. Bấm <b>JSON</b> để xem / sửa tài liệu (kèm ETag).</div>
+    <button id="btnNew" class="btn btn-outline-success" data-roles="seller,admin">+ Thêm sản phẩm bằng tài liệu JSON</button>
 </div>
 
 <div class="row g-4">
@@ -108,6 +103,7 @@
             </div>
             <div class="modal-footer">
                 <button id="btnReload" class="btn btn-outline-secondary">Tải lại (GET)</button>
+                <span id="readOnlyNote" class="text-muted small me-auto" hidden></span>
                 <button id="btnSave" class="btn btn-primary">Lưu</button>
             </div>
         </div>

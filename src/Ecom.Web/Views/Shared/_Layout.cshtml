@@ -2,6 +2,13 @@
     // Đánh dấu mục menu đang mở
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act = ViewContext.RouteData.Values["action"]?.ToString();
+    // Vai trò hiện tại (cookie ecom_user đã kiểm tra) -> chỉ hiện menu mà vai trò này được phép dùng.
+    // Đây chỉ là phần hiển thị; quyền thật được kiểm tra lại ở API và ở từng trang (RequireRole).
+    var role = Context.Role();
+    bool canOrder = role.Kind is RoleKind.Customer or RoleKind.Admin;                          // tạo đơn
+    bool canSeeOrders = role.Kind is RoleKind.Customer or RoleKind.Seller or RoleKind.Admin;   // danh sách đơn
+    bool canCustomers = role.Kind is RoleKind.Customer or RoleKind.Admin;                      // hồ sơ / khách hàng
+    bool canReports = role.Kind == RoleKind.Admin;                                             // báo cáo
     string Active(string c, string? a = null) =>
         string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) && (a == null || string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
 }
@@ -48,14 +55,20 @@
                 </button>
             </form>
             <div class="sp-actions">
+                @if (canSeeOrders)
+                {
                 <a class="sp-action" asp-controller="Orders" asp-action="Index" title="Đơn hàng">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6V7H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></svg>
                     <span>Đơn hàng</span>
                 </a>
+                }
+                @if (canOrder)
+                {
                 <a class="sp-action" asp-controller="Orders" asp-action="Create" title="Giỏ hàng / Tạo đơn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" /></svg>
                     <span>Giỏ hàng</span>
                 </a>
+                }
                 <!-- vai trò hiện tại (api.js điền nội dung từ cookie ecom_user) -->
                 <a href="/#roles" id="roleBadge" class="sp-role" title="Đổi vai trò ở trang chủ"></a>
             </div>
@@ -68,14 +81,26 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></svg>Trang chủ</a>
             <a class="@Active("Products")" asp-controller="Products" asp-action="Index">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2L5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></svg>Sản phẩm</a>
+            @if (canOrder)
+            {
             <a class="@Active("Orders", "Create")" asp-controller="Orders" asp-action="Create">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" /></svg>Tạo đơn</a>
+            }
+            @if (canSeeOrders)
+            {
             <a class="@(Active("Orders", "Index") + Active("Orders", "Details"))" asp-controller="Orders" asp-action="Index">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6V7H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></svg>Đơn hàng</a>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6V7H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></svg>@(role.Kind == RoleKind.Customer ? "Đơn của tôi" : role.Kind == RoleKind.Seller ? "Đơn của shop" : "Đơn hàng")</a>
+            }
+            @if (canReports)
+            {
             <a class="@Active("Reports")" asp-controller="Reports" asp-action="Index">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="5.5" y="11" width="3" height="7" rx=".8" /><rect x="10.5" y="6" width="3" height="12" rx=".8" /><rect x="15.5" y="13.5" width="3" height="4.5" rx=".8" /></svg>Báo cáo</a>
+            }
+            @if (canCustomers)
+            {
             <a class="@Active("Customers")" asp-controller="Customers" asp-action="Index">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" /><circle cx="16.8" cy="9.5" r="2.5" /><path d="M15.8 14.6c2.4-.2 4.3 1.4 4.8 4.4" /></svg>Khách hàng</a>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" /><circle cx="16.8" cy="9.5" r="2.5" /><path d="M15.8 14.6c2.4-.2 4.3 1.4 4.8 4.4" /></svg>@(role.Kind == RoleKind.Customer ? "Hồ sơ của tôi" : "Khách hàng")</a>
+            }
         </div>
     </nav>
 
@@ -102,16 +127,16 @@
                     <h6>Mua sắm</h6>
                     <ul>
                         <li><a href="/Products">Sản phẩm</a></li>
-                        <li><a href="/Orders/Create">Tạo đơn</a></li>
-                        <li><a href="/Orders">Đơn hàng</a></li>
-                        <li><a href="/Customers">Sổ địa chỉ</a></li>
+                        <li data-roles="customer,admin"><a href="/Orders/Create">Tạo đơn</a></li>
+                        <li data-roles="customer,seller,admin"><a href="/Orders">Đơn hàng</a></li>
+                        <li data-roles="customer,admin"><a href="/Customers">Sổ địa chỉ</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-lg-3">
                     <h6>Kỹ thuật</h6>
                     <ul>
                         <li><a href="/#th">6 tình huống khó (TH-1…TH-6)</a></li>
-                        <li><a href="/Reports">Báo cáo SQL (PKG_ORDER_RPT)</a></li>
+                        <li data-roles="admin"><a href="/Reports">Báo cáo SQL (PKG_ORDER_RPT)</a></li>
                         <li><a href="/api-docs" target="_blank" rel="noopener">Tài liệu REST API (Swagger)</a></li>
                         <li><a href="/api/system/health">GET /api/system/health</a></li>
                         <li><a href="https://github.com/phuocbinh2106/HeThongQuanLyDonHang" target="_blank" rel="noopener">Mã nguồn trên GitHub</a></li>

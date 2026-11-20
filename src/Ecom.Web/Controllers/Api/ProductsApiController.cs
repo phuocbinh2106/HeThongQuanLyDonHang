@@ -43,8 +43,21 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
 
     /// <summary>Ghi đè tài liệu PRODUCT_DV (UPDATE product_dv) – cần If-Match; sai JSON Schema → 422, ETag cũ → 412.</summary>
     [HttpPut("{id:long}")]
+    [RequireRole(RoleKind.Seller, RoleKind.Admin)]
     public async Task<IActionResult> Put(long id, [FromBody] JsonObject doc, CancellationToken ct)
     {
+        // Người bán chỉ sửa sản phẩm của shop mình và không được chuyển sản phẩm sang shop khác
+        var role = HttpContext.Role();
+        if (role.Kind == RoleKind.Seller)
+        {
+            var current = await repo.GetDocAsync(id, ct);
+            if (current is null) return Problem(statusCode: 404, title: "Không tìm thấy sản phẩm");
+            var owner = SellerOf(JsonNode.Parse(current));
+            if (owner != role.Id)
+                return AccessControl.Denied(role, $"Sản phẩm #{id} thuộc người bán #{owner}, không phải của {role.Display}.");
+            if (SellerOf(doc) is long target && target != role.Id)
+                return AccessControl.Denied(role, "Không được chuyển sản phẩm sang người bán khác.");
+        }
         // Bắt buộc có ETag (header If-Match, hoặc _metadata.etag trong tài liệu) để chống ghi đè
         var etag = DocEtag.Normalize(Request.Headers.IfMatch.ToString())
                    ?? doc["_metadata"]?["etag"]?.GetValue<string>();
@@ -61,8 +74,17 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
 
     /// <summary>Thêm sản phẩm bằng một tài liệu JSON (INSERT INTO product_dv); attributes phải có brand (JSON Schema).</summary>
     [HttpPost]
+    [RequireRole(RoleKind.Seller, RoleKind.Admin)]
     public async Task<IActionResult> Post([FromBody] JsonObject doc, CancellationToken ct)
     {
+        // Người bán chỉ thêm sản phẩm cho shop mình (thiếu sellerId thì gán chính mình)
+        var role = HttpContext.Role();
+        if (role.Kind == RoleKind.Seller)
+        {
+            if (SellerOf(doc) is long target && target != role.Id)
+                return AccessControl.Denied(role, $"{role.Display} không được thêm sản phẩm cho người bán #{target}.");
+            doc["seller"] = new JsonObject { ["sellerId"] = role.Id };
+        }
         doc.Remove("_id");        // khoá do identity sinh
         doc.Remove("_metadata");
         var (id, created) = await repo.InsertDocAsync(doc.ToJsonString(), HttpContext.CurrentUser(), ct);
@@ -71,6 +93,10 @@ public class ProductsApiController(ProductRepository repo) : ControllerBase
     }
 
     /// <summary>Dữ liệu cho bộ lọc: cây danh mục (CONNECT BY), danh sách thương hiệu, các khoá JSON (JSON_DATAGUIDE).</summary>
+    /// <summary>seller.sellerId trong tài liệu PRODUCT_DV (null nếu không có).</summary>
+    private static long? SellerOf(JsonNode? doc)
+        => doc?["seller"]?["sellerId"] is JsonValue v && v.TryGetValue<long>(out var id) ? id : null;
+
     [HttpGet("facets")]
     public async Task<IActionResult> Facets([FromQuery] long? categoryId, CancellationToken ct)
     {

@@ -202,3 +202,14 @@ qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan c�
 - **Giao diện Shopia:** chỉ đổi phần trình bày (logo, `site.css`, `shopia.js`); id, nhãn nút và luồng gọi API giữ nguyên.
 - Báo cáo `_capnhat.docx` đã cập nhật: mục 2.3.5, 2.6, Bảng 3.1, 3.3 (Đ13, Đ14), 3.9, mục mới 3.7.6–3.7.8
   (Swagger, tìm khách, giao diện Shopia, 5 ảnh chụp màn hình), Bảng 5.1, Bảng 5.2 (phân công, chi tiết ở `docs/PHAN_CONG_THANH_VIEN.md`). Sau đó nhóm tự chỉnh trong Word: đổi dấu "–" thành "-" và bỏ mục 4.5 Kịch bản demo (kịch bản vẫn ở `docs/KICH_BAN_DEMO.md`).
+
+## 10. Đ15 – Phân quyền theo vai trò ở server
+
+- **Trước:** vai trò (cookie `ecom_user`) chỉ dùng để ghi `changed_by` vào lịch sử; mọi vai trò gọi được mọi API và mở được
+  mọi trang (ví dụ khách hàng xem được báo cáo, đơn của người khác).
+- **Sau:** `Infrastructure/AccessControl.cs` + `[RequireRole]` trên API và trang MVC; kiểm tra quyền trên từng đơn / sản phẩm /
+  hồ sơ và theo từng trường khi PUT tài liệu đơn. Ma trận quyền ở README (mục "Phân quyền theo vai trò").
+- **Lý do:** sàn có ba nhóm người dùng với phạm vi dữ liệu khác nhau; quyền phải nằm ở server (giao diện ẩn nút không đủ).
+  Đăng nhập vẫn mô phỏng – xác thực thật (mật khẩu / OAuth2) vẫn là hướng phát triển.
+- **Ảnh hưởng:** `tests/api_test_cases.mjs` gửi vai trò `admin` mặc định (trước gửi `tester` – không còn hợp lệ); thêm
+  `tests/api_authz.mjs` (14/14 PASS). Kịch bản demo đổi thứ tự vai trò: khách hàng → người bán #3 → quản trị.

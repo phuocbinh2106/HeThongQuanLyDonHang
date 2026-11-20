@@ -12,7 +12,9 @@ const cart = new Map();   // productId -> { product, quantity }
 // ---------- Khách hàng & địa chỉ ----------
 // Ô tìm khách (shopia.js): tìm phía server theo tên / email / SĐT / mã KH, không tải tất cả khách.
 // Đơn bắt buộc có khách nên không cho bỏ chọn; chọn khách khác thì nạp lại sổ địa chỉ của khách đó.
-const picker = customerPicker($('customerPicker'), { allowClear: false, onChange: () => loadAddresses() });
+// Khách hàng chỉ đặt đơn cho chính mình -> khoá ô; quản trị đặt hộ được mọi khách (server cũng kiểm tra lại)
+const picker = customerPicker($('customerPicker'), {
+  allowClear: false, readonly: roleKind() === 'customer', onChange: () => loadAddresses() });
 
 async function loadCustomers() {
   // Nếu đã chọn vai trò khách hàng ở trang chủ (cookie ecom_user=customer:N) thì chọn sẵn; không thì khách #1

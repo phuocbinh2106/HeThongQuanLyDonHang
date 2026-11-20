@@ -2,7 +2,6 @@
 // M4 – Chi tiết đơn, hai cách nhìn trên CÙNG dữ liệu:
 //   GET /api/orders/{id}             -> tài liệu ORDER_DV (đường JSON) + ETag
 //   GET /api/orders/{id}/relational  -> dòng thật trong 5 bảng nền (đường quan hệ)
-// Sau khi đọc, so sánh tự động vài giá trị để thấy hai cách nhìn luôn khớp.
 // =============================================================================
 const $ = id => document.getElementById(id);
 
@@ -25,7 +24,6 @@ async function load() {
     ]);
     renderJson(json.data, json.etag);
     renderRelational(rel.data);
-    renderCompare(json.data, rel.data);
     renderActions(json.data, json.etag);
   } catch (err) { showError('msg', err); }
 }
@@ -62,31 +60,6 @@ function renderRelational(tables) {
     </div>`).join('');
 }
 
-// Đối chiếu: giá trị trong tài liệu JSON phải bằng giá trị trong bảng nền
-function renderCompare(doc, t) {
-  const o = t.orders.rows[0];
-  const sumItems = t.order_items.rows.reduce((s, r) => s + r.QUANTITY * r.UNIT_PRICE, 0);
-  const checks = [
-    ['orderNo = orders.order_no', doc.orderNo === o.ORDER_NO],
-    ['status = orders.status', doc.status === o.STATUS],
-    ['totalAmount = orders.total_amount', doc.totalAmount === o.TOTAL_AMOUNT],
-    [`items[] (${doc.items.length}) = số dòng order_items (${t.order_items.rows.length})`, doc.items.length === t.order_items.rows.length],
-    ['subtotal = Σ quantity × unit_price', doc.subtotal === sumItems],
-    ['totalAmount = subtotal + shipping_fee − discount_amount', o.TOTAL_AMOUNT === o.SUBTOTAL + o.SHIPPING_FEE - o.DISCOUNT_AMOUNT],
-    [`payments[] (${doc.payments.length}) = số dòng payments`, doc.payments.length === t.payments.rows.length],
-    [`shipments[] (${doc.shipments.length}) = số dòng shipments`, doc.shipments.length === t.shipments.rows.length],
-    [`history[] (${doc.history.length}) = số dòng order_status_history`, doc.history.length === t.order_status_history.rows.length],
-  ];
-  const allOk = checks.every(c => c[1]);
-  $('compare').innerHTML = `
-    <div class="alert ${allOk ? 'alert-success' : 'alert-warning'} small mb-0 py-2">
-      <b>${allOk ? 'Hai cách nhìn khớp nhau' : 'Có điểm lệch (có thể dữ liệu vừa đổi giữa hai lần đọc – bấm Đọc lại)'}</b>
-      <div class="d-flex flex-wrap gap-3 mt-1">
-        ${checks.map(([label, ok]) => `<span>${ok ? '✔' : '✘'} ${escapeHtml(label)}</span>`).join('')}
-      </div>
-    </div>`;
-}
-
 // =============================================================================
 // M5 – XỬ LÝ ĐƠN
 //   Đường quan hệ : POST /api/orders/{id}/status | /cancel | /payments  -> PKG_ORDER
@@ -102,6 +75,8 @@ async function renderActions(doc, etag) {
 
   // Trạng thái kế tiếp hợp lệ: hỏi CSDL
   const { data } = await api(`/api/orders/${ORDER_ID}/next-statuses`);
+  // Khách hàng không tự đổi trạng thái, chỉ được huỷ đơn của mình (server: POST /status chỉ người bán / quản trị)
+  if (roleKind() === 'customer') data.next = data.next.filter(s => s === 'CANCELLED');
   $('nextButtons').innerHTML = data.next.length
     ? data.next.map(s => `<button class="btn btn-sm ${s === 'CANCELLED' ? 'btn-outline-danger' : 'btn-primary'}"
           data-status="${s}" title="${STATUS_VI[s]}">${s === 'CANCELLED' ? 'Huỷ đơn' : '→ ' + s}</button>`).join('')

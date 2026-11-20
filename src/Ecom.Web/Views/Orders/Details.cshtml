@@ -20,15 +20,8 @@
     </div>
     <div id="orderStepper"></div>
 </div>
-<div class="tech-note">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" /></svg>
-    <div><strong>Một nguồn dữ liệu – hai cách nhìn.</strong> Tab JSON đọc <code>GET /api/orders/@orderId</code>
-        (một tài liệu từ <code>ORDER_DV</code>); tab quan hệ đọc <code>GET /api/orders/@orderId/relational</code>
-        (các dòng thật trong 5 bảng nền). Không có bảng nào lưu tài liệu JSON: Oracle sinh tài liệu từ chính các dòng đó.</div>
-</div>
 
 <div id="msg"></div>
-<div id="compare" class="mb-3"></div>
 
 <!-- ===================== M5 – XỬ LÝ ĐƠN ===================== -->
 <div class="card mb-3">
@@ -48,7 +41,7 @@
                     <span class="input-group-text">Ghi chú</span>
                     <input id="statusNote" class="form-control" placeholder="lý do / ghi chú (lưu vào lịch sử)" />
                 </div>
-                <div class="input-group input-group-sm">
+                <div class="input-group input-group-sm" data-roles="seller,admin">
                     <span class="input-group-text">Thử chuyển tới</span>
                     <select id="anyStatus" class="form-select">
                         <option>PENDING</option><option>CONFIRMED</option><option>PACKING</option><option>SHIPPING</option>
@@ -56,11 +49,11 @@
                     </select>
                     <button id="btnAnyStatus" class="btn btn-outline-danger">Gửi (kể cả sai)</button>
                 </div>
-                <div class="form-text">Dùng để demo TC-05: chuyển sai sơ đồ → CSDL từ chối (ORA-20002).</div>
+                <div class="form-text" data-roles="seller,admin">Dùng để demo TC-05: chuyển sai sơ đồ → CSDL từ chối (ORA-20002).</div>
             </div></div>
 
             <!-- Thanh toán: chọn kênh -->
-            <div class="col-lg-6"><div class="action-block">
+            <div class="col-lg-6" data-roles="customer,admin"><div class="action-block">
                 <div class="fw-semibold">2. Ghi thanh toán</div>
                 <div class="row g-1 mb-1">
                     <div class="col-4"><select id="payMethod" class="form-select form-select-sm">
@@ -80,14 +73,14 @@
             </div></div>
 
             <!-- Sửa đơn bằng tài liệu JSON -->
-            <div class="col-lg-8"><div class="action-block">
+            <div class="col-lg-8" data-roles="customer,admin"><div class="action-block">
                 <div class="fw-semibold">3. Sửa đơn bằng tài liệu JSON <span class="text-muted">(PUT /api/orders/{id} + If-Match → UPDATE order_dv)</span></div>
                 <div class="row g-1 mb-1">
                     <div class="col-sm-4"><input id="edReceiver" class="form-control form-control-sm" placeholder="Người nhận" /></div>
                     <div class="col-sm-3"><input id="edPhone" class="form-control form-control-sm" placeholder="Điện thoại" /></div>
                     <div class="col-sm-5"><input id="edAddress" class="form-control form-control-sm" placeholder="Địa chỉ" /></div>
-                    <div class="col-sm-3"><div class="input-group input-group-sm"><span class="input-group-text">Ship</span><input id="edFee" type="number" min="0" class="form-control" /></div></div>
-                    <div class="col-sm-3"><div class="input-group input-group-sm"><span class="input-group-text">Giảm</span><input id="edDiscount" type="number" min="0" class="form-control" /></div></div>
+                    <div class="col-sm-3" data-roles="admin"><div class="input-group input-group-sm"><span class="input-group-text">Ship</span><input id="edFee" type="number" min="0" class="form-control" /></div></div>
+                    <div class="col-sm-3" data-roles="admin"><div class="input-group input-group-sm"><span class="input-group-text">Giảm</span><input id="edDiscount" type="number" min="0" class="form-control" /></div></div>
                 </div>
                 <table class="table table-sm mb-1">
                     <thead><tr><th>Sản phẩm</th><th style="width:90px">SL</th><th></th></tr></thead>
@@ -108,7 +101,7 @@
             </div></div>
 
             <!-- Vận đơn -->
-            <div class="col-lg-4"><div class="action-block">
+            <div class="col-lg-4" data-roles="seller,admin"><div class="action-block">
                 <div class="fw-semibold">4. Thêm vận đơn <span class="text-muted">(thêm vào shipments[], PUT)</span></div>
                 <select id="shipCarrier" class="form-select form-select-sm mb-1">
                     <option>GHN</option><option>GHTK</option><option>Viettel Post</option><option>Ninja Van</option></select>

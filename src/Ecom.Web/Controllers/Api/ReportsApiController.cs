@@ -1,4 +1,5 @@
 using Ecom.Web.Data;
+using Ecom.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecom.Web.Controllers.Api;
@@ -8,9 +9,11 @@ namespace Ecom.Web.Controllers.Api;
 ///   GET /api/reports/{code}?from=&amp;to=&amp;top=&amp;months=   code = r1..r6
 ///   GET /api/reports/{code}/source                    mã PL/SQL của hàm báo cáo (từ USER_SOURCE)
 /// Tham số sai (top &lt;= 0, từ ngày > đến ngày...) -> ORA-20010 -> HTTP 422.
+/// Báo cáo doanh thu toàn sàn: CHỈ QUẢN TRỊ (khách hàng / người bán nhận 403).
 /// </summary>
 [ApiController]
 [Route("api/reports")]
+[RequireRole(RoleKind.Admin)]
 public class ReportsApiController(ReportRepository repo) : ControllerBase
 {
     /// <summary>Chạy báo cáo r1..r6 của PKG_ORDER_RPT (SYS_REFCURSOR) trên bảng chuẩn hoá; trả cột + dòng.</summary>

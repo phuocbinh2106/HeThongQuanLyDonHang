@@ -4,6 +4,7 @@ namespace Ecom.Web.Models;
 public class OrderFilter
 {
     public long? CustomerId { get; set; }   // "Đơn của tôi" = truy vấn Q1
+    public long? SellerId { get; set; }     // đơn có ít nhất một sản phẩm của người bán này (vai trò người bán)
     public string? Status { get; set; }
     public DateTime? From { get; set; }
     public DateTime? To { get; set; }

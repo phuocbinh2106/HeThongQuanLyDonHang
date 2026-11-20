@@ -3,13 +3,19 @@ namespace Ecom.Web.Infrastructure;
 public static class HttpContextExtensions
 {
     /// <summary>
-    /// Người đang thao tác (mô phỏng, không đăng nhập thật): đọc cookie "ecom_user" do trang
-    /// chọn vai trò đặt, ví dụ "seller:1", "customer:2", "admin". Mặc định "web".
-    /// Giá trị này được gửi xuống Oracle qua CLIENT_IDENTIFIER để ghi lịch sử.
+    /// Người đang thao tác, dạng chuẩn "customer:2" / "seller:1" / "admin"; chưa chọn vai trò thì "web".
+    /// Lấy từ vai trò ĐÃ KIỂM TRA định dạng (AccessControl.Role), nên cookie giả mạo không lọt xuống CSDL.
+    /// Giá trị này được gửi xuống Oracle qua CLIENT_IDENTIFIER để trigger ghi cột changed_by của lịch sử.
     /// </summary>
     public static string CurrentUser(this HttpContext ctx)
     {
-        var v = ctx.Request.Cookies["ecom_user"];
-        return string.IsNullOrWhiteSpace(v) ? "web" : v.Length > 60 ? v[..60] : v;
+        var r = ctx.Role();
+        return r.Kind switch
+        {
+            RoleKind.Customer => $"customer:{r.Id}",
+            RoleKind.Seller => $"seller:{r.Id}",
+            RoleKind.Admin => "admin",
+            _ => "web",
+        };
     }
 }

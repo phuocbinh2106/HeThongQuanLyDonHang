@@ -56,7 +56,7 @@ async function loadProducts() {
     document.getElementById('count').textContent = data.count;
     document.getElementById('filterSql').textContent = data.filterSql;
     // mỗi thẻ là một tài liệu PRODUCT_DV (hàm productCard ở shopia.js)
-    document.getElementById('productRows').innerHTML = data.items.map(p => productCard(p, { json: true })).join('') ||
+    document.getElementById('productRows').innerHTML = data.items.map(p => productCard(p, { json: true, buy: roleKind() !== 'seller' })).join('') ||
       `<div class="empty-state" style="grid-column:1/-1">${icon('search')}<div>Không có sản phẩm phù hợp</div></div>`;
   } catch (err) { showError('listMsg', err); }
 }
@@ -71,8 +71,21 @@ async function openDoc(id) {
     current.etag = etag;
     document.getElementById('docEtag').textContent = etag;
     document.getElementById('docText').value = JSON.stringify(data, null, 2);
+    // Quyền sửa: quản trị mọi sản phẩm; người bán chỉ sản phẩm của shop mình; vai trò khác chỉ xem
+    const r = getRole();
+    const canEdit = r?.kind === 'admin' || (r?.kind === 'seller' && data.seller?.sellerId === r.id);
+    setEditable(canEdit, r?.kind === 'seller' ? `Sản phẩm của người bán #${data.seller?.sellerId} – bạn chỉ xem được`
+                                              : 'Chỉ người bán sở hữu sản phẩm hoặc quản trị mới sửa được');
     modal.show();
   } catch (err) { showError('listMsg', err); }
+}
+
+// Bật / tắt chế độ sửa trong hộp thoại tài liệu (server vẫn kiểm tra lại: sửa trái quyền -> 403)
+function setEditable(canEdit, note) {
+  document.getElementById('btnSave').hidden = !canEdit;
+  document.getElementById('docText').readOnly = !canEdit;
+  const n = document.getElementById('readOnlyNote');
+  n.hidden = canEdit; n.textContent = canEdit ? '' : note;
 }
 
 function openNew() {
@@ -81,6 +94,7 @@ function openNew() {
   document.getElementById('docTitle').textContent = 'Thêm sản phẩm: INSERT INTO product_dv';
   document.getElementById('docEtag').textContent = '(chưa có – tài liệu mới)';
   document.getElementById('docText').value = JSON.stringify(NEW_TEMPLATE, null, 2);
+  setEditable(true, '');
   modal.show();
 }
 
