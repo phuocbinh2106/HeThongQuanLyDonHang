@@ -2,59 +2,67 @@
     ViewData["Title"] = "Danh sách đơn";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <h1 class="h3 mb-0">Danh sách đơn hàng <span id="myBadge" class="badge text-bg-info fs-6 align-middle" hidden>Đơn của tôi · truy vấn Q1</span></h1>
-    <a class="btn btn-sm btn-success" href="/Orders/Create">+ Tạo đơn</a>
-</div>
-<p class="text-muted small">
-    Màn hình tra cứu đọc <strong>bảng quan hệ</strong> <code>orders</code> (đường báo cáo) — không dựng tài liệu
-    JSON cho từng đơn. Bấm số đơn để xem tài liệu <code>ORDER_DV</code> và xử lý đơn.
-</p>
-
-<form id="filterForm" class="card card-body small mb-2">
-    <div class="row g-2 align-items-end">
-        <div class="col-md-4">
-            <label class="form-label mb-0">Khách hàng</label>
-            <select name="customerId" class="form-select form-select-sm"><option value="">— tất cả khách —</option></select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label mb-0">Từ ngày</label>
-            <input name="from" type="date" class="form-control form-control-sm" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label mb-0">Đến ngày</label>
-            <input name="to" type="date" class="form-control form-control-sm" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label mb-0">Số đơn chứa</label>
-            <input name="q" class="form-control form-control-sm" placeholder="vd 2026-11" />
-        </div>
-        <div class="col-md-2 d-flex gap-1">
-            <button class="btn btn-sm btn-primary flex-fill" type="submit">Lọc</button>
-            <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá</button>
-        </div>
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Đơn hàng</div>
+        <h1>Danh sách đơn hàng <span id="myBadge" class="badge text-bg-warning fs-6 align-middle" hidden>Đơn của tôi · truy vấn Q1</span></h1>
     </div>
-    <input type="hidden" name="status" />
-    <div id="statusChips" class="d-flex flex-wrap gap-1 mt-2"></div>
+    <a class="btn btn-primary" href="/Orders/Create">+ Tạo đơn</a>
+</div>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
+    <div>Màn hình tra cứu đọc <strong>bảng quan hệ</strong> <code>orders</code> (đường báo cáo) — không dựng tài liệu
+        JSON cho từng đơn. Bấm số đơn để xem tài liệu <code>ORDER_DV</code> và xử lý đơn.</div>
+</div>
+
+<form id="filterForm" class="card mb-3">
+    <div class="card-body pb-0">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-0 small">Khách hàng</label>
+                <select name="customerId" class="form-select form-select-sm"><option value="">— tất cả khách —</option></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-0 small">Từ ngày</label>
+                <input name="from" type="date" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-0 small">Đến ngày</label>
+                <input name="to" type="date" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-0 small">Số đơn chứa</label>
+                <input name="q" class="form-control form-control-sm" placeholder="vd 2026-11" />
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button class="btn btn-sm btn-primary flex-fill" type="submit">Lọc</button>
+                <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá</button>
+            </div>
+        </div>
+        <input type="hidden" name="status" />
+        <div id="statusChips" class="status-tabs"></div>
+    </div>
 </form>
 
 <div id="msg"></div>
 <details class="small mb-2">
     <summary>Câu SQL vừa chạy</summary>
-    <pre id="sql" class="bg-light p-2 mb-0"></pre>
+    <pre id="sql" class="bg-light mt-2 mb-0"></pre>
 </details>
 
-<div class="table-responsive">
-    <table class="table table-sm table-hover align-middle small">
-        <thead class="table-light">
-            <tr><th>Số đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>Trạng thái</th>
-                <th class="text-end">Dòng</th><th class="text-end">Tổng tiền</th><th>Thanh toán</th><th>Vận chuyển</th></tr>
-        </thead>
-        <tbody id="rows"></tbody>
-    </table>
+<div class="table-wrap mb-2">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle small">
+            <thead class="table-light">
+                <tr><th>Số đơn</th><th>Ngày đặt</th><th>Khách hàng</th><th>Trạng thái</th>
+                    <th class="text-end">Dòng</th><th class="text-end">Tổng tiền</th><th>Thanh toán</th><th>Vận chuyển</th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
 </div>
 <div class="d-flex justify-content-between align-items-center small">
-    <span id="pageInfo"></span>
+    <span id="pageInfo" class="text-muted"></span>
     <div class="btn-group btn-group-sm">
         <button id="btnPrev" class="btn btn-outline-secondary">‹ Trước</button>
         <button id="btnNext" class="btn btn-outline-secondary">Sau ›</button>

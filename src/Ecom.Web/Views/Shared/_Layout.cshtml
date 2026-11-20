@@ -1,48 +1,140 @@
-﻿<!DOCTYPE html>
+﻿@{
+    // Đánh dấu mục menu đang mở
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var act = ViewContext.RouteData.Values["action"]?.ToString();
+    string Active(string c, string? a = null) =>
+        string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) && (a == null || string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+}
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Quản lý đơn hàng TMĐT</title>
+    <title>@ViewData["Title"] · Shopia</title>
+    <meta name="description" content="Shopia – sàn thương mại điện tử minh hoạ JSON Relational Duality View (Oracle Database 23ai)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon-32.png" />
+    <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">Đề tài 15 · Duality View</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                        aria-controls="mainNav" aria-expanded="false" aria-label="Mở menu">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Products" asp-action="Index">Sản phẩm</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Orders" asp-action="Create">Tạo đơn</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Orders" asp-action="Index">Đơn hàng</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Reports" asp-action="Index">Báo cáo</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Customers" asp-action="Index">Khách hàng</a></li>
-                    </ul>
-                    <a href="/" id="roleBadge" class="text-decoration-none" title="Đổi vai trò ở trang chủ"></a>
-                </div>
+    <!-- Thanh trên cùng: lối vào kênh người bán / quản trị + công nghệ của đồ án -->
+    <div class="sp-topbar">
+        <div class="container">
+            <div>
+                <a href="/#roles">Kênh người bán</a><span class="sep">|</span>
+                <a href="/#roles">Quản trị sàn</a><span class="sep">|</span>
+                <a href="/#th">6 tình huống Duality View</a>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+            <div class="tech">
+                <span class="star">✦</span> Oracle Database 23ai · JSON Relational Duality View · ASP.NET Core MVC
+            </div>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container small">
-            HUFLIT · Các hệ quản trị CSDL · Oracle Database 23ai · ASP.NET Core MVC
+    <!-- Header: logo + tìm kiếm + lối tắt -->
+    <header class="sp-header">
+        <div class="container">
+            <a class="sp-logo" asp-controller="Home" asp-action="Index" title="Shopia – Trang chủ">
+                <img src="~/img/shopia-logo.png" alt="Shopia" width="134" height="46" />
+            </a>
+            <form class="sp-search" action="/Products" method="get" role="search">
+                <input name="q" placeholder="Tìm sản phẩm, thương hiệu… (ví dụ: iPhone, Samsung, áo thun)" aria-label="Tìm sản phẩm"
+                       value="@(string.Equals(ctrl, "Products", StringComparison.OrdinalIgnoreCase) ? Context.Request.Query["q"].ToString() : "")" />
+                <button type="submit">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.6-3.6" /></svg>
+                    <span class="d-none d-md-inline">Tìm</span>
+                </button>
+            </form>
+            <div class="sp-actions">
+                <a class="sp-action" asp-controller="Orders" asp-action="Index" title="Đơn hàng">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6V7H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></svg>
+                    <span>Đơn hàng</span>
+                </a>
+                <a class="sp-action" asp-controller="Orders" asp-action="Create" title="Giỏ hàng / Tạo đơn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" /></svg>
+                    <span>Giỏ hàng</span>
+                </a>
+                <!-- vai trò hiện tại (api.js điền nội dung từ cookie ecom_user) -->
+                <a href="/#roles" id="roleBadge" class="sp-role" title="Đổi vai trò ở trang chủ"></a>
+            </div>
+        </div>
+    </header>
+
+    <nav class="sp-nav" aria-label="Menu chính">
+        <div class="container">
+            <a class="@Active("Home")" asp-controller="Home" asp-action="Index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></svg>Trang chủ</a>
+            <a class="@Active("Products")" asp-controller="Products" asp-action="Index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2L5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></svg>Sản phẩm</a>
+            <a class="@Active("Orders", "Create")" asp-controller="Orders" asp-action="Create">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.4" /><circle cx="17" cy="19.5" r="1.4" /></svg>Tạo đơn</a>
+            <a class="@(Active("Orders", "Index") + Active("Orders", "Details"))" asp-controller="Orders" asp-action="Index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6V7H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></svg>Đơn hàng</a>
+            <a class="@Active("Reports")" asp-controller="Reports" asp-action="Index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="5.5" y="11" width="3" height="7" rx=".8" /><rect x="10.5" y="6" width="3" height="12" rx=".8" /><rect x="15.5" y="13.5" width="3" height="4.5" rx=".8" /></svg>Báo cáo</a>
+            <a class="@Active("Customers")" asp-controller="Customers" asp-action="Index">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2" /><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" /><circle cx="16.8" cy="9.5" r="2.5" /><path d="M15.8 14.6c2.4-.2 4.3 1.4 4.8 4.4" /></svg>Khách hàng</a>
+        </div>
+    </nav>
+
+    <main role="main" class="container sp-main">
+        @RenderBody()
+    </main>
+
+    <footer class="sp-footer">
+        <div class="container top">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="brand">
+                        <img src="~/img/shopia-icon.png" alt="" width="44" height="44" />
+                        <b>Shop<span>ia</span></b>
+                    </div>
+                    <p class="mb-2">Sàn thương mại điện tử đa người bán – ứng dụng minh hoạ cho đồ án
+                        <b>Hệ thống quản lý đơn hàng</b> trên Oracle Database 23ai.</p>
+                    <div>
+                        <span class="chip">JSON Relational Duality View</span><span class="chip">PL/SQL</span>
+                        <span class="chip">ETag</span><span class="chip">REST API</span>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6>Mua sắm</h6>
+                    <ul>
+                        <li><a href="/Products">Sản phẩm</a></li>
+                        <li><a href="/Orders/Create">Tạo đơn</a></li>
+                        <li><a href="/Orders">Đơn hàng</a></li>
+                        <li><a href="/Customers">Sổ địa chỉ</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <h6>Kỹ thuật</h6>
+                    <ul>
+                        <li><a href="/#th">6 tình huống khó (TH-1…TH-6)</a></li>
+                        <li><a href="/Reports">Báo cáo SQL (PKG_ORDER_RPT)</a></li>
+                        <li><a href="/api/system/health">GET /api/system/health</a></li>
+                        <li><a href="https://github.com/phuocbinh2106/HeThongQuanLyDonHang" target="_blank" rel="noopener">Mã nguồn trên GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3">
+                    <h6>Nhóm thực hiện</h6>
+                    <ul>
+                        <li>Tống Phước Bình – 24DH110200</li>
+                        <li>Nguyễn Thị Khánh Uyên – 24DH112109</li>
+                        <li>Hoàng Hồng Minh Anh – 24DH112475</li>
+                        <li class="mt-1">GVHD: ThS. Lê Hồng Thúy Vũ</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container bottom">
+            <span>© 2026 Shopia · Đồ án môn Các hệ quản trị cơ sở dữ liệu – HUFLIT</span>
+            <span>Oracle Database 23ai (Docker) · ASP.NET Core MVC · ODP.NET</span>
         </div>
     </footer>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/api.js" asp-append-version="true"></script>
+    <script src="~/js/shopia.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

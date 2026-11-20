@@ -3,34 +3,44 @@
     var orderId = (long)ViewData["OrderId"]!;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <h1 class="h3 mb-0">Đơn <span id="hdrOrderNo">#@orderId</span> <span id="hdrStatus"></span></h1>
-    <form class="d-flex gap-1" onsubmit="location.href='/Orders/Details/' + this.id.value; return false;">
-        <input name="id" type="number" min="1" class="form-control form-control-sm" style="width:110px" placeholder="ID đơn" />
-        <button class="btn btn-sm btn-outline-secondary">Mở</button>
-        <button type="button" id="btnRefresh" class="btn btn-sm btn-primary">Đọc lại cả hai</button>
-    </form>
+<div class="page-head mb-2">
+    <div class="crumbs"><a href="/">Trang chủ</a> / <a href="/Orders">Đơn hàng</a> / Chi tiết đơn #@orderId</div>
 </div>
-<p class="text-muted small mb-2">
-    <strong>Một nguồn dữ liệu – hai cách nhìn.</strong> Tab JSON đọc <code>GET /api/orders/@orderId</code>
-    (một tài liệu từ <code>ORDER_DV</code>); tab quan hệ đọc <code>GET /api/orders/@orderId/relational</code>
-    (các dòng thật trong 5 bảng nền). Không có bảng nào lưu tài liệu JSON: Oracle sinh tài liệu từ chính các dòng đó.
-</p>
+<div class="order-hero">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+            <h1>Đơn <span id="hdrOrderNo" class="mono">#@orderId</span> <span id="hdrStatus"></span></h1>
+            <div id="hdrMeta" class="small text-muted mt-1"></div>
+        </div>
+        <form class="d-flex gap-1" onsubmit="location.href='/Orders/Details/' + this.id.value; return false;">
+            <input name="id" type="number" min="1" class="form-control form-control-sm" style="width:110px" placeholder="ID đơn" />
+            <button class="btn btn-sm btn-outline-secondary">Mở</button>
+            <button type="button" id="btnRefresh" class="btn btn-sm btn-primary">Đọc lại cả hai</button>
+        </form>
+    </div>
+    <div id="orderStepper"></div>
+</div>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" /></svg>
+    <div><strong>Một nguồn dữ liệu – hai cách nhìn.</strong> Tab JSON đọc <code>GET /api/orders/@orderId</code>
+        (một tài liệu từ <code>ORDER_DV</code>); tab quan hệ đọc <code>GET /api/orders/@orderId/relational</code>
+        (các dòng thật trong 5 bảng nền). Không có bảng nào lưu tài liệu JSON: Oracle sinh tài liệu từ chính các dòng đó.</div>
+</div>
 
 <div id="msg"></div>
 <div id="compare" class="mb-3"></div>
 
 <!-- ===================== M5 – XỬ LÝ ĐƠN ===================== -->
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between">
-        <span><b>Xử lý đơn</b> <span class="text-muted small">— kết quả hiện ngay ở cả hai tab bên dưới</span></span>
+    <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+        <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></svg><span><b>Xử lý đơn</b> <span class="text-muted small">— kết quả hiện ngay ở cả hai tab bên dưới</span></span></span>
         <span class="small">ETag đang giữ: <code id="etagHeld">—</code></span>
     </div>
     <div class="card-body small">
         <div id="actionMsg"></div>
         <div class="row g-3">
             <!-- Đổi trạng thái / huỷ: đường quan hệ (PKG_ORDER) -->
-            <div class="col-lg-6">
+            <div class="col-lg-6"><div class="action-block">
                 <div class="fw-semibold">1. Trạng thái <span class="text-muted">(POST → pkg_order.sp_change_status / sp_cancel_order)</span></div>
                 <div class="text-muted mb-1">Trạng thái kế tiếp hợp lệ do hàm <code>fn_is_valid_transition</code> trong CSDL tính:</div>
                 <div id="nextButtons" class="d-flex flex-wrap gap-1 mb-2"></div>
@@ -47,10 +57,10 @@
                     <button id="btnAnyStatus" class="btn btn-outline-danger">Gửi (kể cả sai)</button>
                 </div>
                 <div class="form-text">Dùng để demo TC-05: chuyển sai sơ đồ → CSDL từ chối (ORA-20002).</div>
-            </div>
+            </div></div>
 
             <!-- Thanh toán: chọn kênh -->
-            <div class="col-lg-6">
+            <div class="col-lg-6"><div class="action-block">
                 <div class="fw-semibold">2. Ghi thanh toán</div>
                 <div class="row g-1 mb-1">
                     <div class="col-4"><select id="payMethod" class="form-select form-select-sm">
@@ -64,13 +74,13 @@
                     <div class="form-check"><input class="form-check-input" type="radio" name="payChannel" id="payJson" value="json">
                         <label class="form-check-label" for="payJson">Qua tài liệu: thêm vào <code>payments[]</code> (PUT)</label></div>
                 </div>
-                <button id="btnPay" class="btn btn-sm btn-outline-success">Ghi thanh toán</button>
+                <button id="btnPay" class="btn btn-sm btn-success">Ghi thanh toán</button>
                 <span class="text-muted ms-2">Đã trả: <b id="paidSoFar">0</b> / <b id="totalAmt">0</b></span>
                 <div class="form-text">TC-08: nhập số tiền lớn hơn phần còn lại → bị chặn ở <b>cả hai kênh</b> (ORA-20005).</div>
-            </div>
+            </div></div>
 
             <!-- Sửa đơn bằng tài liệu JSON -->
-            <div class="col-lg-8">
+            <div class="col-lg-8"><div class="action-block">
                 <div class="fw-semibold">3. Sửa đơn bằng tài liệu JSON <span class="text-muted">(PUT /api/orders/{id} + If-Match → UPDATE order_dv)</span></div>
                 <div class="row g-1 mb-1">
                     <div class="col-sm-4"><input id="edReceiver" class="form-control form-control-sm" placeholder="Người nhận" /></div>
@@ -95,16 +105,16 @@
                     Dòng hàng chỉ sửa được khi đơn <b>PENDING</b> (đã khoá → 409 ORA-20004, TC-06).
                     TC-09: mở đơn này ở <b>hai tab</b>, lưu ở tab 1 rồi lưu ở tab 2 → tab 2 nhận <b>412</b>.
                 </div>
-            </div>
+            </div></div>
 
             <!-- Vận đơn -->
-            <div class="col-lg-4">
+            <div class="col-lg-4"><div class="action-block">
                 <div class="fw-semibold">4. Thêm vận đơn <span class="text-muted">(thêm vào shipments[], PUT)</span></div>
                 <select id="shipCarrier" class="form-select form-select-sm mb-1">
                     <option>GHN</option><option>GHTK</option><option>Viettel Post</option><option>Ninja Van</option></select>
                 <input id="shipTracking" class="form-control form-control-sm mb-1" placeholder="Mã vận đơn" />
                 <button id="btnShip" class="btn btn-sm btn-outline-primary">Thêm vận đơn</button>
-            </div>
+            </div></div>
         </div>
     </div>
 </div>
@@ -121,7 +131,7 @@
         </div>
         <div class="row g-3">
             <div class="col-lg-7">
-                <pre id="jsonDoc" class="bg-light p-2 small mb-0" style="max-height:600px; overflow:auto"></pre>
+                <pre id="jsonDoc" class="bg-light small mb-0" style="max-height:640px; overflow:auto"></pre>
             </div>
             <div class="col-lg-5 small">
                 <div class="fw-semibold mb-1">Trường JSON ↔ cột / bảng nền</div>

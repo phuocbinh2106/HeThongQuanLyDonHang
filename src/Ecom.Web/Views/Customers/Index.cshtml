@@ -2,12 +2,18 @@
     ViewData["Title"] = "Khách hàng";
 }
 
-<h1 class="h3">Khách hàng</h1>
-<p class="text-muted small">
-    Hồ sơ và sổ địa chỉ của một khách là <strong>một tài liệu</strong> <code>CUSTOMER_DV</code>
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Khách hàng</div>
+        <h1>Khách hàng &amp; sổ địa chỉ</h1>
+    </div>
+</div>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
+    <div>Hồ sơ và sổ địa chỉ của một khách là <strong>một tài liệu</strong> <code>CUSTOMER_DV</code>
     (bảng <code>customers</code> + <code>customer_addresses</code>). Thêm / sửa / xoá địa chỉ = sửa mảng
-    <code>addresses[]</code> rồi gửi cả tài liệu bằng <code>PUT</code> kèm ETag.
-</p>
+    <code>addresses[]</code> rồi gửi cả tài liệu bằng <code>PUT</code> kèm ETag.</div>
+</div>
 
 <div class="row g-3">
     <div class="col-lg-4">
@@ -54,7 +60,7 @@
                     Đơn hàng lưu <b>bản chụp</b> địa chỉ (orders.ship_*), không trỏ tới sổ địa chỉ → sửa / xoá địa chỉ ở đây
                     không làm đổi đơn cũ. Email trùng khách khác → 409 (ORA-00001). Hai tab cùng sửa → tab sau 412.
                 </div>
-                <details class="mt-2"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light p-2 mb-0"></pre></details>
+                <details class="mt-2"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light mt-2 mb-0"></pre></details>
             </div>
         </div>
     </div>

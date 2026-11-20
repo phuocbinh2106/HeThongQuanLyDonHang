@@ -49,7 +49,7 @@ const RENDER = {
   r3: d => ({ tbl: table(d, r => r.HANG === 1 ? 'table-warning' : '') }),
   r4: d => {    // tô đậm theo số đơn trong ô (bản đồ nhiệt đơn giản)
     const max = Math.max(1, ...d.rows.flatMap(r => d.columns.slice(1).map(c => r[c] || 0)));
-    return { tbl: table(d, () => '', (c, v) => c !== 'THANG' && v ? `background: rgba(13,110,253,${0.1 + 0.6 * v / max})` : '') };
+    return { tbl: table(d, () => '', (c, v) => c !== 'THANG' && v ? `background: rgba(31,122,95,${0.08 + 0.55 * v / max})` : '') };
   },
   r5: d => ({ chart: barChart(d.rows, 'NGUOI_BAN', 'TY_LE_PCT', v => `${v ?? 0} %`, 'bg-danger'), tbl: table(d) }),
   r6: d => ({ chart: barChart(d.rows.slice(0, 10), 'THUONG_HIEU', 'DOANH_THU', fmtMoney, 'bg-success'), tbl: table(d) }),

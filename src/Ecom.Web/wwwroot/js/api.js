@@ -86,14 +86,20 @@ function clearRole() {
   try { localStorage.removeItem('ecom_user_label'); } catch { /* bỏ qua */ }
 }
 
-// Hiện vai trò hiện tại trên thanh menu
+// Hiện vai trò hiện tại ở góc phải header (avatar + tên vai trò)
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('roleBadge');
   if (!el) return;
   const r = getRole();
-  const icon = { customer: 'Khách hàng', seller: 'Người bán', admin: 'Quản trị' };
-  el.innerHTML = r
-    ? `<span class="badge text-bg-warning">${escapeHtml(icon[r.kind] || r.kind)}</span>
-       <span class="text-white-50 small ms-1">${escapeHtml(r.label)}</span>`
-    : '<span class="badge text-bg-secondary">Chưa chọn vai trò</span>';
+  const kindVi = { customer: 'Khách hàng', seller: 'Người bán', admin: 'Quản trị sàn' };
+  const avatarCls = { customer: '', seller: 'gold', admin: 'dark' };
+  if (!r) {
+    el.innerHTML = '<span class="avatar muted">?</span><span class="who"><b>Khách</b><span>Chọn vai trò</span></span>';
+    return;
+  }
+  // nhãn dạng "#3 – Lê Văn C" -> lấy phần tên để làm chữ cái avatar
+  const name = r.label.replace(/^#\d+\s*–\s*/, '').replace(/\s*\(.*$/, '');
+  const ini = r.kind === 'admin' ? 'QT' : name.trim().split(/\s+/).slice(-2).map(w => w[0]).join('').toUpperCase();
+  el.innerHTML = `<span class="avatar ${avatarCls[r.kind] || ''}">${escapeHtml(ini)}</span>
+    <span class="who"><b>${escapeHtml(kindVi[r.kind] || r.kind)}</b><span>${escapeHtml(r.label)}</span></span>`;
 });

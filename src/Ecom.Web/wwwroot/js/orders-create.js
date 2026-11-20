@@ -24,11 +24,12 @@ async function loadAddresses() {
   const { data: doc } = await api(`/api/customers/${$('customer').value}`);
   const addrs = doc.addresses || [];
   $('addresses').innerHTML = addrs.map((a, i) => `
-    <div class="form-check">
+    <div class="form-check addr-option">
       <input class="form-check-input" type="radio" name="addr" id="addr${i}" value="${i}" ${a.isDefault ? 'checked' : ''}>
-      <label class="form-check-label" for="addr${i}">
-        ${escapeHtml(a.receiverName)} · ${escapeHtml(a.receiverPhone)} · ${escapeHtml(fullAddress(a))}
-        ${a.isDefault ? '<span class="badge text-bg-secondary">mặc định</span>' : ''}
+      <label class="form-check-label w-100" for="addr${i}">
+        <b>${escapeHtml(a.receiverName)}</b> · ${escapeHtml(a.receiverPhone)}
+        ${a.isDefault ? '<span class="badge text-bg-warning ms-1">Mặc định</span>' : ''}
+        <div class="text-muted">${escapeHtml(fullAddress(a))}</div>
       </label>
     </div>`).join('') || '<div class="text-muted">Khách chưa có địa chỉ – nhập tay bên dưới.</div>';
   document.querySelectorAll('input[name=addr]').forEach(r =>
@@ -52,10 +53,12 @@ async function loadProducts() {
   products = data.items;
   $('productRows').innerHTML = products.map(p => `
     <tr class="${p.status !== 'ACTIVE' ? 'table-secondary' : ''}">
-      <td>${p._id}</td>
-      <td>${escapeHtml(p.productName)}
+      <td class="text-muted mono">#${p._id}</td>
+      <td><div class="picker-row">${productThumb(p, 'sm')}
+          <div class="info"><div class="n" title="${escapeHtml(p.productName)}">${escapeHtml(p.productName)}</div>
+          <div class="small text-muted">${escapeHtml(p.attributes?.brand || '')}
           ${p.status !== 'ACTIVE' ? '<span class="badge text-bg-secondary">Ngừng bán</span>' : ''}
-          ${p.stockQty === 0 ? '<span class="badge text-bg-danger">Hết hàng</span>' : ''}</td>
+          ${p.stockQty === 0 ? '<span class="badge text-bg-danger">Hết hàng</span>' : ''}</div></div></div></td>
       <td class="text-end">${fmtMoney(p.price)}</td>
       <td class="text-end">${p.stockQty}</td>
       <td><div class="input-group input-group-sm">
@@ -82,13 +85,13 @@ function renderCart() {
     const warn = quantity > p.stockQty ? '<div class="text-danger">vượt tồn kho!</div>'
                : p.status !== 'ACTIVE' ? '<div class="text-danger">ngừng bán!</div>' : '';
     return `<tr>
-      <td>${escapeHtml(p.productName)}${warn}</td>
-      <td class="text-end">${fmtMoney(p.price)}</td>
-      <td><input type="number" min="1" value="${quantity}" data-qty="${p._id}" class="form-control form-control-sm"></td>
-      <td class="text-end">${fmtMoney(p.price * quantity)}</td>
-      <td><button class="btn btn-sm btn-link text-danger" data-del="${p._id}">Xoá</button></td>
+      <td><div class="picker-row">${productThumb(p, 'sm')}<div class="info"><div class="n" style="max-width:170px" title="${escapeHtml(p.productName)}">${escapeHtml(p.productName)}</div>
+          <div class="text-muted">${fmtMoney(p.price)}</div>${warn}</div></div></td>
+      <td><input type="number" min="1" value="${quantity}" data-qty="${p._id}" class="form-control form-control-sm" style="width:64px"></td>
+      <td class="text-end fw-semibold">${fmtMoney(p.price * quantity)}</td>
+      <td class="text-end"><button class="btn btn-sm btn-link text-danger p-0" data-del="${p._id}" title="Xoá khỏi giỏ">Xoá</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="5" class="text-muted text-center">Chưa có sản phẩm</td></tr>';
+  }).join('') || `<tr><td colspan="4" class="empty-state py-4">${icon('cart')}<div>Giỏ hàng trống – chọn sản phẩm ở bên trái</div></td></tr>`;
   const total = sub + Number($('shippingFee').value) - Number($('discount').value || 0);
   $('estSubtotal').textContent = fmtMoney(sub);
   $('estTotal').textContent = fmtMoney(total);
@@ -112,7 +115,7 @@ function buildDoc() {
   return doc;
 }
 
-const renderPreview = () => { $('preview').textContent = JSON.stringify(buildDoc(), null, 2); };
+const renderPreview = () => { $('preview').innerHTML = highlightJson(JSON.stringify(buildDoc(), null, 2)); };
 
 async function submitOrder() {
   $('resultBox').innerHTML = '';
@@ -122,10 +125,10 @@ async function submitOrder() {
     const { data: doc, etag, status } = await api('/api/orders', { method: 'POST', body: sent });
     const est = sent.items.reduce((s, it) => s + cart.get(it.productId).product.price * it.quantity, 0);
     $('resultBox').innerHTML = `
-      <div class="card border-success mb-3">
-        <div class="card-header bg-success text-white">Đã tạo đơn – HTTP ${status}</div>
+      <div class="card mb-3" style="border-color:#bfe5cf">
+        <div class="card-header" style="background:#e6f5ec;color:#175c3a">${icon('check')} Đặt hàng thành công – HTTP ${status}</div>
         <div class="card-body small">
-          <div>Số đơn: <b>${escapeHtml(doc.orderNo)}</b> (_id ${doc._id}) · Trạng thái: <b>${escapeHtml(doc.status)}</b></div>
+          <div>Số đơn: <b>${escapeHtml(doc.orderNo)}</b> (_id ${doc._id}) · Trạng thái: ${statusPill(doc.status)}</div>
           <div>Tiền hàng do server tính: <b>${fmtMoney(doc.subtotal)}</b>
                <span class="text-muted">(client ước lượng ${fmtMoney(est)})</span>
                · Phí ship ${fmtMoney(doc.shippingFee)} · Giảm ${fmtMoney(doc.discount)}
@@ -135,7 +138,7 @@ async function submitOrder() {
           <div>ETag: <code>${escapeHtml(etag)}</code></div>
           <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết đơn (JSON ↔ bảng quan hệ)</a>
           <details class="mt-2"><summary>Tài liệu server trả về</summary>
-            <pre class="mb-0">${escapeHtml(JSON.stringify(doc, null, 2))}</pre></details>
+            <pre class="bg-light mb-0">${highlightJson(JSON.stringify(doc, null, 2))}</pre></details>
         </div>
       </div>`;
     cart.clear(); renderCart(); loadProducts();
@@ -163,5 +166,10 @@ $('cartRows').addEventListener('change', e => {
 ['shipReceiver', 'shipPhone', 'shipAddress'].forEach(id => $(id).addEventListener('input', renderPreview));
 $('btnSubmit').addEventListener('click', submitOrder);
 
-Promise.all([loadCustomers(), loadProducts()]).then(renderCart)
+Promise.all([loadCustomers(), loadProducts()])
+  .then(() => {
+    const add = new URLSearchParams(location.search).get('add');
+    if (add && products.some(p => p._id == add)) addToCart(add);
+    renderCart();
+  })
   .catch(err => showError('resultBox', err));

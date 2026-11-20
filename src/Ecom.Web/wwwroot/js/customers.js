@@ -22,9 +22,14 @@ function renderList() {
     .filter(c => !q || c.fullName.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
     .map(c => `<button type="button" data-id="${c.id}"
         class="list-group-item list-group-item-action ${held.id === c.id ? 'active' : ''}">
-        <div class="d-flex justify-content-between"><b>#${c.id} ${escapeHtml(c.fullName)}</b>
-          ${c.status !== 'ACTIVE' ? '<span class="badge text-bg-danger">' + c.status + '</span>' : ''}</div>
-        <div>${escapeHtml(c.email)} · ${c.addresses} địa chỉ · ${c.orders} đơn</div></button>`).join('');
+        <div class="d-flex align-items-center gap-2">
+          <span class="avatar ${c.status !== 'ACTIVE' ? 'muted' : ''}">${escapeHtml(initials(c.fullName))}</span>
+          <div class="flex-grow-1 overflow-hidden">
+            <div class="d-flex justify-content-between"><b>#${c.id} ${escapeHtml(c.fullName)}</b>
+              ${c.status !== 'ACTIVE' ? '<span class="badge text-bg-danger">' + c.status + '</span>' : ''}</div>
+            <div class="text-truncate opacity-75">${escapeHtml(c.email)} · ${c.addresses} địa chỉ · ${c.orders} đơn</div>
+          </div>
+        </div></button>`).join('');
 }
 
 async function openCustomer(id) {

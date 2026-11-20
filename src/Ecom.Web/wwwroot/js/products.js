@@ -53,27 +53,10 @@ async function loadProducts() {
     const { data } = await api('/api/products?' + queryString());
     document.getElementById('count').textContent = data.count;
     document.getElementById('filterSql').textContent = data.filterSql;
-    document.getElementById('productRows').innerHTML = data.items.map(rowHtml).join('') ||
-      '<tr><td colspan="7" class="text-center text-muted">Không có sản phẩm phù hợp</td></tr>';
+    // mỗi thẻ là một tài liệu PRODUCT_DV (hàm productCard ở shopia.js)
+    document.getElementById('productRows').innerHTML = data.items.map(p => productCard(p, { json: true })).join('') ||
+      `<div class="empty-state" style="grid-column:1/-1">${icon('search')}<div>Không có sản phẩm phù hợp</div></div>`;
   } catch (err) { showError('listMsg', err); }
-}
-
-function rowHtml(p) {
-  const attrs = Object.entries(p.attributes || {}).map(([k, v]) =>
-    `<span class="badge ${k === 'brand' ? 'text-bg-primary' : 'text-bg-light border'} me-1">
-       ${escapeHtml(k)}: ${escapeHtml(Array.isArray(v) ? v.join('/') : v)}</span>`).join('');
-  const inactive = p.status !== 'ACTIVE' ? '<span class="badge text-bg-secondary ms-1">Ngừng bán</span>' : '';
-  const stockCls = p.stockQty === 0 ? 'text-danger fw-bold' : '';
-  return `<tr>
-    <td>${p._id}</td>
-    <td><div class="fw-semibold">${escapeHtml(p.productName)}${inactive}</div>
-        <div class="small text-muted">${escapeHtml(p.sku)}</div></td>
-    <td class="small">${escapeHtml(p.category?.categoryName)}<br><span class="text-muted">${escapeHtml(p.seller?.shopName)}</span></td>
-    <td class="text-end">${fmtMoney(p.price)}</td>
-    <td class="text-end ${stockCls}">${p.stockQty}</td>
-    <td class="small">${attrs}</td>
-    <td><button class="btn btn-sm btn-outline-primary" data-id="${p._id}">JSON</button></td>
-  </tr>`;
 }
 
 // ---------- Hộp thoại tài liệu ----------
@@ -141,4 +124,17 @@ document.getElementById('btnNew').addEventListener('click', openNew);
 document.getElementById('btnSave').addEventListener('click', saveDoc);
 document.getElementById('btnReload').addEventListener('click', () => current.id && openDoc(current.id));
 
-loadFacets().then(loadProducts);
+// Nút "Câu SQL lọc vừa chạy": mở / đóng khối SQL
+document.querySelector('.toolbar details').addEventListener('toggle', e => {
+  document.getElementById('filterSql').hidden = !e.target.open;
+});
+
+// Tham số trên URL: ?q= (ô tìm kiếm ở header), ?categoryId= (ô danh mục ở trang chủ), ?activeOnly=true
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get('q')) form.q.value = urlParams.get('q');
+if (urlParams.get('activeOnly') === 'true') form.activeOnly.checked = true;
+
+loadFacets().then(async () => {
+  if (urlParams.get('categoryId')) { form.categoryId.value = urlParams.get('categoryId'); await loadFacets(); }
+  await loadProducts();
+});

@@ -2,18 +2,24 @@
     ViewData["Title"] = "Tạo đơn";
 }
 
-<h1 class="h3">Tạo đơn hàng</h1>
-<p class="text-muted small">
-    Cả đơn (khách, địa chỉ giao, nhiều dòng hàng) được gửi bằng <strong>một tài liệu JSON</strong> trong
-    <strong>một request</strong> <code>POST /api/orders</code> → một câu <code>INSERT INTO order_dv</code>.
-    Giá, tổng tiền, trạng thái, số đơn do CSDL quyết định; một dòng lỗi thì cả đơn bị huỷ.
-</p>
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / <a href="/Products">Sản phẩm</a> / Tạo đơn</div>
+        <h1>Tạo đơn hàng</h1>
+    </div>
+</div>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
+    <div>Cả đơn (khách, địa chỉ giao, nhiều dòng hàng) được gửi bằng <strong>một tài liệu JSON</strong> trong
+        <strong>một request</strong> <code>POST /api/orders</code> → một câu <code>INSERT INTO order_dv</code>.
+        Giá, tổng tiền, trạng thái, số đơn do CSDL quyết định; một dòng lỗi thì cả đơn bị huỷ.</div>
+</div>
 
-<div class="row g-3">
+<div class="row g-4">
     <div class="col-lg-7">
         <!-- 1. KHÁCH HÀNG & ĐỊA CHỈ -->
         <div class="card mb-3">
-            <div class="card-header">1. Khách hàng và địa chỉ giao</div>
+            <div class="card-header"><span class="step">1</span>Khách hàng và địa chỉ giao</div>
             <div class="card-body small">
                 <select id="customer" class="form-select form-select-sm mb-2"></select>
                 <div id="addresses" class="mb-2"></div>
@@ -28,11 +34,11 @@
 
         <!-- 2. CHỌN SẢN PHẨM -->
         <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>2. Chọn sản phẩm</span>
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span><span class="step">2</span>Chọn sản phẩm</span>
                 <input id="search" class="form-control form-control-sm w-50" placeholder="Tìm theo tên..." />
             </div>
-            <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
+            <div class="card-body p-0" style="max-height: 420px; overflow-y: auto;">
                 <table class="table table-sm table-hover mb-0 small align-middle">
                     <thead class="table-light sticky-top"><tr><th>ID</th><th>Sản phẩm</th><th class="text-end">Giá</th><th class="text-end">Tồn</th><th style="width:150px"></th></tr></thead>
                     <tbody id="productRows"></tbody>
@@ -40,49 +46,56 @@
             </div>
         </div>
 
-        <!-- 3. GIỎ HÀNG -->
+        <!-- TÀI LIỆU JSON -->
         <div class="card mb-3">
-            <div class="card-header">3. Giỏ hàng</div>
-            <div class="card-body small">
-                <table class="table table-sm align-middle">
-                    <thead><tr><th>Sản phẩm</th><th class="text-end">Giá tham khảo</th><th style="width:90px">SL</th><th class="text-end">Thành tiền</th><th></th></tr></thead>
-                    <tbody id="cartRows"></tbody>
-                </table>
-                <div class="row g-2 align-items-center">
-                    <div class="col-sm-6">
-                        <label class="form-label mb-0">Phí giao hàng</label>
-                        <select id="shippingFee" class="form-select form-select-sm">
-                            <option value="30000">Tiêu chuẩn – 30.000 đ</option>
-                            <option value="50000">Nhanh – 50.000 đ</option>
-                            <option value="0">Miễn phí</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="form-label mb-0">Giảm giá (đ)</label>
-                        <input id="discount" type="number" min="0" step="1000" value="0" class="form-control form-control-sm" />
-                    </div>
-                </div>
-                <div class="mt-2 text-end">
-                    Tạm tính (client ước lượng): <b id="estSubtotal">0 đ</b> · Tổng: <b id="estTotal">0 đ</b>
-                    <div class="text-muted">Server sẽ tự tính lại từ giá trong CSDL.</div>
-                </div>
-                <div class="form-check mt-2">
-                    <input class="form-check-input" type="checkbox" id="fakeMode">
-                    <label class="form-check-label" for="fakeMode">
-                        Chế độ thử TC-02: chèn <code>status: "DELIVERED"</code>, <code>subtotal: 1</code>,
-                        <code>totalAmount: 1</code>, <code>unitPrice: 1</code> vào tài liệu gửi đi
-                    </label>
-                </div>
-                <button id="btnSubmit" class="btn btn-primary mt-2 w-100">Đặt hàng (POST /api/orders)</button>
+            <div class="card-header card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 4.5c-2 0-2.5 1-2.5 2.5v2.5c0 1.2-.7 2-2 2.5 1.3.5 2 1.3 2 2.5V17c0 1.5.5 2.5 2.5 2.5" /><path d="M15.5 4.5c2 0 2.5 1 2.5 2.5v2.5c0 1.2.7 2 2 2.5-1.3.5-2 1.3-2 2.5V17c0 1.5-.5 2.5-2.5 2.5" /></svg>
+                Tài liệu JSON sẽ gửi (request body)
+            </div>
+            <div class="card-body p-2">
+                <pre id="preview" class="small mb-0 bg-light" style="max-height: 420px; overflow:auto"></pre>
             </div>
         </div>
     </div>
 
     <div class="col-lg-5">
-        <div id="resultBox"></div>
-        <div class="card mb-3">
-            <div class="card-header">Tài liệu JSON sẽ gửi (request body)</div>
-            <pre id="preview" class="card-body small mb-0 bg-light" style="max-height: 420px; overflow:auto"></pre>
+        <div class="summary-card">
+            <div id="resultBox"></div>
+            <!-- 3. GIỎ HÀNG -->
+            <div class="card mb-3">
+                <div class="card-header"><span class="step">3</span>Giỏ hàng và thanh toán</div>
+                <div class="card-body small">
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>Sản phẩm</th><th style="width:72px">SL</th><th class="text-end">Thành tiền</th><th></th></tr></thead>
+                        <tbody id="cartRows"></tbody>
+                    </table>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-sm-6">
+                            <label class="form-label mb-0">Phí giao hàng</label>
+                            <select id="shippingFee" class="form-select form-select-sm">
+                                <option value="30000">Tiêu chuẩn – 30.000 đ</option>
+                                <option value="50000">Nhanh – 50.000 đ</option>
+                                <option value="0">Miễn phí</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label mb-0">Giảm giá (đ)</label>
+                            <input id="discount" type="number" min="0" step="1000" value="0" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3"><span class="text-muted">Tạm tính (client ước lượng)</span><b id="estSubtotal">0 đ</b></div>
+                    <div class="summary-total"><span class="fw-semibold">Tổng thanh toán</span><b id="estTotal">0 đ</b></div>
+                    <div class="text-muted text-end">Server sẽ tự tính lại từ giá trong CSDL.</div>
+                    <div class="form-check mt-3 p-2 ps-4 rounded" style="background:var(--sp-gold-100);border:1px dashed #e9c76f">
+                        <input class="form-check-input" type="checkbox" id="fakeMode">
+                        <label class="form-check-label" for="fakeMode">
+                            Chế độ thử TC-02: chèn <code>status: "DELIVERED"</code>, <code>subtotal: 1</code>,
+                            <code>totalAmount: 1</code>, <code>unitPrice: 1</code> vào tài liệu gửi đi
+                        </label>
+                    </div>
+                    <button id="btnSubmit" class="btn btn-primary btn-lg mt-3 w-100">Đặt hàng <span class="fw-normal small opacity-75">(POST /api/orders)</span></button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

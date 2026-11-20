@@ -2,84 +2,167 @@
     ViewData["Title"] = "Trang chủ";
 }
 
-<h1 class="h3">Hệ thống quản lý đơn hàng cho sàn thương mại điện tử</h1>
-<p class="text-muted">
-    Một nguồn dữ liệu, hai cách nhìn: <strong>tài liệu JSON</strong> (Duality View, phục vụ REST API)
-    và <strong>bảng quan hệ chuẩn hoá</strong> (phục vụ báo cáo SQL).
-</p>
+<!-- HERO -->
+<section class="hero">
+    <span class="sparkle" style="width:34px;height:34px;right:6%;top:12%"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg></span>
+    <span class="sparkle" style="width:16px;height:16px;right:44%;top:10%;opacity:.7"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg></span>
+    <span class="sparkle" style="width:22px;height:22px;left:46%;bottom:12%;opacity:.55"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg></span>
+    <div class="row g-4 align-items-center position-relative">
+        <div class="col-lg-6">
+            <span class="eyebrow"><span class="star">✦</span> Oracle Database 23ai · JSON Relational Duality View</span>
+            <h1>Mua sắm thông minh,<br />dữ liệu <span class="hl">một nguồn – hai cách nhìn</span></h1>
+            <p class="lead">Shopia phục vụ ứng dụng bằng <b>tài liệu JSON</b> qua REST API và phục vụ báo cáo bằng
+                <b>bảng quan hệ chuẩn hoá</b> – trên cùng một dữ liệu, không nhân bản, luôn nhất quán.</p>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <a href="/Products" class="btn btn-gold btn-lg px-4">Khám phá sản phẩm</a>
+                <a href="/Orders/Create" class="btn btn-light-glass btn-lg px-4">Tạo đơn ngay</a>
+            </div>
+            <div class="hero-stats">
+                <div><b id="statProducts">–</b><span>sản phẩm</span></div>
+                <div><b id="statOrders">–</b><span>đơn hàng</span></div>
+                <div><b id="statCustomers">–</b><span>khách hàng</span></div>
+                <div><b>3</b><span>Duality View</span></div>
+            </div>
+        </div>
+        <div class="col-lg-6 d-none d-md-block">
+            <div class="duality-art">
+                <div class="panel json">
+                    <div class="ph">{ } ORDER_DV · tài liệu JSON <span style="opacity:.6;font-weight:400">(minh hoạ)</span></div>
+<pre>{ "_id": 60, "status": "PENDING",
+  "customer": { "fullName": "…" },
+  "items": [
+    { "productId": 1, "quantity": 1,
+      "unitPrice": 22990000 } ],
+  "_metadata": { "etag": "B1F3…" } }</pre>
+                </div>
+                <div class="link" title="Cùng một dữ liệu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" /></svg>
+                </div>
+                <div class="panel rel">
+                    <div class="ph">▦ ORDERS · ORDER_ITEMS · bảng quan hệ</div>
+                    <table>
+                        <tr><th>ORDER_ID</th><th>STATUS</th><th>PRODUCT_ID</th><th>UNIT_PRICE</th></tr>
+                        <tr><td>60</td><td>PENDING</td><td>1</td><td>22.990.000</td></tr>
+                        <tr><td>59</td><td>SHIPPING</td><td>7</td><td>199.000</td></tr>
+                        <tr><td>58</td><td>DELIVERED</td><td>12</td><td>1.290.000</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DẢI TÍNH NĂNG (đều là kỹ thuật thật của đồ án) -->
+<section class="feature-strip">
+    <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 4.5c-2 0-2.5 1-2.5 2.5v2.5c0 1.2-.7 2-2 2.5 1.3.5 2 1.3 2 2.5V17c0 1.5.5 2.5 2.5 2.5" /><path d="M15.5 4.5c2 0 2.5 1 2.5 2.5v2.5c0 1.2.7 2 2 2.5-1.3.5-2 1.3-2 2.5V17c0 1.5-.5 2.5-2.5 2.5" /></svg></div>
+        <div><b>Cả đơn trong 1 request</b><span>Đọc / ghi một tài liệu JSON qua Duality View</span></div></div>
+    <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 19 6v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6l7-2.5Z" /><path d="m8.8 12 2.2 2.2 4.3-4.4" /></svg></div>
+        <div><b>Giá do hệ thống chốt</b><span>Trigger lấy giá, tính tổng – client không tự quyết</span></div></div>
+    <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" /></svg></div>
+        <div><b>Không ghi đè, không bán vượt</b><span>ETag chống lost update; trừ kho nguyên tử</span></div></div>
+    <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="5.5" y="11" width="3" height="7" rx=".8" /><rect x="10.5" y="6" width="3" height="12" rx=".8" /><rect x="15.5" y="13.5" width="3" height="4.5" rx=".8" /></svg></div>
+        <div><b>Báo cáo tức thì</b><span>SQL nâng cao trên bảng chuẩn hoá, cùng nguồn dữ liệu</span></div></div>
+</section>
+
+<!-- DANH MỤC -->
+<section class="section">
+    <div class="section-title">
+        <h2><svg class="star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg>Danh mục</h2>
+        <a href="/Products">Xem tất cả sản phẩm →</a>
+    </div>
+    <div id="catGrid" class="cat-grid"></div>
+</section>
+
+<!-- SẢN PHẨM NỔI BẬT -->
+<section class="section">
+    <div class="section-title">
+        <h2><svg class="star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg>Sản phẩm đang bán</h2>
+        <a href="/Products?activeOnly=true">Xem thêm →</a>
+    </div>
+    <div id="featured" class="product-grid"></div>
+</section>
 
 <!-- M0 – CHỌN VAI TRÒ (mô phỏng, không đăng nhập thật) -->
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><b>Chọn vai trò</b> <span class="text-muted small">— mô phỏng, không cần đăng nhập</span></span>
-        <span class="small">Hiện tại: <b id="currentRole">—</b> <button id="btnClearRole" class="btn btn-sm btn-link p-0 ms-1">bỏ chọn</button></span>
+<section class="section" id="roles">
+    <div class="section-title">
+        <h2><svg class="star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg>Bạn là ai? <span class="text-muted fs-6 fw-normal">– chọn vai trò (mô phỏng, không cần đăng nhập)</span></h2>
     </div>
-    <div class="card-body small">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="fw-semibold mb-1">Khách hàng</div>
-                <select id="selCustomer" class="form-select form-select-sm mb-1"></select>
-                <button id="btnCustomer" class="btn btn-sm btn-primary w-100">Vào vai khách hàng</button>
-                <div class="form-text">Tạo đơn, xem "đơn của tôi", sửa sổ địa chỉ.</div>
-            </div>
-            <div class="col-md-4">
-                <div class="fw-semibold mb-1">Người bán</div>
-                <select id="selSeller" class="form-select form-select-sm mb-1"></select>
-                <button id="btnSeller" class="btn btn-sm btn-primary w-100">Vào vai người bán</button>
-                <div class="form-text">Quản lý sản phẩm của shop (thuộc tính JSON, tồn kho), xử lý đơn.</div>
-            </div>
-            <div class="col-md-4">
-                <div class="fw-semibold mb-1">Quản trị sàn</div>
-                <div class="text-muted mb-1" style="height: 31px">Xem toàn bộ đơn, báo cáo.</div>
-                <button id="btnAdmin" class="btn btn-sm btn-primary w-100">Vào vai quản trị</button>
+    <div class="role-current">
+        <span>Vai trò hiện tại: <b id="currentRole">—</b></span>
+        <button id="btnClearRole" class="btn btn-sm btn-outline-secondary">bỏ chọn</button>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="role-card customer">
+                <div class="head"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6" /><path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6" /></svg></div><h3>Khách hàng</h3></div>
+                <p>Mua hàng, tạo đơn, theo dõi "đơn của tôi", quản lý sổ địa chỉ.</p>
+                <select id="selCustomer" class="form-select form-select-sm"></select>
+                <button id="btnCustomer" class="btn btn-primary">Vào vai khách hàng</button>
             </div>
         </div>
-        <div class="form-text mt-2">
-            Vai trò lưu trong cookie <code>ecom_user</code>; API gửi giá trị này xuống Oracle qua
-            <code>CLIENT_IDENTIFIER</code> → trigger ghi vào cột <code>changed_by</code> của lịch sử trạng thái.
+        <div class="col-md-4">
+            <div class="role-card seller">
+                <div class="head"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.5 4.5h13L20 9.5" /><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" /><path d="M5.5 11.5V20h13v-8.5" /><path d="M10 20v-4.5h4V20" /></svg></div><h3>Người bán</h3></div>
+                <p>Quản lý sản phẩm của shop (thuộc tính JSON, tồn kho) và xử lý đơn.</p>
+                <select id="selSeller" class="form-select form-select-sm"></select>
+                <button id="btnSeller" class="btn btn-primary">Vào vai người bán</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="role-card admin">
+                <div class="head"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 19 6v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6l7-2.5Z" /><path d="m8.8 12 2.2 2.2 4.3-4.4" /></svg></div><h3>Quản trị sàn</h3></div>
+                <p>Xem toàn bộ đơn của sàn, xử lý đơn và xem báo cáo doanh thu.</p>
+                <div class="form-select form-select-sm text-muted" style="background-image:none">Toàn sàn</div>
+                <button id="btnAdmin" class="btn btn-primary">Vào vai quản trị</button>
+            </div>
         </div>
     </div>
-</div>
+    <div class="form-text mt-2">
+        Vai trò lưu trong cookie <code>ecom_user</code>; API gửi giá trị này xuống Oracle qua
+        <code>CLIENT_IDENTIFIER</code> → trigger ghi vào cột <code>changed_by</code> của lịch sử trạng thái.
+    </div>
+</section>
 
 <!-- LỐI TẮT DEMO CÁC TÌNH HUỐNG KHÓ -->
-<div class="card mb-3">
-    <div class="card-header"><b>Lối tắt demo</b> <span class="text-muted small">— 6 tình huống chỉ giải quyết gọn được bằng Duality View</span></div>
-    <div class="card-body p-0">
-        <table class="table table-sm small mb-0">
-            <tbody>
-                <tr><th class="ps-3">TH-1</th><td>Đọc / ghi cả một đơn bằng một tài liệu JSON, một request</td>
-                    <td><a href="/Orders/Create">Tạo đơn</a> · <a href="/Orders/Details/3">Chi tiết đơn #3</a></td></tr>
-                <tr><th class="ps-3">TH-2</th><td>Cùng dữ liệu cho REST JSON và báo cáo SQL, luôn nhất quán</td>
-                    <td><a href="/Orders/Details/3">Hai tab JSON ↔ bảng</a> · <a href="/Reports">Báo cáo</a></td></tr>
-                <tr><th class="ps-3">TH-3</th><td>Ghi tài liệu nhiều dòng là một giao dịch: một dòng hết hàng → cả đơn huỷ</td>
-                    <td><a href="/Orders/Create">Tạo đơn với SL 999</a></td></tr>
-                <tr><th class="ps-3">TH-4</th><td>Client không tự quyết giá, tổng tiền, trạng thái sai thứ tự</td>
-                    <td><a href="/Orders/Create">Chế độ thử TC-02</a> · <a href="/Orders/Details/53">Thử chuyển sai</a></td></tr>
-                <tr><th class="ps-3">TH-5</th><td>Hai người cùng sửa → ETag chặn ghi đè (412); không bán vượt tồn</td>
-                    <td><a href="/Orders/Details/60" target="_blank">Mở đơn #60 tab 1</a> · <a href="/Orders/Details/60" target="_blank">tab 2</a></td></tr>
-                <tr><th class="ps-3">TH-6</th><td>Thuộc tính sản phẩm linh hoạt theo ngành hàng (JSON + JSON Schema + chỉ mục)</td>
-                    <td><a href="/Products">Sản phẩm</a></td></tr>
-            </tbody>
-        </table>
+<section class="section" id="th">
+    <div class="section-title">
+        <h2><svg class="star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.7 3.9 2.4 6.7 7.5 9.5-5.1 2.8-6.8 5.6-7.5 9.5-.7-3.9-2.4-6.7-7.5-9.5 5.1-2.8 6.8-5.6 7.5-9.5Z" /></svg>Lối tắt demo <span class="text-muted fs-6 fw-normal">– 6 tình huống chỉ giải quyết gọn được bằng Duality View</span></h2>
     </div>
-</div>
+    <div class="th-grid">
+        <div class="th-card"><span class="code">TH-1</span><p>Đọc / ghi <b>cả một đơn</b> bằng một tài liệu JSON, một request.</p>
+            <div class="links"><a href="/Orders/Create">Tạo đơn</a><a href="/Orders/Details/3">Chi tiết đơn #3</a></div></div>
+        <div class="th-card"><span class="code">TH-2</span><p>Cùng dữ liệu cho REST JSON và báo cáo SQL, <b>luôn nhất quán</b>.</p>
+            <div class="links"><a href="/Orders/Details/3">Hai tab JSON ↔ bảng</a><a href="/Reports">Báo cáo</a></div></div>
+        <div class="th-card"><span class="code">TH-3</span><p>Ghi tài liệu nhiều dòng là <b>một giao dịch</b>: một dòng hết hàng → cả đơn huỷ.</p>
+            <div class="links"><a href="/Orders/Create">Tạo đơn với SL 999</a></div></div>
+        <div class="th-card"><span class="code">TH-4</span><p>Client <b>không tự quyết</b> giá, tổng tiền, trạng thái sai thứ tự.</p>
+            <div class="links"><a href="/Orders/Create">Chế độ thử TC-02</a><a href="/Orders/Details/53">Thử chuyển sai</a></div></div>
+        <div class="th-card"><span class="code">TH-5</span><p>Hai người cùng sửa → <b>ETag</b> chặn ghi đè (412); không bán vượt tồn.</p>
+            <div class="links"><a href="/Orders/Details/60" target="_blank">Mở đơn #60 tab 1</a><a href="/Orders/Details/60" target="_blank">tab 2</a></div></div>
+        <div class="th-card"><span class="code">TH-6</span><p>Thuộc tính sản phẩm <b>linh hoạt theo ngành hàng</b> (JSON + JSON Schema + chỉ mục).</p>
+            <div class="links"><a href="/Products">Sản phẩm</a></div></div>
+    </div>
+</section>
 
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Kiểm tra kết nối: Giao diện → API → Oracle</span>
-        <button id="btnHealth" class="btn btn-sm btn-outline-primary">Kiểm tra lại</button>
+<!-- KIỂM TRA KẾT NỐI -->
+<section class="section">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.8" /><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6" /><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8" /></svg>Kiểm tra kết nối: Giao diện → API → Oracle</span>
+            <button id="btnHealth" class="btn btn-sm btn-outline-primary">Kiểm tra lại</button>
+        </div>
+        <div class="card-body">
+            <div id="healthMsg"></div>
+            <table class="table table-sm mb-0" id="healthTable" hidden>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
-    <div class="card-body">
-        <div id="healthMsg"></div>
-        <table class="table table-sm mb-0" id="healthTable" hidden>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
+</section>
 
 @section Scripts {
 <script>
-    // Gọi GET /api/system/health rồi hiển thị kết quả thành bảng
+    // Gọi GET /api/system/health rồi hiển thị kết quả thành bảng (và số liệu ở hero)
     async function checkHealth() {
         const tbody = document.querySelector('#healthTable tbody');
         document.getElementById('healthMsg').innerHTML = '<span class="text-muted">Đang kiểm tra...</span>';
@@ -97,6 +180,9 @@
             tbody.innerHTML = rows.map(([k, v]) =>
                 `<tr><th class="w-25">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
             document.getElementById('healthTable').hidden = false;
+            sel('statOrders').textContent = data.counts.orders.toLocaleString('vi-VN');
+            sel('statProducts').textContent = data.counts.products.toLocaleString('vi-VN');
+            sel('statCustomers').textContent = data.counts.customers.toLocaleString('vi-VN');
             if (data.invalidObjects === 0) showOk('healthMsg', 'Kết nối Oracle thành công.');
             else showError('healthMsg', { status: 0, problem: { title: `Có ${data.invalidObjects} đối tượng INVALID trong schema` } });
         } catch (err) {
@@ -104,11 +190,26 @@
             showError('healthMsg', err);
         }
     }
+    const sel = id => document.getElementById(id);
     document.getElementById('btnHealth').addEventListener('click', checkHealth);
     checkHealth();
 
+    // ---------- Danh mục + sản phẩm đang bán (đọc tài liệu PRODUCT_DV) ----------
+    async function loadShowcase() {
+        const [{ data: facets }, { data: list }] = await Promise.all([
+            api('/api/products/facets'), api('/api/products?activeOnly=true')]);
+        sel('catGrid').innerHTML = facets.categories.map(c => {
+            const look = categoryLook(c.name);
+            return `<a class="cat-tile" href="/Products?categoryId=${c.id}">
+                <div class="ic thumb c${look.c}">${icon(look.icon)}</div>
+                <b>${escapeHtml(c.name)}</b><span>${c.level > 1 ? 'Danh mục con' : 'Ngành hàng'}</span></a>`;
+        }).join('');
+        sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p)).join('')
+            || '<div class="empty-state">Chưa có sản phẩm</div>';
+    }
+    loadShowcase().catch(err => showError('healthMsg', err));
+
     // ---------- M0: chọn vai trò ----------
-    const sel = id => document.getElementById(id);
     async function loadRoles() {
         const [{ data: cs }, { data: ss }] = await Promise.all([api('/api/customers'), api('/api/sellers')]);
         sel('selCustomer').innerHTML = cs.map(c =>

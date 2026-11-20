@@ -8,11 +8,7 @@ let page = 1;
 const PAGE_SIZE = 20;
 
 const STATUSES = ['PENDING', 'CONFIRMED', 'PACKING', 'SHIPPING', 'DELIVERED', 'CANCELLED', 'RETURNED'];
-const STATUS_COLOR = {
-  PENDING: 'secondary', CONFIRMED: 'info', PACKING: 'primary', SHIPPING: 'warning',
-  DELIVERED: 'success', CANCELLED: 'dark', RETURNED: 'danger',
-};
-const statusBadge = s => `<span class="badge text-bg-${STATUS_COLOR[s] || 'light'}">${escapeHtml(s)}</span>`;
+const statusBadge = s => statusPill(s);   // nhãn trạng thái dùng chung (shopia.js)
 
 async function loadCustomers() {
   const { data } = await api('/api/customers');
@@ -52,10 +48,11 @@ async function load() {
 function renderChips(counts) {
   const cur = form.status.value;
   const all = Object.values(counts).reduce((a, b) => a + b, 0);
-  const chip = (val, label, n) => `<button type="button" data-status="${val}"
-      class="btn btn-sm ${cur === val ? 'btn-dark' : 'btn-outline-secondary'}">${label} <span class="badge text-bg-light">${n}</span></button>`;
+  // tab trạng thái: nhãn tiếng Việt, title là mã gốc trong cột orders.status
+  const chip = (val, label, n) => `<button type="button" data-status="${val}" title="${val || 'tất cả'}"
+      class="${cur === val ? 'active' : ''}">${label}<span class="count">${n}</span></button>`;
   $('statusChips').innerHTML = chip('', 'Tất cả', all) +
-    STATUSES.map(s => chip(s, s, counts[s] || 0)).join('');
+    STATUSES.map(s => chip(s, STATUS_VI[s], counts[s] || 0)).join('');
 }
 
 function rowHtml(o) {
@@ -65,12 +62,12 @@ function rowHtml(o) {
   else if (o.status === 'CANCELLED' || o.status === 'RETURNED') pay = '<span class="text-muted">— (hoàn/không thu)</span>';
   else pay = '<span class="text-muted">Chưa trả</span>';
   return `<tr>
-    <td><a href="/Orders/Details/${o.orderId}">${escapeHtml(o.orderNo)}</a></td>
+    <td><a class="fw-semibold mono" href="/Orders/Details/${o.orderId}">${escapeHtml(o.orderNo)}</a></td>
     <td>${escapeHtml(o.orderDate.replace('T', ' ').slice(0, 16))}</td>
-    <td>${escapeHtml(o.customerName)}</td>
+    <td><span class="d-inline-flex align-items-center gap-2"><span class="avatar" style="width:28px;height:28px;font-size:.68rem">${escapeHtml(initials(o.customerName))}</span>${escapeHtml(o.customerName)}</span></td>
     <td>${statusBadge(o.status)}</td>
     <td class="text-end">${o.itemCount}</td>
-    <td class="text-end">${fmtMoney(o.totalAmount)}</td>
+    <td class="text-end fw-semibold">${fmtMoney(o.totalAmount)}</td>
     <td>${pay}</td>
     <td>${escapeHtml(o.carrier ?? '')}</td>
   </tr>`;

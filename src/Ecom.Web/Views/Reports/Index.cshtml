@@ -2,65 +2,69 @@
     ViewData["Title"] = "Báo cáo";
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-    <h1 class="h3 mb-0">Báo cáo</h1>
-    <form id="rangeForm" class="d-flex flex-wrap gap-1 small align-items-center">
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Báo cáo</div>
+        <h1>Báo cáo kinh doanh</h1>
+    </div>
+    <form id="rangeForm" class="d-flex flex-wrap gap-1 small align-items-center toolbar mb-0">
         <span>Khoảng ngày (R1, R2):</span>
         <input name="from" type="date" class="form-control form-control-sm" style="width:150px" />
         <input name="to" type="date" class="form-control form-control-sm" style="width:150px" />
         <button class="btn btn-sm btn-primary">Chạy lại tất cả</button>
     </form>
 </div>
-<p class="text-muted small">
-    Mọi báo cáo chạy trên <strong>bảng quan hệ chuẩn hoá</strong> qua package <code>PKG_ORDER_RPT</code>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
+    <div>Mọi báo cáo chạy trên <strong>bảng quan hệ chuẩn hoá</strong> qua package <code>PKG_ORDER_RPT</code>
     (mỗi hàm trả <code>SYS_REFCURSOR</code>) — <strong>cùng nguồn dữ liệu</strong> mà API JSON đọc/ghi qua Duality View,
-    nên đơn vừa giao xong ở màn hình xử lý đơn sẽ có ngay trong báo cáo (TH-2). Doanh thu chỉ tính đơn <code>DELIVERED</code>.
-</p>
+    nên đơn vừa giao xong ở màn hình xử lý đơn sẽ có ngay trong báo cáo (TH-2). Doanh thu chỉ tính đơn <code>DELIVERED</code>.</div>
+</div>
 <div id="msg"></div>
 
 <div class="row g-3">
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r1">
-            <div class="card-header"><b>R1</b> Doanh thu theo tháng, luỹ kế, tăng trưởng
+        <div class="card h-100 report-card" data-report="r1">
+            <div class="card-header"><span class="rcode">R1</span> Doanh thu theo tháng, luỹ kế, tăng trưởng
                 <span class="badge text-bg-light border">SUM() OVER</span> <span class="badge text-bg-light border">LAG</span></div>
             <div class="card-body small"><div class="chart"></div><div class="tbl"></div></div>
         </div>
     </div>
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r4">
+        <div class="card h-100 report-card" data-report="r4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><b>R4</b> Số đơn theo tháng × trạng thái <span class="badge text-bg-light border">PIVOT</span></span>
+                <span><span class="rcode">R4</span> Số đơn theo tháng × trạng thái <span class="badge text-bg-light border">PIVOT</span></span>
                 <span class="small">Số tháng <input type="number" min="1" value="12" class="form-control form-control-sm d-inline-block param" data-name="months" style="width:70px" /></span>
             </div>
             <div class="card-body small"><div class="tbl"></div></div>
         </div>
     </div>
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r2">
-            <div class="card-header"><b>R2</b> Doanh thu người bán × danh mục, tổng phụ
+        <div class="card h-100 report-card" data-report="r2">
+            <div class="card-header"><span class="rcode">R2</span> Doanh thu người bán × danh mục, tổng phụ
                 <span class="badge text-bg-light border">ROLLUP</span> <span class="badge text-bg-light border">GROUPING</span></div>
             <div class="card-body small"><div class="tbl"></div></div>
         </div>
     </div>
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r3">
+        <div class="card h-100 report-card" data-report="r3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><b>R3</b> Top N bán chạy mỗi danh mục <span class="badge text-bg-light border">DENSE_RANK … PARTITION BY</span></span>
+                <span><span class="rcode">R3</span> Top N bán chạy mỗi danh mục <span class="badge text-bg-light border">DENSE_RANK … PARTITION BY</span></span>
                 <span class="small">Top <input type="number" value="3" class="form-control form-control-sm d-inline-block param" data-name="top" style="width:70px" /></span>
             </div>
             <div class="card-body small"><div class="tbl"></div></div>
         </div>
     </div>
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r5">
-            <div class="card-header"><b>R5</b> Tỉ lệ huỷ / trả hàng theo người bán
+        <div class="card h-100 report-card" data-report="r5">
+            <div class="card-header"><span class="rcode">R5</span> Tỉ lệ huỷ / trả hàng theo người bán
                 <span class="badge text-bg-light border">COUNT(DISTINCT CASE)</span></div>
             <div class="card-body small"><div class="chart"></div><div class="tbl"></div></div>
         </div>
     </div>
     <div class="col-xl-6">
-        <div class="card h-100" data-report="r6">
-            <div class="card-header"><b>R6</b> Doanh thu theo thương hiệu (đọc từ cột JSON)
+        <div class="card h-100 report-card" data-report="r6">
+            <div class="card-header"><span class="rcode">R6</span> Doanh thu theo thương hiệu (đọc từ cột JSON)
                 <span class="badge text-bg-light border">JSON_VALUE</span></div>
             <div class="card-body small"><div class="chart"></div><div class="tbl"></div></div>
         </div>

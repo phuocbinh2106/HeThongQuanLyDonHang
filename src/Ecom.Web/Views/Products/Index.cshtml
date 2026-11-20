@@ -2,79 +2,86 @@
     ViewData["Title"] = "Sản phẩm";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <h1 class="h3 mb-0">Sản phẩm</h1>
-    <button id="btnNew" class="btn btn-sm btn-outline-success">+ Thêm sản phẩm bằng tài liệu JSON</button>
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Sản phẩm</div>
+        <h1>Sản phẩm</h1>
+    </div>
+    <button id="btnNew" class="btn btn-outline-success">+ Thêm sản phẩm bằng tài liệu JSON</button>
 </div>
-<p class="text-muted small">
-    Lọc chạy trên bảng <code>products</code> bằng SQL/JSON (<code>JSON_VALUE</code>, <code>JSON_EXISTS</code>);
-    dữ liệu hiển thị là tài liệu đọc thẳng từ Duality View <code>PRODUCT_DV</code>.
-</p>
+<div class="tech-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>
+    <div>Lọc chạy trên bảng <code>products</code> bằng SQL/JSON (<code>JSON_VALUE</code>, <code>JSON_EXISTS</code>);
+        mỗi thẻ là một tài liệu đọc thẳng từ Duality View <code>PRODUCT_DV</code>. Bấm <b>JSON</b> để xem / sửa tài liệu (kèm ETag).</div>
+</div>
 
-<div class="row g-3">
+<div class="row g-4">
     <!-- BỘ LỌC -->
-    <div class="col-md-3">
-        <form id="filterForm" class="card card-body small">
-            <div id="sellerFilter"></div>
-            <label class="form-label mb-1">Danh mục</label>
-            <select name="categoryId" class="form-select form-select-sm mb-2"></select>
-
-            <label class="form-label mb-1">Thương hiệu <span class="text-muted">($.brand)</span></label>
-            <select name="brand" class="form-select form-select-sm mb-2"></select>
-
-            <label class="form-label mb-1">RAM tối thiểu (GB) <span class="text-muted">($.ramGb)</span></label>
-            <select name="minRamGb" class="form-select form-select-sm mb-2">
-                <option value="">— bất kỳ —</option><option>6</option><option>8</option><option>12</option><option>16</option>
-            </select>
-
-            <label class="form-label mb-1">Bộ nhớ tối thiểu (GB) <span class="text-muted">($.storageGb)</span></label>
-            <select name="minStorageGb" class="form-select form-select-sm mb-2">
-                <option value="">— bất kỳ —</option><option>128</option><option>256</option><option>512</option>
-            </select>
-
-            <label class="form-label mb-1">Có size <span class="text-muted">($.size[*])</span></label>
-            <select name="size" class="form-select form-select-sm mb-2">
-                <option value="">— bất kỳ —</option>
-                <option>S</option><option>M</option><option>L</option><option>XL</option><option>30</option><option>32</option>
-            </select>
-
-            <label class="form-label mb-1">Tên chứa</label>
-            <input name="q" class="form-control form-control-sm mb-2" placeholder="ví dụ: iPhone" />
-
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" name="activeOnly" value="true" id="activeOnly">
-                <label class="form-check-label" for="activeOnly">Chỉ sản phẩm đang bán</label>
+    <div class="col-lg-3">
+        <form id="filterForm" class="card filter-card">
+            <div class="card-header card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7.5V19l-4 1.5v-8L4 5Z" /></svg>Bộ lọc
             </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-primary flex-fill" type="submit">Lọc</button>
-                <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá lọc</button>
-            </div>
+            <div class="card-body">
+                <div id="sellerFilter"></div>
+                <label class="form-label">Danh mục</label>
+                <select name="categoryId" class="form-select form-select-sm mb-2"></select>
 
-            <hr />
-            <div class="fw-semibold mb-1">Thuộc tính JSON có trong danh mục</div>
-            <div class="text-muted mb-1">(JSON_DATAGUIDE tự suy ra từ dữ liệu)</div>
-            <div id="attrKeys"></div>
+                <label class="form-label">Thương hiệu <span class="text-muted">$.brand</span></label>
+                <select name="brand" class="form-select form-select-sm mb-2"></select>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label">RAM ≥ <span class="text-muted">$.ramGb</span></label>
+                        <select name="minRamGb" class="form-select form-select-sm mb-2">
+                            <option value="">bất kỳ</option><option>6</option><option>8</option><option>12</option><option>16</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Bộ nhớ ≥ <span class="text-muted">$.storageGb</span></label>
+                        <select name="minStorageGb" class="form-select form-select-sm mb-2">
+                            <option value="">bất kỳ</option><option>128</option><option>256</option><option>512</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="form-label">Có size <span class="text-muted">$.size[*]</span></label>
+                <select name="size" class="form-select form-select-sm mb-2">
+                    <option value="">— bất kỳ —</option>
+                    <option>S</option><option>M</option><option>L</option><option>XL</option><option>30</option><option>32</option>
+                </select>
+
+                <label class="form-label">Tên chứa</label>
+                <input name="q" class="form-control form-control-sm mb-2" placeholder="ví dụ: iPhone" />
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="activeOnly" value="true" id="activeOnly">
+                    <label class="form-check-label" for="activeOnly">Chỉ sản phẩm đang bán</label>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-primary flex-fill" type="submit">Lọc</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá lọc</button>
+                </div>
+
+                <hr />
+                <div class="fw-semibold mb-1">Thuộc tính JSON có trong danh mục</div>
+                <div class="text-muted small mb-2">(JSON_DATAGUIDE tự suy ra từ dữ liệu)</div>
+                <div id="attrKeys"></div>
+            </div>
         </form>
     </div>
 
     <!-- DANH SÁCH -->
-    <div class="col-md-9">
+    <div class="col-lg-9">
         <div id="listMsg"></div>
-        <details class="mb-2 small">
-            <summary>Câu SQL lọc vừa chạy (<span id="count">0</span> sản phẩm)</summary>
-            <pre id="filterSql" class="bg-light p-2 mb-0"></pre>
-        </details>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>ID</th><th>Sản phẩm</th><th>Danh mục / Người bán</th>
-                        <th class="text-end">Giá</th><th class="text-end">Tồn</th><th>Thuộc tính (attributes)</th><th></th>
-                    </tr>
-                </thead>
-                <tbody id="productRows"></tbody>
-            </table>
+        <div class="toolbar">
+            <span>Tìm thấy <b id="count">0</b> sản phẩm</span>
+            <details class="small">
+                <summary>Câu SQL lọc vừa chạy</summary>
+            </details>
         </div>
+        <pre id="filterSql" class="bg-light mb-3" hidden></pre>
+        <div id="productRows" class="product-grid"></div>
     </div>
 </div>
 

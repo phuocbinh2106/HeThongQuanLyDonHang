@@ -126,6 +126,14 @@ Oracle 23ai – PDB ecom – schema ecom_schema
   └─ 10 bảng + PKG_ORDER + trigger + PKG_ORDER_RPT    (đường quan hệ / báo cáo)
 ```
 
+### Giao diện Shopia
+
+Giao diện mang thương hiệu **Shopia** (logo: `src/Ecom.Web/wwwroot/img/`), bố cục theo kiểu các sàn TMĐT phổ biến:
+header có ô tìm kiếm + giỏ hàng + vai trò, menu ngang, trang chủ có hero / danh mục / sản phẩm, thẻ sản phẩm dạng lưới,
+trang tạo đơn kiểu thanh toán, tab trạng thái đơn, thanh tiến trình vòng đời đơn. Màu lấy từ logo (xanh rêu – xanh ngọc –
+vàng), định nghĩa bằng biến CSS ở `wwwroot/css/site.css`; biểu tượng là SVG vẽ sẵn trong `wwwroot/js/shopia.js`, nên giao
+diện không cần mạng. CSDL không lưu ảnh sản phẩm, nên ảnh trên thẻ là hình minh hoạ vẽ theo danh mục + thương hiệu.
+
 ### Màn hình và API đã có
 
 | Mã | Màn hình | API | CSDL |

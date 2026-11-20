@@ -1,5 +1,6 @@
 # Kịch bản demo (8–10 phút)
 
+Ứng dụng mang tên **Shopia** (logo trong `src/Ecom.Web/wwwroot/img/`).
 Mục tiêu: trong thời gian ngắn, cho giám khảo thấy **hệ thống chạy thật** qua luồng giao diện → API → CSDL,
 và **6 tình huống khó** chỉ giải quyết gọn được bằng JSON Relational Duality View (TH-1 … TH-6).
 
@@ -13,7 +14,7 @@ cd src\Ecom.Web; dotnet run --launch-profile http
 - Mở trình duyệt: <http://localhost:5148> — ô "Kiểm tra kết nối" phải báo **thành công, INVALID = 0**.
 - Mở sẵn DBeaver kết nối `localhost:1521/ecom` (user `ecom_schema`) cho bước 4.
 - Mở sẵn một terminal ở thư mục repo cho bước 9.
-- Đóng các tab trình duyệt cũ; bỏ chọn vai trò (trang chủ → "bỏ chọn").
+- Đóng các tab trình duyệt cũ; bỏ chọn vai trò (trang chủ → khu "Bạn là ai?" → "bỏ chọn").
 
 > Nếu **vừa reset** khi web đang chạy thì không cần khởi động lại web (đã xử lý ORA-04068).
 > Nếu **cài lại toàn bộ** bằng `.\scripts\db.ps1 install` thì phải khởi động lại web.
@@ -24,24 +25,25 @@ cd src\Ecom.Web; dotnet run --launch-profile http
 trên bảng chuẩn hoá. Nhóm dùng JSON Relational Duality View của Oracle 23ai. Ứng dụng viết bằng ASP.NET Core MVC;
 API C# đọc/ghi **trực tiếp** Duality View, còn nghiệp vụ và báo cáo gọi package PL/SQL."
 
-**Làm:** Trang chủ → chỉ ô *Kiểm tra kết nối* (phiên bản Oracle, 3 Duality View, INVALID = 0) → chọn vai trò
-**Khách hàng #1 – Nguyễn Văn An** → "Vào vai khách hàng".
+**Làm:** Trang chủ Shopia → chỉ phần hero "một nguồn – hai cách nhìn" (số sản phẩm / đơn / khách lấy thật từ CSDL)
+→ cuộn xuống ô *Kiểm tra kết nối* (phiên bản Oracle, 3 Duality View, INVALID = 0) → khu **"Bạn là ai?"** chọn
+**Khách hàng #1 – Nguyễn Văn An** → "Vào vai khách hàng" (góc phải header hiện avatar + vai trò).
 
 ## 2. TH-6 – Thuộc tính JSON linh hoạt (1:00–2:00)
 
-**Làm:** Menu *Sản phẩm* → danh mục **Laptop**, RAM tối thiểu **16** → *Lọc*.
+**Làm:** Menu *Sản phẩm* (hoặc bấm ô **Laptop** ở khu Danh mục trang chủ) → bộ lọc RAM ≥ **16** → *Lọc*.
 - Chỉ phần "Thuộc tính JSON có trong danh mục" (JSON_DATAGUIDE tự suy ra `cpu`, `ramGb`…).
-- Mở "Câu SQL lọc vừa chạy": `CONNECT BY` (cây danh mục) + `JSON_VALUE(... '$.ramGb' RETURNING NUMBER)`.
-- Bấm **JSON** một sản phẩm → xoá dòng `"brand"` trong `attributes` → *Lưu* → **422 – Thuộc tính JSON không đúng JSON Schema**.
+- Bấm "Câu SQL lọc vừa chạy" (góc phải thanh kết quả): `CONNECT BY` (cây danh mục) + `JSON_VALUE(... '$.ramGb' RETURNING NUMBER)`.
+- Bấm nút **JSON** trên một thẻ sản phẩm → xoá dòng `"brand"` trong `attributes` → *Lưu* → **422 – Thuộc tính JSON không đúng JSON Schema**.
 
 **Nói:** "Mỗi ngành hàng một kiểu thuộc tính, lưu ở cột JSON; JSON Schema khai báo ngay trên kiểu cột nên ghi qua
 tài liệu hay qua SQL đều bị chặn."
 
 ## 3. TH-1, TH-4 – Tạo cả một đơn bằng một tài liệu JSON (2:00–3:15)
 
-**Làm:** Menu *Tạo đơn* → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2 → tick
-**"Chế độ thử TC-02"** → chỉ khung *Tài liệu JSON sẽ gửi* (có `status: DELIVERED`, `unitPrice: 1`, `orderNo: HACK-001`)
-→ *Đặt hàng*.
+**Làm:** Menu *Tạo đơn* (hoặc nút **Mua** trên thẻ sản phẩm) → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2
+→ ở cột giỏ hàng bên phải tick **"Chế độ thử TC-02"** → chỉ khung *Tài liệu JSON sẽ gửi* bên trái (có `status: DELIVERED`,
+`unitPrice: 1`, `orderNo: HACK-001`) → *Đặt hàng*.
 
 **Kết quả:** HTTP 201, đơn **PENDING**, số đơn do sequence sinh, giá thật do CSDL lấy, lịch sử ghi bởi `customer:1`.
 
@@ -50,7 +52,7 @@ tính tổng. Giá và trạng thái client gửi bị bỏ qua vì quy tắc n�
 
 ## 4. TH-2 – Một nguồn dữ liệu, hai cách nhìn (3:15–4:30)
 
-**Làm:** Bấm *Xem chi tiết đơn* → tab **Dạng JSON** (ETag, asof, bảng ánh xạ trường → cột) → tab
+**Làm:** Bấm *Xem chi tiết đơn* → chỉ thanh tiến trình trạng thái (vẽ từ `history[]` của tài liệu) → tab **Dạng JSON** (ETag, asof, bảng ánh xạ trường → cột) → tab
 **Dạng bảng quan hệ** (dòng thật trong 5 bảng, có ROWID) → chỉ khối "Hai cách nhìn khớp nhau" (9/9 ✔).
 
 **Làm thêm (TC-12):** Trong DBeaver chạy
@@ -70,7 +72,7 @@ Tồn kho S24 trong bảng sản phẩm **không đổi** – dòng hợp lệ c
 
 ## 6. TH-5 – Hai người cùng sửa một đơn (5:15–6:30)
 
-**Làm:** Trang chủ → bảng *Lối tắt demo* → TH-5 mở **đơn #60** ở hai tab.
+**Làm:** Trang chủ → khu *Lối tắt demo* → thẻ TH-5 mở **đơn #60** ở hai tab.
 - Tab 1: khu *Xử lý đơn* → mục 3 sửa *Điện thoại* → **Lưu tài liệu** → 200, ETag mới.
 - Tab 2 (vẫn giữ ETag cũ): sửa *Địa chỉ* → **Lưu tài liệu** → **412 – Xung đột ETag (ORA-42699)**.
 

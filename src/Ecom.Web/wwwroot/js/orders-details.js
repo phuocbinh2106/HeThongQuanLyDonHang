@@ -6,11 +6,7 @@
 // =============================================================================
 const $ = id => document.getElementById(id);
 
-const STATUS_COLOR = {
-  PENDING: 'secondary', CONFIRMED: 'info', PACKING: 'primary', SHIPPING: 'warning',
-  DELIVERED: 'success', CANCELLED: 'dark', RETURNED: 'danger',
-};
-const statusBadge = s => `<span class="badge text-bg-${STATUS_COLOR[s] || 'light'}">${escapeHtml(s)}</span>`;
+const statusBadge = s => statusPill(s);   // nhãn trạng thái dùng chung (shopia.js)
 
 // Giá trị ngày giờ từ API có dạng 2026-11-19T13:01:56.27 -> hiển thị gọn
 const fmtCell = v => {
@@ -37,9 +33,14 @@ async function load() {
 function renderJson(doc, etag) {
   $('hdrOrderNo').textContent = doc.orderNo;
   $('hdrStatus').innerHTML = statusBadge(doc.status);
+  // thanh tiến trình vẽ từ status + history[] của chính tài liệu ORDER_DV
+  $('orderStepper').innerHTML = orderStepper(doc.status, doc.history);
+  $('hdrMeta').innerHTML = `${icon('user')} ${escapeHtml(doc.customer?.fullName || '')}
+    <span class="mx-2 opacity-50">|</span>${icon('orders')} ${escapeHtml(String(doc.orderDate).replace('T', ' ').slice(0, 16))}
+    <span class="mx-2 opacity-50">|</span>Tổng: <b class="text-success">${fmtMoney(doc.totalAmount)}</b>`;
   $('etag').textContent = etag;
   $('asof').textContent = doc._metadata?.asof ?? '—';
-  $('jsonDoc').textContent = JSON.stringify(doc, null, 2);
+  $('jsonDoc').innerHTML = highlightJson(JSON.stringify(doc, null, 2));
 }
 
 function renderRelational(tables) {
@@ -47,7 +48,7 @@ function renderRelational(tables) {
     <div class="mb-3">
       <div class="d-flex justify-content-between align-items-baseline">
         <h6 class="mb-1"><code>${escapeHtml(name)}</code> <span class="text-muted small">(${t.rows.length} dòng)</span></h6>
-        <details class="small"><summary>SQL</summary><pre class="mb-0">${escapeHtml(t.sql)}</pre></details>
+        <details class="small"><summary>SQL</summary><pre class="bg-light mb-0">${escapeHtml(t.sql)}</pre></details>
       </div>
       <div class="table-responsive">
         <table class="table table-sm table-bordered small mb-0">
@@ -102,8 +103,8 @@ async function renderActions(doc, etag) {
   // Trạng thái kế tiếp hợp lệ: hỏi CSDL
   const { data } = await api(`/api/orders/${ORDER_ID}/next-statuses`);
   $('nextButtons').innerHTML = data.next.length
-    ? data.next.map(s => `<button class="btn btn-sm ${s === 'CANCELLED' ? 'btn-outline-dark' : 'btn-outline-primary'}"
-          data-status="${s}">${s === 'CANCELLED' ? 'Huỷ đơn' : '→ ' + s}</button>`).join('')
+    ? data.next.map(s => `<button class="btn btn-sm ${s === 'CANCELLED' ? 'btn-outline-danger' : 'btn-primary'}"
+          data-status="${s}" title="${STATUS_VI[s]}">${s === 'CANCELLED' ? 'Huỷ đơn' : '→ ' + s}</button>`).join('')
     : '<span class="text-muted">Trạng thái cuối, không chuyển tiếp được.</span>';
 
   // Thanh toán: gợi ý số tiền còn lại
