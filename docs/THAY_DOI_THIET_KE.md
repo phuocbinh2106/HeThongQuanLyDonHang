@@ -179,3 +179,15 @@ toán (kể cả REFUNDED), vận đơn, lịch sử.
 Log đầy đủ: `docs/test-logs/2026-11-20_db_t01_t02.txt`. Tóm tắt: **14/14 PASS** (xem thêm kết quả qua kênh web và tổng hợp ở `docs/KET_QUA_KIEM_THU.md`)
 (TC-01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 13, 15, 16). TC-10 (đồng thời) và TC-14 (lọc JSON) kiểm
 qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan của TC-14 đo ở bước tối ưu (Q2).
+
+## 8. Cập nhật báo cáo (bước 9)
+
+- File mới: `docs/BaoCao_DoAn_DeTai15_Chuong1-5_capnhat.docx` (bản gốc giữ nguyên để đối chiếu).
+- **Chương 3–5 viết lại hoàn toàn** theo ứng dụng thật (ASP.NET Core MVC + ODP.NET thay cho ORDS + Node.js/React);
+  mọi số liệu kiểm thử và tối ưu lấy từ log thật (`docs/test-logs/`, `docs/toi-uu/`), không có số ước lượng.
+- Mục 2.3.5 (REST API) và 2.6 (thiết kế ứng dụng) viết lại; Hình 1.1 vẽ lại; các câu nhắc ORDS / Node.js / React /
+  Search Index / Materialized View ở Chương 1–2 sửa cho khớp; thêm tài liệu tham khảo [9]–[11].
+- Các đoạn mã thiết kế ở Chương 2 (bảng, Duality View, chỉ mục dự kiến) **giữ nguyên là thiết kế trước khi cài đặt**;
+  mọi điểm khác khi cài đặt (mục 1–2e ở trên) được liệt kê ở **Bảng 3.3 (Đ1–Đ12)** của báo cáo.
+- ORDS AutoREST (bước 8, tuỳ chọn) chưa làm → ghi ở Mục 5.3 Hướng phát triển.
+- Bảng 5.2 (đóng góp của từng thành viên) để trống cho nhóm tự điền.

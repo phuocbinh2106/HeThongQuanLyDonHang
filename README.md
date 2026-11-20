@@ -158,6 +158,10 @@ xoá `brand` trong `attributes` → **422** (JSON Schema, ORA-40875 / ORA-02290)
 
 ## Tài liệu
 
+- [`docs/BaoCao_DoAn_DeTai15_Chuong1-5_capnhat.docx`](docs/BaoCao_DoAn_DeTai15_Chuong1-5_capnhat.docx): **báo cáo đã cập nhật** theo ứng dụng thật
+  (Chương 3–5 viết lại cho ASP.NET Core + ODP.NET, số liệu kiểm thử và tối ưu đo thật). Bản gốc trước khi cập nhật:
+  `docs/BaoCao_DoAn_DeTai15_Chuong1-5.docx`.
+- [`docs/KICH_BAN_DEMO.md`](docs/KICH_BAN_DEMO.md): kịch bản demo 8–10 phút, phương án dự phòng, câu hỏi vấn đáp hay gặp.
 - [`docs/THAY_DOI_THIET_KE.md`](docs/THAY_DOI_THIET_KE.md): các thay đổi so với thiết kế ban đầu và
   phát hiện khi chạy trên Oracle thật (đọc trước khi cập nhật báo cáo).
 - [`docs/TOI_UU.md`](docs/TOI_UU.md): tối ưu hoá – execution plan và số liệu trước / sau trên 200.000 đơn (cho Chương 4).
