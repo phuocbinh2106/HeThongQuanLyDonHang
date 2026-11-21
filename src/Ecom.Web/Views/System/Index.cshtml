@@ -1,0 +1,58 @@
+@{
+    ViewData["Title"] = "Hệ thống";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Hệ thống</div>
+        <h1>Hệ thống</h1>
+    </div>
+</div>
+
+<!-- KIỂM TRA KẾT NỐI -->
+<section class="section">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.8" /><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6" /><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8" /></svg>Kiểm tra kết nối: Giao diện → API → Oracle</span>
+            <button id="btnHealth" class="btn btn-sm btn-outline-primary">Kiểm tra lại</button>
+        </div>
+        <div class="card-body">
+            <div id="healthMsg"></div>
+            <table class="table table-sm mb-0" id="healthTable" hidden>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    // Gọi GET /api/system/health rồi hiển thị kết quả thành bảng
+    async function checkHealth() {
+        const tbody = document.querySelector('#healthTable tbody');
+        document.getElementById('healthMsg').innerHTML = '<span class="text-muted">Đang kiểm tra...</span>';
+        try {
+            const { data } = await api('/api/system/health');
+            const rows = [
+                ['CSDL', data.banner.split('\n')[0]],
+                ['Kết nối', data.dataSource],
+                ['PDB / user', `${data.pdb} / ${data.dbUser}`],
+                ['CLIENT_IDENTIFIER', data.clientIdentifier],
+                ['Duality View', data.dualityViews],
+                ['Đối tượng INVALID', data.invalidObjects],
+                ['Số đơn / sản phẩm / khách', `${data.counts.orders} / ${data.counts.products} / ${data.counts.customers}`],
+            ];
+            tbody.innerHTML = rows.map(([k, v]) =>
+                `<tr><th class="w-25">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
+            document.getElementById('healthTable').hidden = false;
+            if (data.invalidObjects === 0) showOk('healthMsg', 'Kết nối Oracle thành công.');
+            else showError('healthMsg', { status: 0, problem: { title: `Có ${data.invalidObjects} đối tượng INVALID trong schema` } });
+        } catch (err) {
+            document.getElementById('healthTable').hidden = true;
+            showError('healthMsg', err);
+        }
+    }
+    document.getElementById('btnHealth').addEventListener('click', checkHealth);
+    checkHealth();
+</script>
+}

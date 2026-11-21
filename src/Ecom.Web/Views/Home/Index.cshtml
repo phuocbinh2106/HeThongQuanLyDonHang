@@ -147,55 +147,21 @@
     </div>
 </section>
 
-<!-- KIỂM TRA KẾT NỐI -->
-<section class="section">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.8" /><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6" /><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8" /></svg>Kiểm tra kết nối: Giao diện → API → Oracle</span>
-            <button id="btnHealth" class="btn btn-sm btn-outline-primary">Kiểm tra lại</button>
-        </div>
-        <div class="card-body">
-            <div id="healthMsg"></div>
-            <table class="table table-sm mb-0" id="healthTable" hidden>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-</section>
+<!-- Thông báo lỗi chung của trang chủ (kiểm tra kết nối chi tiết nằm ở trang Hệ thống – chỉ quản trị) -->
+<div id="homeMsg"></div>
 
 @section Scripts {
 <script>
-    // Gọi GET /api/system/health rồi hiển thị kết quả thành bảng (và số liệu ở hero)
-    async function checkHealth() {
-        const tbody = document.querySelector('#healthTable tbody');
-        document.getElementById('healthMsg').innerHTML = '<span class="text-muted">Đang kiểm tra...</span>';
-        try {
-            const { data } = await api('/api/system/health');
-            const rows = [
-                ['CSDL', data.banner.split('\n')[0]],
-                ['Kết nối', data.dataSource],
-                ['PDB / user', `${data.pdb} / ${data.dbUser}`],
-                ['CLIENT_IDENTIFIER', data.clientIdentifier],
-                ['Duality View', data.dualityViews],
-                ['Đối tượng INVALID', data.invalidObjects],
-                ['Số đơn / sản phẩm / khách', `${data.counts.orders} / ${data.counts.products} / ${data.counts.customers}`],
-            ];
-            tbody.innerHTML = rows.map(([k, v]) =>
-                `<tr><th class="w-25">${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
-            document.getElementById('healthTable').hidden = false;
-            sel('statOrders').textContent = data.counts.orders.toLocaleString('vi-VN');
-            sel('statProducts').textContent = data.counts.products.toLocaleString('vi-VN');
-            sel('statCustomers').textContent = data.counts.customers.toLocaleString('vi-VN');
-            if (data.invalidObjects === 0) showOk('healthMsg', 'Kết nối Oracle thành công.');
-            else showError('healthMsg', { status: 0, problem: { title: `Có ${data.invalidObjects} đối tượng INVALID trong schema` } });
-        } catch (err) {
-            document.getElementById('healthTable').hidden = true;
-            showError('healthMsg', err);
-        }
-    }
     const sel = id => document.getElementById(id);
-    document.getElementById('btnHealth').addEventListener('click', checkHealth);
-    checkHealth();
+
+    // Số liệu ở hero: GET /api/system/stats (công khai, chỉ 3 con số đếm)
+    async function loadStats() {
+        const { data } = await api('/api/system/stats');
+        sel('statOrders').textContent = data.orders.toLocaleString('vi-VN');
+        sel('statProducts').textContent = data.products.toLocaleString('vi-VN');
+        sel('statCustomers').textContent = data.customers.toLocaleString('vi-VN');
+    }
+    loadStats().catch(err => showError('homeMsg', err));
 
     // ---------- Danh mục + sản phẩm đang bán (đọc tài liệu PRODUCT_DV) ----------
     async function loadShowcase() {
@@ -210,7 +176,7 @@
         sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p, { buy: roleKind() !== 'seller' })).join('')
             || '<div class="empty-state">Chưa có sản phẩm</div>';
     }
-    loadShowcase().catch(err => showError('healthMsg', err));
+    loadShowcase().catch(err => showError('homeMsg', err));
 
     // ---------- M0: chọn vai trò ----------
     async function loadRoles() {
@@ -237,6 +203,6 @@
     });
     sel('btnAdmin').addEventListener('click', () => pick('admin', 'Quản trị sàn', '/Orders'));
     sel('btnClearRole').addEventListener('click', () => { clearRole(); location.reload(); });
-    loadRoles().catch(err => showError('healthMsg', err));
+    loadRoles().catch(err => showError('homeMsg', err));
 </script>
 }

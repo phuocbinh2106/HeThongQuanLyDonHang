@@ -106,7 +106,7 @@ dotnet user-secrets set "EcomDb:Password" "oracle"
 ```powershell
 dotnet run --launch-profile http
 ```
-Mở <http://localhost:5148>. Trang chủ có ô **Kiểm tra kết nối** gọi `GET /api/system/health`;
+Mở <http://localhost:5148>, chọn vai trò **Quản trị** rồi vào menu **Hệ thống** (trang `/System`, chỉ quản trị) – trang này gọi `GET /api/system/health`;
 phải thấy "Kết nối Oracle thành công" và "Đối tượng INVALID = 0".
 
 ### Kiến trúc ứng dụng
@@ -183,7 +183,7 @@ trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo m
 
 | Mã | Màn hình | API | CSDL |
 |---|---|---|---|
-| M0 | Trang chủ: **chọn vai trò** (khách hàng / người bán / quản trị – mô phỏng), lối tắt demo TH-1..TH-6, kiểm tra kết nối | `GET /api/system/health`, `GET /api/sellers`, `GET /api/customers?q=&limit=` | Vai trò (cookie `ecom_user`) → `CLIENT_IDENTIFIER` → trigger ghi `changed_by`; khách: tự lọc "đơn của tôi"; người bán: tự lọc sản phẩm của shop |
+| M0 | Trang chủ: **chọn vai trò** (khách hàng / người bán / quản trị – mô phỏng), lối tắt demo TH-1..TH-6 | `GET /api/system/stats`, `GET /api/sellers`, `GET /api/customers?q=&limit=` | Vai trò (cookie `ecom_user`) → `CLIENT_IDENTIFIER` → trigger ghi `changed_by`; khách: tự lọc "đơn của tôi"; người bán: tự lọc sản phẩm của shop |
 | M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
 | M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers?q=&limit=`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
 | M3 | Danh sách đơn (`/Orders`): lọc theo khách ("Đơn của tôi"), trạng thái (nút lọc nhanh có số đếm), khoảng ngày, số đơn; phân trang 20 đơn | `GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize=` | Bảng quan hệ `orders` (không qua Duality View); lọc theo khách có đúng dạng truy vấn **Q1** (`WHERE customer_id = :cust ORDER BY order_date DESC FETCH NEXT 20`) để đo tối ưu với chỉ mục IX-1 |

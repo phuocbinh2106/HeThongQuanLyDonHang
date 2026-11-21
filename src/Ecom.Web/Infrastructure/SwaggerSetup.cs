@@ -63,10 +63,10 @@ public static class SwaggerSetup
 
                     | Vai trò | Được phép |
                     |---|---|
-                    | Khách vãng lai | Xem sản phẩm, danh mục, người bán, `/api/system/health`, `/api/session/*` |
+                    | Khách vãng lai | Xem sản phẩm, danh mục, người bán, `/api/system/stats`, `/api/session/*` |
                     | Khách hàng | Tạo đơn cho chính mình; xem / sửa (địa chỉ, dòng hàng, thanh toán) / huỷ đơn của mình; hồ sơ của mình |
                     | Người bán | Thêm / sửa sản phẩm của shop mình; xem đơn có sản phẩm của shop; đổi trạng thái, huỷ, thêm vận đơn |
-                    | Quản trị | Toàn quyền, gồm báo cáo và danh sách khách hàng |
+                    | Quản trị | Toàn quyền, gồm báo cáo, danh sách khách hàng và kiểm tra kết nối `/api/system/health` |
 
                     Vai trò cũng được gửi xuống Oracle qua `CLIENT_IDENTIFIER` để trigger ghi người thao tác vào lịch sử.
                     """,

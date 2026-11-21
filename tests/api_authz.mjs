@@ -1,5 +1,5 @@
 // =============================================================================
-// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-14): mỗi vai trò chỉ làm được đúng phần việc của mình.
+// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-15): mỗi vai trò chỉ làm được đúng phần việc của mình.
 // Vai trò mô phỏng bằng cookie ecom_user (customer:N | seller:N | admin); không cookie = khách vãng lai.
 // Server phải chặn ở API (401 / 403) VÀ ở trang MVC, không chỉ ẩn nút trên giao diện.
 //
@@ -164,6 +164,19 @@ await az('AZ-14', 'Trang MVC cũng bị chặn: vãng lai mở Báo cáo -> 401,
   const d = await call('GET', `/Orders/Details/${otherOrder}`, null, { raw: true, user: 'customer:1' });
   return { ok: g.status === 401 && c.status === 403 && a.status === 200 && d.status === 403,
     detail: `/Reports: vãng lai ${g.status}, khách ${c.status}, quản trị ${a.status}; /Orders/Details/${otherOrder} (khách #1): ${d.status}` };
+});
+
+await az('AZ-15', 'Kiểm tra kết nối Oracle chỉ quản trị: /api/system/health và trang /System; /api/system/stats vẫn công khai', async () => {
+  const roles = [['vãng lai', {}], ['khách', { user: 'customer:1' }], ['người bán', { user: 'seller:2' }], ['quản trị', A]];
+  const h = [], p = [];
+  for (const [, o] of roles) {
+    h.push((await call('GET', '/system/health', null, o)).status);
+    p.push((await call('GET', '/System', null, { raw: true, ...o })).status);
+  }
+  const st = await call('GET', '/system/stats');
+  const want = [401, 403, 403, 200];
+  return { ok: h.join() === want.join() && p.join() === want.join() && st.status === 200 && st.data.orders >= 0 && !('banner' in st.data),
+    detail: `health: ${h.join('/')}; trang /System: ${p.join('/')} (vãng lai/khách/người bán/quản trị); stats (vãng lai): ${st.status}` };
 });
 
 // dọn dẹp: huỷ các đơn tạo thử còn lại (hoàn kho)
