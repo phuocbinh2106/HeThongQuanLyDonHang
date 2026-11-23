@@ -15,6 +15,12 @@ builder.Services.AddScoped<CustomerRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<ReportRepository>();
 builder.Services.AddSingleton<Ecom.Web.Services.ProductImageStore>();   // ảnh sản phẩm (tệp trên đĩa)
+// ORDS AutoREST (tuỳ chọn): trang /Ords so sánh API C# với REST do Oracle tự sinh
+builder.Services.AddHttpClient("ords", c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["Ords:BaseUrl"] ?? "http://localhost:8181/ords/ecom/");
+    c.Timeout = TimeSpan.FromSeconds(15);
+});
 
 // Tài liệu REST API (OpenAPI) + Swagger UI tại /api-docs (xem Infrastructure/SwaggerSetup.cs)
 builder.Services.AddShopiaSwagger();

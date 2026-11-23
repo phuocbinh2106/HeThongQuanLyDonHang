@@ -1,0 +1,70 @@
+@{
+    ViewData["Title"] = "API C# và ORDS";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / API C# và ORDS</div>
+        <h1>API C# tự viết và ORDS AutoREST</h1>
+    </div>
+</div>
+
+<p class="text-muted small mb-3">
+    Hai REST API trên <b>cùng một Duality View</b>: bên trái là API ASP.NET Core nhóm tự viết
+    (<code>SELECT … FROM order_dv</code>, có phân quyền theo vai trò); bên phải là API do <b>Oracle tự sinh</b> bằng
+    ORDS AutoREST (<code>sql/11_ords_autorest.sql</code>), không viết dòng code nào.
+</p>
+
+<div id="ordsMsg"></div>
+
+<!-- 1. ĐỌC CÙNG MỘT ĐƠN -->
+<div class="card mb-3">
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <span><span class="step">1</span>Đọc cùng một đơn qua hai API</span>
+        <form id="readForm" class="d-flex gap-1 align-items-center small mb-0">
+            <span>Mã đơn</span>
+            <input id="orderId" type="number" min="1" value="3" class="form-control form-control-sm" style="width:90px" />
+            <button class="btn btn-sm btn-primary">Đọc</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <div id="sameBox" class="mb-2"></div>
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="fw-semibold">API C# (tự viết)</div>
+                <div class="small text-muted mb-1 mono" id="csUrl"></div>
+                <div class="small mb-1" id="csMeta"></div>
+                <pre id="csDoc" class="small bg-light mb-0" style="max-height:420px;overflow:auto"></pre>
+            </div>
+            <div class="col-lg-6">
+                <div class="fw-semibold">ORDS AutoREST (Oracle tự sinh)</div>
+                <div class="small text-muted mb-1 mono"><a id="ordsUrl" target="_blank" rel="noopener"></a></div>
+                <div class="small mb-1" id="ordsMeta"></div>
+                <pre id="ordsDoc" class="small bg-light mb-0" style="max-height:420px;overflow:auto"></pre>
+            </div>
+        </div>
+        <div class="form-text">
+            Cùng <code>_id</code>, cùng dữ liệu, cùng <code>_metadata.etag</code> vì cả hai đọc chung tài liệu <code>ORDER_DV</code>.
+            ORDS thêm mục <code>links</code> (đường dẫn tới chính tài liệu) theo chuẩn REST của nó.
+        </div>
+    </div>
+</div>
+
+<!-- 2. GHI QUA ORDS -->
+<div class="card mb-3">
+    <div class="card-header"><span class="step">2</span>Ghi qua ORDS: quy tắc nghiệp vụ ở CSDL vẫn chạy</div>
+    <div class="card-body small">
+        <p class="mb-2">
+            Gửi <code>POST /ords/ecom/order_dv/</code> một đơn đặt <b>99 999</b> chiếc sản phẩm #1. ORDS chỉ làm
+            <code>INSERT INTO order_dv</code>; trigger / package ở bảng nền trừ kho và ném <b>ORA-20001</b> → cả đơn bị huỷ.
+            ORDS không đi qua phân quyền của API C#, nhưng không vượt được quy tắc nằm trong CSDL.
+        </p>
+        <pre id="writeDoc" class="small bg-light mb-2"></pre>
+        <button id="btnWrite" class="btn btn-sm btn-outline-danger">Gửi qua ORDS</button>
+        <div id="writeRes" class="mt-2"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/ords.js" asp-append-version="true"></script>
+}

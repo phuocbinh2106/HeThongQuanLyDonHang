@@ -253,3 +253,18 @@ PASS): `api_authz` 22/22, `api_test_cases` 16/16, `db.ps1 test` không FAIL. Bá
 
 Góp ý **không** làm: khôi phục khung "Hai cách nhìn khớp nhau" ở M4 (nhóm đã chủ động bỏ); đổi danh sách số trong thuộc
 tính kiểu "danh sách" thành số (size "30", "32" trong dữ liệu là chuỗi và bộ lọc `JSON_EXISTS` so sánh chuỗi).
+
+## 13. Đ17 – ORDS AutoREST cho 3 Duality View (bước 8, tuỳ chọn)
+
+- **Thiết kế / kế hoạch:** `docs/superpowers/specs/2026-11-23-ords-autorest-design.md`,
+  `docs/superpowers/plans/2026-11-23-ords-autorest.md`. Nhóm chọn **đọc + ghi, không xác thực** (chỉ demo trên máy cá nhân).
+- **Đã làm:** container ORDS 26.3.1 (`scripts/ords.ps1`), `sql/11_ords_autorest.sql` (`ORDS.ENABLE_SCHEMA` + `ORDS.ENABLE_OBJECT`),
+  trang `/Ords` + API chuyển tiếp `/api/ords/...` (chỉ quản trị), `tests/ords_test.mjs` 3/3 PASS.
+- **Khác bản thiết kế:** không thêm dịch vụ `ords` vào `docker-compose.yml` – lần đầu phải chạy `ords install` với mật khẩu SYS
+  qua stdin, nên để `scripts/ords.ps1` lo cả cài lẫn chạy (tránh hai nơi cùng tạo container tên `ords`).
+- **Vấn đề gặp khi cài (ghi lại để vấn đáp):**
+  - Script khởi động của image ORDS ghép mật khẩu vào chuỗi `sys/<mật khẩu>@host` → hỏng khi mật khẩu có `@`
+    (lỗi `ORA-17868 Unknown host`). Cách xử lý: gọi thẳng `ords install --admin-user "SYS AS SYSDBA" --proxy-user --password-stdin`.
+  - Mặc định ORDS giấu lỗi CSDL thành `ORDS-25001 Bad Request`; bật `debug.printDebugToScreen` để thấy `ORA-20001` khi demo.
+- **Ý nghĩa:** cùng một Duality View phục vụ hai REST API (tự viết và tự sinh) mà không nhân bản dữ liệu; quy tắc nghiệp vụ nằm
+  ở bảng nền nên kênh ghi nào cũng bị kiểm tra; phân quyền theo vai trò thì nằm ở API C# (ORDS cần OAuth2 nếu đưa vào dùng thật).

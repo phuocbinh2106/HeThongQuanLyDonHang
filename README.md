@@ -45,6 +45,7 @@ nằm ở 10 bảng chuẩn hoá — nơi đặt toàn bộ ràng buộc, trigge
 | `08_seed.sql` | Dữ liệu mẫu (60 đơn, 36 sản phẩm, 10 khách...) | ecom_schema |
 | `09_bulk_data.sql` | (Tuỳ chọn) dữ liệu lớn để đo tối ưu: 200.000 đơn, 50.000 sản phẩm… | ecom_schema |
 | `10_toi_uu_Q1_Q3.sql` + `toi_uu/` | Đo execution plan trước / sau tối ưu (Q1–Q3 và câu SQL của M1, M3) | ecom_schema |
+| `11_ords_autorest.sql` | (Tuỳ chọn) Bật ORDS AutoREST cho 3 Duality View, cần container ORDS (`scripts/ords.ps1`) | ecom_schema |
 | `install_all.sql` | Gọi 01→08 theo thứ tự (kể cả 03b) | ecom_schema |
 | `t00_reset.sql` | Đưa dữ liệu về ban đầu trước khi demo | ecom_schema |
 | `t01_smoke_test.sql`, `t02_test_cases.sql` | Kiểm thử mức CSDL, tự in PASS/FAIL | ecom_schema |
@@ -184,6 +185,27 @@ Không màn hình nào tải danh sách **tất cả** khách: các ô chọn kh
 "gõ để gợi ý" (`customerPicker` trong `wwwroot/js/shopia.js`), mỗi lần gõ gọi `GET /api/customers?q=...&limit=8`;
 trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
 `OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
+
+### ORDS AutoREST (tuỳ chọn) – REST do Oracle tự sinh
+
+ORDS (Oracle REST Data Services) bật **AutoREST** cho 3 Duality View: Oracle tự sinh REST API đầy đủ (GET / POST / PUT,
+ETag, phân trang) mà không viết dòng code nào – so sánh với API C# nhóm tự viết.
+
+```powershell
+.scriptsords.ps1 start                      # lần đầu: tải image + cài ORDS vào PDB ecom (vài phút), cổng 8181
+.scriptsdb.ps1 file 11_ords_autorest.sql    # bật AutoREST (một lần, lưu trong CSDL)
+.scriptsords.ps1 status                     # thử GET http://localhost:8181/ords/ecom/order_dv/1
+```
+
+- URL: `http://localhost:8181/ords/ecom/order_dv/{id}` (tương tự `product_dv`, `customer_dv`). **Không xác thực** – chỉ
+  dùng demo trên máy cá nhân; ORDS không đi qua phân quyền theo vai trò của API C#, nhưng mọi quy tắc nghiệp vụ ở bảng nền
+  (trigger, ràng buộc, JSON Schema) vẫn chạy: `POST` một đơn quá tồn kho qua ORDS → `ORA-20001`, đơn không được tạo.
+- Trang **C# và ORDS** (`/Ords`, chỉ quản trị): cùng một đơn đọc qua `GET /api/orders/{id}` và qua ORDS (cùng dữ liệu, cùng
+  ETag); nút ghi thử qua ORDS. Trình duyệt gọi ORDS qua `/api/ords/{view}/{id}` (web chuyển tiếp, vì khác cổng sẽ bị CORS);
+  ORDS chưa chạy → 503 "ORDS chưa chạy", các trang khác không ảnh hưởng.
+- `scripts/ords.ps1` gọi thẳng `ords install --password-stdin` (mật khẩu SYS đọc từ container Oracle lúc chạy, không lưu
+  trong repo) và bật `debug.printDebugToScreen` để ORDS trả chi tiết lỗi Oracle thay vì "ORDS-25001 Bad Request" (chỉ dùng demo).
+- Kiểm thử: `node tests/ords_test.mjs` (ORDS-01…03).
 
 ### Đăng bán sản phẩm và ảnh sản phẩm
 
