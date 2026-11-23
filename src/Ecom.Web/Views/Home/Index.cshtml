@@ -170,7 +170,7 @@
         sel('catGrid').innerHTML = facets.categories.map(c => {
             const look = categoryLook(c.name);
             return `<a class="cat-tile" href="/Products?categoryId=${c.id}">
-                <div class="ic thumb c${look.c}">${icon(look.icon)}</div>
+                <div class="ph thumb c${look.c}">${icon(look.icon)}<img src="/img/categories/${c.id}.jpg" alt="" loading="lazy" onerror="this.remove()"></div>
                 <b>${escapeHtml(c.name)}</b><span>${c.level > 1 ? 'Danh mục con' : 'Ngành hàng'}</span></a>`;
         }).join('');
         sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p, { buy: roleKind() !== 'seller' })).join('')

@@ -323,8 +323,11 @@ details > summary::marker { color: var(--sp-gold-500); }
   color: var(--sp-ink); transition: transform .15s, box-shadow .15s, border-color .15s;
 }
 .cat-tile:hover { transform: translateY(-3px); box-shadow: var(--sp-shadow); border-color: var(--sp-mint-400); text-decoration: none; color: var(--sp-ink); }
-.cat-tile .ic { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; margin: 0 auto .55rem; color: #fff; }
-.cat-tile .ic svg { width: 28px; height: 28px; }
+.cat-tile { padding: .55rem .55rem .8rem; }
+.cat-tile .ph { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; margin-bottom: .55rem; display: grid; place-items: center; color: #fff; }
+.cat-tile .ph svg { width: 34px; height: 34px; }
+.cat-tile .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
+.cat-tile:hover .ph img { transform: scale(1.06); }
 .cat-tile b { display: block; font-size: .86rem; }
 .cat-tile span { font-size: .74rem; color: var(--sp-muted); }
 
@@ -378,13 +381,15 @@ details > summary::marker { color: var(--sp-gold-500); }
 .stock { font-weight: 600; }
 .stock.low { color: #b56a00; } .stock.out { color: #b23b32; }
 
-/* Ảnh sản phẩm minh hoạ (CSDL không lưu ảnh -> vẽ bằng biểu tượng danh mục + thương hiệu) */
+/* Ảnh sản phẩm: <img class="photo"> phủ lên nền biểu tượng danh mục (nền chỉ thấy khi sản phẩm chưa có ảnh) */
 .thumb {
   aspect-ratio: 4 / 3; display: grid; place-items: center; position: relative; overflow: hidden; color: rgba(255,255,255,.95);
 }
 .thumb::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.35), transparent 45%); }
 .thumb svg.cat { width: 44%; height: 44%; position: relative; filter: drop-shadow(0 6px 10px rgba(0,0,0,.18)); }
-.thumb .brand { position: absolute; bottom: .5rem; left: .65rem; font-weight: 800; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; color: rgba(255,255,255,.92); }
+.thumb .brand { position: absolute; bottom: .5rem; left: .65rem; z-index: 2; font-weight: 800; font-size: .7rem; letter-spacing: .05em; text-transform: uppercase; color: #fff; background: rgba(15,42,35,.62); padding: .1rem .5rem; border-radius: 999px; backdrop-filter: blur(2px); }
+.thumb img.photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #fff; transition: transform .25s; }
+.product-card:hover .thumb img.photo { transform: scale(1.04); }
 .thumb.sm { aspect-ratio: 1; width: 44px; border-radius: 10px; flex: 0 0 auto; }
 .thumb.sm svg.cat { width: 60%; height: 60%; }
 .thumb.sm::before { display: none; }
@@ -506,3 +511,13 @@ details > summary::marker { color: var(--sp-gold-500); }
 .forbidden p { color: var(--sp-muted); margin-bottom: 1.4rem; }
 
 .cust-picker.locked input[type=text] { cursor: default; background-color: #f1f4f2; }
+
+/* ---------------------------------------------------------------- Đăng bán sản phẩm */
+.img-drop {
+  width: 150px; aspect-ratio: 4 / 3; flex: 0 0 auto; border: 1px dashed var(--sp-mint-400); border-radius: 12px;
+  display: grid; place-items: center; overflow: hidden; background: var(--sp-mint-50); font-size: .75rem;
+}
+.img-drop img { width: 100%; height: 100%; object-fit: cover; }
+.attr-table th { font-weight: 600; color: var(--sp-muted); font-size: .74rem; }
+.attr-table td { padding: .2rem .25rem; }
+#cardPreview .product-card:hover { transform: none; }

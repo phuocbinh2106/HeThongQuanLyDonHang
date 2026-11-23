@@ -14,6 +14,7 @@ builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<CustomerRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<ReportRepository>();
+builder.Services.AddSingleton<Ecom.Web.Services.ProductImageStore>();   // ảnh sản phẩm (tệp trên đĩa)
 
 // Tài liệu REST API (OpenAPI) + Swagger UI tại /api-docs (xem Infrastructure/SwaggerSetup.cs)
 builder.Services.AddShopiaSwagger();

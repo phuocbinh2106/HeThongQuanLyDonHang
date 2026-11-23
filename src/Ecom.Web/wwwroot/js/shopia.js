@@ -1,7 +1,7 @@
 // =============================================================================
 // shopia.js: các hàm giao diện dùng chung của Shopia (chỉ hiển thị, KHÔNG gọi CSDL).
 //   icon(name)        biểu tượng SVG vẽ sẵn (không cần thư viện ngoài -> chạy offline)
-//   productThumb(p)   ảnh minh hoạ sản phẩm: CSDL không lưu ảnh nên vẽ theo danh mục + thương hiệu
+//   productThumb(p)   ảnh sản phẩm (GET /api/products/{id}/image); chưa có ảnh -> biểu tượng danh mục
 //   statusPill(s)     nhãn trạng thái đơn (tiếng Việt + mã gốc trong CSDL)
 //   orderStepper(...) thanh tiến trình vòng đời đơn PENDING -> ... -> DELIVERED
 // =============================================================================
@@ -46,8 +46,9 @@ function icon(name, cls = 'icon') {
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.box}</svg>`;
 }
 
-// ---------- Ảnh minh hoạ sản phẩm ----------
-// Chọn biểu tượng + màu theo tên danh mục (dữ liệu thật trong CSDL), không có ảnh giả.
+// ---------- Ảnh sản phẩm ----------
+// Ảnh là tệp trên server (không nằm trong CSDL). Nền phía sau là biểu tượng + màu theo danh mục:
+// sản phẩm chưa có ảnh (404) thì thẻ <img> tự gỡ, biểu tượng hiện ra.
 function categoryLook(name = '') {
   const n = name.toLowerCase();
   if (n.includes('phụ kiện')) return { icon: 'headphones', c: 4 };
@@ -59,10 +60,30 @@ function categoryLook(name = '') {
   return { icon: 'bag', c: 2 };
 }
 
+// Đổi khi vừa tải ảnh mới lên để trình duyệt không dùng ảnh cũ trong bộ nhớ đệm
+let imageVersion = '';
+function bumpImageVersion() { imageVersion = '?v=' + Date.now(); }
+function productImageUrl(id) { return `/api/products/${id}/image${imageVersion}`; }
+
+// Tải ảnh sản phẩm lên: POST /api/products/{id}/image (multipart/form-data, field "file").
+// Không dùng api() vì body là FormData, không phải JSON. Lỗi -> ApiError như api().
+async function uploadProductImage(id, file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(`/api/products/${id}/image`, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } });
+  const text = await res.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch { data = { title: text }; }
+  if (!res.ok) throw new ApiError(res.status, data);
+  bumpImageVersion();
+  return data;
+}
+
 function productThumb(p, size = '') {
   const look = categoryLook(p.category?.categoryName || p.categoryName || '');
   const brand = p.attributes?.brand;
-  return `<div class="thumb c${look.c} ${size}">${icon(look.icon, 'cat')}
+  const id = p._id ?? p.productId;
+  const img = id ? `<img class="photo" src="${productImageUrl(id)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  return `<div class="thumb c${look.c} ${size}">${icon(look.icon, 'cat')}${img}
     ${brand && size !== 'sm' ? `<span class="brand">${escapeHtml(brand)}</span>` : ''}</div>`;
 }
 

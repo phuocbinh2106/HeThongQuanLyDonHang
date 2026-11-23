@@ -31,3 +31,6 @@ Thumbs.db
 
 # ---- Cấu hình riêng của Claude Code trên máy ----
 .claude/
+
+# ---- Ảnh sản phẩm người bán tải lên khi chạy thử (xoá khi db.ps1 reset) ----
+src/Ecom.Web/App_Data/uploads/

@@ -69,3 +69,10 @@ Remove-Item $tmp
 $conn = if ($Action -eq 'setup-pdb') { '/ as sysdba' } else { "ecom_schema/$dbPass@localhost:1521/ecom" }
 docker exec -w /tmp/ecom_sql -e NLS_LANG=AMERICAN_AMERICA.AL32UTF8 $container sqlplus -s -L $conn '@_run.sql'
 if ($LASTEXITCODE -ne 0) { Write-Error "SQL*Plus kết thúc với mã lỗi $LASTEXITCODE" }
+
+# 5) install / reset: xoá ảnh sản phẩm người bán đã tải lên (đặt tên theo mã sản phẩm, mà mã
+#    sản phẩm được đánh lại từ đầu sau khi reset). Ảnh mẫu trong wwwroot/img giữ nguyên.
+if ($Action -in 'install', 'reset') {
+  $uploads = Join-Path $repo 'src\Ecom.Web\App_Data\uploads\products'
+  if (Test-Path $uploads) { Get-ChildItem $uploads -File | Remove-Item -Force; 'Đã xoá ảnh sản phẩm tải lên (App_Data/uploads/products).' }
+}
