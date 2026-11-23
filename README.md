@@ -152,14 +152,14 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
 | Chức năng | Vãng lai | Khách hàng | Người bán | Quản trị |
 |---|---|---|---|---|
 | Trang chủ, xem sản phẩm | ✔ | ✔ | ✔ | ✔ |
-| Thêm / sửa sản phẩm | ✘ | ✘ | chỉ sản phẩm của shop mình | ✔ |
+| Đăng bán / sửa sản phẩm, đổi ảnh | ✘ | ✘ | chỉ sản phẩm của shop mình | ✔ |
 | Tạo đơn | ✘ | chỉ cho chính mình | ✘ | ✔ |
 | Danh sách / chi tiết đơn | ✘ | chỉ đơn của mình | chỉ đơn có sản phẩm của shop | ✔ |
 | Đổi trạng thái đơn | ✘ | ✘ (chỉ được huỷ) | đơn có sản phẩm của shop | ✔ |
 | Sửa đơn: địa chỉ, dòng hàng, thanh toán | ✘ | đơn của mình | ✘ | ✔ (mọi trường) |
 | Sửa đơn: thêm vận đơn (shipments[]) | ✘ | ✘ | đơn có sản phẩm của shop | ✔ |
 | Khách hàng / sổ địa chỉ | ✘ | chỉ hồ sơ của mình (không tự đổi status) | ✘ | ✔ |
-| Báo cáo | ✘ | ✘ | ✘ | ✔ |
+| Báo cáo, Hệ thống (kiểm tra kết nối) | ✘ | ✘ | ✘ | ✔ |
 
 - `Infrastructure/AccessControl.cs`: đọc vai trò (cookie sai định dạng = vãng lai), thuộc tính `[RequireRole(...)]` gắn lên
   controller / action. API trả **401** (chưa chọn vai trò) / **403** (không đủ quyền) dạng ProblemDetails; trang MVC hiện trang
@@ -170,7 +170,7 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
 - Danh sách đơn: khách hàng luôn bị giới hạn `customer_id` = chính mình (bỏ qua tham số client gửi); người bán chỉ thấy đơn có
   sản phẩm của shop (`EXISTS` trên `order_items` ⋈ `products`).
 - Màn hình chọn vai trò dùng `GET /api/session/customers` (chỉ mã + họ tên); `GET /api/customers` đầy đủ chỉ dành cho quản trị.
-- Kiểm thử: `node tests/api_authz.mjs` – 14 kịch bản AZ-01…AZ-14 (gọi thẳng API và trang bằng từng vai trò).
+- Kiểm thử: `node tests/api_authz.mjs` – 16 kịch bản AZ-01…AZ-16 (gọi thẳng API và trang bằng từng vai trò).
 
 ### Tìm khách hàng phía server
 
@@ -179,12 +179,27 @@ Không màn hình nào tải danh sách **tất cả** khách: các ô chọn kh
 trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
 `OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
 
+### Đăng bán sản phẩm và ảnh sản phẩm
+
+- **Đăng bán** (`/Products/Create`, menu "Đăng bán", chỉ người bán và quản trị): biểu mẫu thông tin chung (cột bảng
+  `products`), thuộc tính theo ngành hàng (cột JSON `attributes`; gợi ý khoá từ `JSON_DATAGUIDE` của danh mục), ảnh.
+  JavaScript ráp **một tài liệu JSON** (hiện ở khung bên phải) rồi `POST /api/products` → `INSERT INTO product_dv`.
+  Người bán luôn đăng cho shop mình (server ép `seller.sellerId`); thiếu `brand` hoặc bảo hành âm → JSON Schema của cột
+  từ chối (422); trùng SKU → 409.
+- **Ảnh sản phẩm** là tệp trên server, **không lưu trong CSDL** (Đ16 trong `docs/THAY_DOI_THIET_KE.md`):
+  `GET /api/products/{id}/image` trả ảnh người bán tải lên (`App_Data/uploads/products/{id}.*`, không commit, bị xoá khi
+  `db.ps1 reset` / `install`), nếu không có thì ảnh mẫu `wwwroot/img/products/{id}.jpg`, không có nữa thì 404 và giao diện
+  hiện biểu tượng danh mục. `POST /api/products/{id}/image` (multipart, JPG/PNG/WEBP ≤ 2 MB, kiểm tra chữ ký tệp): người bán
+  của shop sở hữu sản phẩm hoặc quản trị; trong hộp thoại tài liệu ở trang Sản phẩm có nút **Đổi ảnh**.
+- Ảnh mẫu của 36 sản phẩm và 7 danh mục lấy từ Wikimedia Commons / Openverse với giấy phép tự do (CC0, Public Domain,
+  CC BY, CC BY-SA); tác giả, giấy phép và đường dẫn ảnh gốc ghi ở `src/Ecom.Web/wwwroot/img/CREDITS.md`.
+
 ### Màn hình và API đã có
 
 | Mã | Màn hình | API | CSDL |
 |---|---|---|---|
 | M0 | Trang chủ: **chọn vai trò** (khách hàng / người bán / quản trị – mô phỏng), lối tắt demo TH-1..TH-6 | `GET /api/system/stats`, `GET /api/sellers`, `GET /api/customers?q=&limit=` | Vai trò (cookie `ecom_user`) → `CLIENT_IDENTIFIER` → trigger ghi `changed_by`; khách: tự lọc "đơn của tôi"; người bán: tự lọc sản phẩm của shop |
-| M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
+| M1 | Sản phẩm (`/Products`): lọc theo danh mục (cả danh mục con), hãng, RAM, bộ nhớ, size; xem/sửa/thêm sản phẩm bằng tài liệu JSON, đổi ảnh; **Đăng bán** (`/Products/Create`) bằng biểu mẫu | `GET /api/products`, `GET/PUT /api/products/{id}` (ETag / If-Match), `POST /api/products`, `GET /api/products/facets`, `GET/POST /api/products/{id}/image` | Lọc: `JSON_VALUE`, `JSON_EXISTS ... PASSING`, `CONNECT BY` trên bảng `products`; dữ liệu: tài liệu `PRODUCT_DV`; thuộc tính động: `JSON_DATAGUIDE` |
 | M2 | Tạo đơn (`/Orders/Create`): chọn khách → địa chỉ từ sổ địa chỉ, giỏ hàng, xem trước tài liệu JSON gửi đi, chế độ thử gửi giá/trạng thái giả | `POST /api/orders` (201 + ETag + Location), `GET /api/orders/{id}`, `GET /api/customers?q=&limit=`, `GET/PUT /api/customers/{id}` | Một câu `INSERT INTO order_dv`; trigger chốt giá, trừ kho, tính tổng, ghi lịch sử |
 | M3 | Danh sách đơn (`/Orders`): lọc theo khách ("Đơn của tôi"), trạng thái (nút lọc nhanh có số đếm), khoảng ngày, số đơn; phân trang 20 đơn | `GET /api/orders?customerId=&status=&from=&to=&q=&page=&pageSize=` | Bảng quan hệ `orders` (không qua Duality View); lọc theo khách có đúng dạng truy vấn **Q1** (`WHERE customer_id = :cust ORDER BY order_date DESC FETCH NEXT 20`) để đo tối ưu với chỉ mục IX-1 |
 | M4 | Chi tiết đơn (`/Orders/Details/{id}`): tab **JSON** (tài liệu `ORDER_DV` + ETag + asof) và tab **bảng quan hệ** (dòng thật trong 5 bảng, kèm ROWID) | `GET /api/orders/{id}`, `GET /api/orders/{id}/relational` | `ORDER_DV` và `SELECT` thẳng trên `orders`, `order_items`, `payments`, `shipments`, `order_status_history` |

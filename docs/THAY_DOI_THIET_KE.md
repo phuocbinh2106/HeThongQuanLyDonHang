@@ -213,3 +213,20 @@ qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan c�
   Đăng nhập vẫn mô phỏng – xác thực thật (mật khẩu / OAuth2) vẫn là hướng phát triển.
 - **Ảnh hưởng:** `tests/api_test_cases.mjs` gửi vai trò `admin` mặc định (trước gửi `tester` – không còn hợp lệ); thêm
   `tests/api_authz.mjs` (14/14 PASS). Kịch bản demo đổi thứ tự vai trò: khách hàng → người bán #3 → quản trị.
+
+## 11. Đ16 – Đăng bán sản phẩm bằng biểu mẫu, ảnh sản phẩm lưu thành tệp
+
+- **Đăng bán:** trước chỉ thêm sản phẩm bằng cách sửa tay tài liệu JSON. Nay có trang `/Products/Create` (người bán, quản trị):
+  biểu mẫu → JavaScript ráp đúng **một tài liệu PRODUCT_DV** → `POST /api/products` (vẫn là `INSERT INTO product_dv`, không
+  thêm API ghi bảng trực tiếp). Kiểm tra dữ liệu vẫn ở CSDL: `products_sku_uq`, `products_price_ck`, `products_stock_ck`,
+  JSON Schema của cột `attributes`.
+- **Ảnh sản phẩm:** lưu thành **tệp trên server**, đặt tên theo mã sản phẩm, **không thêm cột vào CSDL**.
+  - Lý do: ảnh là dữ liệu nhị phân lớn, không tham gia truy vấn / báo cáo / ràng buộc nghiệp vụ; đưa vào `products` (BLOB) sẽ
+    làm tài liệu `PRODUCT_DV` và các truy vấn lọc nặng thêm, còn thêm cột URL thì phải sửa schema, Duality View và các script
+    (01–12) chỉ để phục vụ phần trình bày. Giữ CSDL đúng phạm vi đề tài.
+  - Hệ quả: ảnh không nằm trong giao dịch của CSDL (tạo sản phẩm thành công nhưng tải ảnh lỗi thì sản phẩm vẫn còn, chỉ thiếu
+    ảnh); ảnh tải lên bị xoá khi `db.ps1 reset` vì mã sản phẩm được đánh lại từ đầu.
+  - Hướng khác nếu cần: cột `image_url` (ảnh trên kho lưu trữ đối tượng) hoặc bảng `product_images` 1–N.
+- **Ảnh mẫu:** 43 ảnh (36 sản phẩm, 7 danh mục) giấy phép tự do, nguồn ghi ở `wwwroot/img/CREDITS.md`.
+- **Kiểm thử:** AZ-16 trong `tests/api_authz.mjs` (16/16 PASS).
+- Báo cáo Word **chưa** cập nhật Đ16 (nhóm tạm dừng cập nhật báo cáo).

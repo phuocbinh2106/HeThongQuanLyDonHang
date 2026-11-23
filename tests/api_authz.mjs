@@ -1,5 +1,5 @@
 // =============================================================================
-// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-15): mỗi vai trò chỉ làm được đúng phần việc của mình.
+// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-16): mỗi vai trò chỉ làm được đúng phần việc của mình.
 // Vai trò mô phỏng bằng cookie ecom_user (customer:N | seller:N | admin); không cookie = khách vãng lai.
 // Server phải chặn ở API (401 / 403) VÀ ở trang MVC, không chỉ ẩn nút trên giao diện.
 //
@@ -177,6 +177,24 @@ await az('AZ-15', 'Kiểm tra kết nối Oracle chỉ quản trị: /api/system
   const want = [401, 403, 403, 200];
   return { ok: h.join() === want.join() && p.join() === want.join() && st.status === 200 && st.data.orders >= 0 && !('banner' in st.data),
     detail: `health: ${h.join('/')}; trang /System: ${p.join('/')} (vãng lai/khách/người bán/quản trị); stats (vãng lai): ${st.status}` };
+});
+
+await az('AZ-16', 'Đăng bán + ảnh: người bán tạo sản phẩm cho shop mình; tải ảnh: vãng lai 401, khách 403, shop khác 403, tệp giả 422, chủ shop 200', async () => {
+  const doc = { sku: `AZ16-${Date.now()}`, productName: 'Sản phẩm kiểm thử AZ-16', price: 100000, stockQty: 1, status: 'INACTIVE',
+    attributes: { brand: 'Test' }, seller: { sellerId: 2 }, category: { categoryId: 1 } };
+  const c = await call('POST', '/products', doc, { user: 'seller:1' });       // seller 1 gửi sellerId 2 -> 403
+  const ok = await call('POST', '/products', { ...doc, seller: undefined }, { user: 'seller:1' });
+  const id = ok.data?._id;
+  const png = Uint8Array.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);
+  const up = async (user, bytes) => {
+    const fd = new FormData(); fd.append('file', new Blob([bytes]), 'a.png');
+    const r = await fetch(`${BASE}/products/${id}/image`, { method: 'POST', body: fd, headers: user ? { Cookie: `ecom_user=${user}` } : {} });
+    return r.status;
+  };
+  const s = [await up(null, png), await up('customer:1', png), await up('seller:2', png), await up('seller:1', new TextEncoder().encode('fake')), await up('seller:1', png)];
+  const g = (await fetch(`${BASE}/products/${id}/image`)).status;
+  return { ok: c.status === 403 && ok.status === 201 && ok.data.seller.sellerId === 1 && s.join() === '401,403,403,422,200' && g === 200,
+    detail: `POST cho shop khác: ${c.status}; POST shop mình: ${ok.status} (#${id}, seller ${ok.data?.seller?.sellerId}); tải ảnh: ${s.join('/')}; GET ảnh: ${g}` };
 });
 
 // dọn dẹp: huỷ các đơn tạo thử còn lại (hoàn kho)

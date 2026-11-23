@@ -7,7 +7,10 @@
         <div class="crumbs"><a href="/">Trang chủ</a> / Sản phẩm</div>
         <h1>Sản phẩm</h1>
     </div>
-    <button id="btnNew" class="btn btn-outline-success" data-roles="seller,admin">+ Thêm sản phẩm bằng tài liệu JSON</button>
+    <div class="d-flex flex-wrap gap-2" data-roles="seller,admin">
+        <a href="/Products/Create" class="btn btn-primary">+ Đăng bán sản phẩm</a>
+        <button id="btnNew" class="btn btn-outline-success">+ Thêm bằng tài liệu JSON</button>
+    </div>
 </div>
 
 <div class="row g-4">
@@ -94,6 +97,18 @@
                     <span class="text-muted ms-2">(gửi kèm header <code>If-Match</code> khi lưu)</span>
                 </div>
                 <div id="docMsg"></div>
+                <!-- Ảnh sản phẩm: tệp trên server, đổi riêng (không nằm trong tài liệu JSON) -->
+                <div class="d-flex gap-3 align-items-center mb-2" id="imgBox" hidden>
+                    <div class="img-drop" id="docImg"></div>
+                    <div class="small flex-fill">
+                        <div class="fw-semibold">Ảnh sản phẩm</div>
+                        <div class="text-muted mb-1">Lưu thành tệp trên server, không nằm trong tài liệu PRODUCT_DV.</div>
+                        <div id="imgUpload" class="input-group input-group-sm" style="max-width:360px">
+                            <input id="docImgFile" type="file" accept="image/jpeg,image/png,image/webp" class="form-control" />
+                            <button id="btnImg" class="btn btn-outline-primary" type="button">Đổi ảnh</button>
+                        </div>
+                    </div>
+                </div>
                 <textarea id="docText" class="form-control font-monospace small" rows="20" spellcheck="false"></textarea>
                 <div class="form-text">
                     Thử TH-5: mở cùng sản phẩm ở hai tab, lưu ở tab 1, rồi lưu ở tab 2 → tab 2 nhận <b>412</b>.

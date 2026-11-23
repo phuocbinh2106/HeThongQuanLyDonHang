@@ -1,0 +1,134 @@
+@{
+    ViewData["Title"] = "Đăng bán sản phẩm";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / <a href="/Products">Sản phẩm</a> / Đăng bán</div>
+        <h1>Đăng bán sản phẩm</h1>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <form id="productForm" novalidate>
+            <!-- 1. THÔNG TIN CHUNG -->
+            <div class="card mb-3">
+                <div class="card-header"><span class="step">1</span>Thông tin chung <span class="text-muted small fw-normal">(cột của bảng products)</span></div>
+                <div class="card-body small">
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="form-label">Shop</label>
+                            <select id="seller" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Danh mục</label>
+                            <select id="category" class="form-select form-select-sm" required></select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Tên sản phẩm</label>
+                            <input id="productName" class="form-control form-control-sm" maxlength="200" required placeholder="ví dụ: Samsung Galaxy S24 FE 128GB" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Mã SKU <span class="text-muted">(duy nhất)</span></label>
+                            <div class="input-group input-group-sm">
+                                <input id="sku" class="form-control" maxlength="40" required placeholder="SS-S24FE-128" />
+                                <button type="button" id="btnSku" class="btn btn-outline-secondary" title="Sinh mã từ tên">Tự sinh</button>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Trạng thái</label>
+                            <select id="status" class="form-select form-select-sm">
+                                <option value="ACTIVE">Đang bán (ACTIVE)</option>
+                                <option value="INACTIVE">Ngừng bán (INACTIVE)</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Giá bán (đ)</label>
+                            <input id="price" type="number" min="0" step="1000" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Tồn kho</label>
+                            <input id="stockQty" type="number" min="0" step="1" value="10" class="form-control form-control-sm" required />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. THUỘC TÍNH JSON -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                    <span><span class="step">2</span>Thuộc tính theo ngành hàng <span class="text-muted small fw-normal">(cột JSON attributes)</span></span>
+                    <button type="button" id="btnAddAttr" class="btn btn-sm btn-outline-primary">+ Thêm thuộc tính</button>
+                </div>
+                <div class="card-body small">
+                    <div class="row g-2 mb-2">
+                        <div class="col-sm-6">
+                            <label class="form-label">Thương hiệu (brand) <span class="text-danger">*</span></label>
+                            <input id="brand" class="form-control form-control-sm" placeholder="ví dụ: Samsung" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Bảo hành (tháng)</label>
+                            <input id="warrantyMonths" type="number" step="1" class="form-control form-control-sm" placeholder="ví dụ: 12" />
+                        </div>
+                    </div>
+                    <table class="table table-sm align-middle mb-1 attr-table">
+                        <thead><tr><th style="width:34%">Thuộc tính</th><th style="width:20%">Kiểu</th><th>Giá trị</th><th style="width:34px"></th></tr></thead>
+                        <tbody id="attrRows"></tbody>
+                    </table>
+                    <div class="form-text">
+                        Gợi ý lấy từ các thuộc tính đã có trong danh mục (JSON_DATAGUIDE); để trống thì không gửi.
+                        Kiểu <b>danh sách</b>: các giá trị cách nhau bởi dấu phẩy.
+                        <b>brand</b> bắt buộc và <b>warrantyMonths</b> phải là số ≥ 0: do JSON Schema trên cột <code>attributes</code> kiểm tra
+                        (thử để trống brand hoặc nhập bảo hành âm → CSDL từ chối).
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ẢNH -->
+            <div class="card mb-3">
+                <div class="card-header"><span class="step">3</span>Ảnh sản phẩm <span class="text-muted small fw-normal">(tuỳ chọn, JPG / PNG / WEBP, tối đa 2 MB)</span></div>
+                <div class="card-body small d-flex gap-3 align-items-center">
+                    <div class="img-drop" id="imgPreview"><span class="text-muted">Chưa chọn ảnh</span></div>
+                    <div class="flex-fill">
+                        <input id="image" type="file" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm mb-1" />
+                        <div class="form-text mt-0">Ảnh lưu thành tệp trên server (đặt tên theo mã sản phẩm), không lưu trong CSDL.
+                            Gửi bằng request thứ hai <code>POST /api/products/{id}/image</code> sau khi đã có mã sản phẩm.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="formMsg"></div>
+            <div class="d-flex gap-2 mb-3">
+                <button type="submit" id="btnSubmit" class="btn btn-primary px-4">Đăng bán</button>
+                <button type="button" id="btnClear" class="btn btn-outline-secondary">Làm lại</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="summary-card">
+            <div id="resultBox"></div>
+            <div class="fw-semibold mb-1">Xem trước thẻ sản phẩm</div>
+            <div id="cardPreview" class="mb-3" style="max-width: 260px"></div>
+            <div class="card">
+                <div class="card-header card-title-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 4.5c-2 0-2.5 1-2.5 2.5v2.5c0 1.2-.7 2-2 2.5 1.3.5 2 1.3 2 2.5V17c0 1.5.5 2.5 2.5 2.5" /><path d="M15.5 4.5c2 0 2.5 1 2.5 2.5v2.5c0 1.2.7 2 2 2.5-1.3.5-2 1.3-2 2.5V17c0 1.5-.5 2.5-2.5 2.5" /></svg>
+                    Tài liệu PRODUCT_DV sẽ gửi (POST /api/products)
+                </div>
+                <div class="card-body p-2">
+                    <pre id="preview" class="small mb-1 bg-light" style="max-height: 420px; overflow:auto"></pre>
+                    <div class="form-text px-1">
+                        Client chỉ gửi <b>khoá</b> <code>seller.sellerId</code>, <code>category.categoryId</code>; tên shop / danh mục là trường chỉ đọc
+                        (<code>WITH NOCHECK</code>). Server chèn tài liệu bằng <code>INSERT INTO product_dv</code>: Oracle tự tách thành một dòng
+                        <code>products</code>, <code>_id</code> do identity sinh. Người bán chỉ đăng được cho shop mình (server kiểm tra lại).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/products-create.js" asp-append-version="true"></script>
+}

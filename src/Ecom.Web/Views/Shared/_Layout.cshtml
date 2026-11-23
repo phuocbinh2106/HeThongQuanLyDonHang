@@ -8,6 +8,7 @@
     bool canOrder = role.Kind is RoleKind.Customer or RoleKind.Admin;                          // tạo đơn
     bool canSeeOrders = role.Kind is RoleKind.Customer or RoleKind.Seller or RoleKind.Admin;   // danh sách đơn
     bool canCustomers = role.Kind is RoleKind.Customer or RoleKind.Admin;                      // hồ sơ / khách hàng
+    bool canSell = role.Kind is RoleKind.Seller or RoleKind.Admin;                             // đăng bán sản phẩm
     bool canReports = role.Kind == RoleKind.Admin;                                             // báo cáo
     string Active(string c, string? a = null) =>
         string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) && (a == null || string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
@@ -79,8 +80,13 @@
         <div class="container">
             <a class="@Active("Home")" asp-controller="Home" asp-action="Index">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></svg>Trang chủ</a>
-            <a class="@Active("Products")" asp-controller="Products" asp-action="Index">
+            <a class="@Active("Products", "Index")" asp-controller="Products" asp-action="Index">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2L5 8Z" /><path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></svg>Sản phẩm</a>
+            @if (canSell)
+            {
+            <a class="@Active("Products", "Create")" asp-controller="Products" asp-action="Create">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M12 8.5v7M8.5 12h7" /></svg>Đăng bán</a>
+            }
             @if (canOrder)
             {
             <a class="@Active("Orders", "Create")" asp-controller="Orders" asp-action="Create">

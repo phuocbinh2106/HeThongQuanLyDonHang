@@ -5,6 +5,7 @@
 //   GET  /api/products/{id}                 (một tài liệu + ETag)
 //   PUT  /api/products/{id}  If-Match       (ghi đè tài liệu, kiểm tra ETag)
 //   POST /api/products                      (thêm sản phẩm bằng tài liệu JSON)
+//   POST /api/products/{id}/image           (đổi ảnh sản phẩm – tệp trên server)
 // =============================================================================
 const form = document.getElementById('filterForm');
 const modal = new bootstrap.Modal(document.getElementById('docModal'));
@@ -76,6 +77,7 @@ async function openDoc(id) {
     const canEdit = r?.kind === 'admin' || (r?.kind === 'seller' && data.seller?.sellerId === r.id);
     setEditable(canEdit, r?.kind === 'seller' ? `Sản phẩm của người bán #${data.seller?.sellerId} – bạn chỉ xem được`
                                               : 'Chỉ người bán sở hữu sản phẩm hoặc quản trị mới sửa được');
+    showImageBox(id, canEdit);
     modal.show();
   } catch (err) { showError('listMsg', err); }
 }
@@ -88,8 +90,29 @@ function setEditable(canEdit, note) {
   n.hidden = canEdit; n.textContent = canEdit ? '' : note;
 }
 
+// Khung ảnh trong hộp thoại: luôn xem được; chỉ người sở hữu / quản trị thấy nút đổi ảnh
+function showImageBox(id, canEdit) {
+  document.getElementById('imgBox').hidden = id == null;
+  document.getElementById('imgUpload').hidden = !canEdit;
+  document.getElementById('docImgFile').value = '';
+  document.getElementById('docImg').innerHTML = id == null ? '' :
+    `<img src="${productImageUrl(id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-muted',textContent:'Chưa có ảnh'}))">`;
+}
+
+async function changeImage() {
+  const file = document.getElementById('docImgFile').files[0];
+  if (!file || current.id == null) return;
+  try {
+    await uploadProductImage(current.id, file);
+    showImageBox(current.id, true);
+    showOk('docMsg', 'Đã đổi ảnh sản phẩm.');
+    loadProducts();
+  } catch (err) { showError('docMsg', err); }
+}
+
 function openNew() {
   current = { id: null, etag: null };
+  showImageBox(null, false);
   document.getElementById('docMsg').innerHTML = '';
   document.getElementById('docTitle').textContent = 'Thêm sản phẩm: INSERT INTO product_dv';
   document.getElementById('docEtag').textContent = '(chưa có – tài liệu mới)';
@@ -112,6 +135,7 @@ async function saveDoc() {
     document.getElementById('docText').value = JSON.stringify(res.data, null, 2);
     document.getElementById('docTitle').textContent = `Tài liệu PRODUCT_DV  _id = ${current.id}`;
     showOk('docMsg', `Đã lưu (HTTP ${res.status}). ETag mới: <code>${escapeHtml(res.etag)}</code>`);
+    showImageBox(current.id, true);
     loadProducts();
   } catch (err) { showError('docMsg', err); }
 }
@@ -138,6 +162,7 @@ document.getElementById('productRows').addEventListener('click', e => {
 });
 document.getElementById('btnNew').addEventListener('click', openNew);
 document.getElementById('btnSave').addEventListener('click', saveDoc);
+document.getElementById('btnImg').addEventListener('click', changeImage);
 document.getElementById('btnReload').addEventListener('click', () => current.id && openDoc(current.id));
 
 // Nút "Câu SQL lọc vừa chạy": mở / đóng khối SQL
