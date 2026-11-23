@@ -115,6 +115,7 @@
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTime" type="button">Theo thời gian</button></li>
 </ul>
 <div class="tab-content border border-top-0 p-3 mb-3">
     <div class="tab-pane fade show active" id="tabJson">
@@ -151,9 +152,30 @@
     <div class="tab-pane fade" id="tabRel">
         <div id="relTables"></div>
     </div>
+    <div class="tab-pane fade" id="tabTime">
+        <p class="small text-muted mb-2">
+            Đọc lại <b>cả tài liệu đơn</b> như nó đã là tại một thời điểm trước (Flashback Query:
+            <code>SELECT … FROM order_dv AS OF SCN n</code>). Oracle dựng lại tài liệu từ dữ liệu cũ (undo) của 5 bảng nền,
+            không cần bảng lịch sử riêng. Giữ được tối thiểu 15 phút, không quay về được trước lần reset dữ liệu.
+        </p>
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2 small">
+            <button class="btn btn-sm btn-primary" id="ttOpen">Lúc mở trang</button>
+            <button class="btn btn-sm btn-outline-secondary" data-minutes="1">1 phút trước</button>
+            <button class="btn btn-sm btn-outline-secondary" data-minutes="5">5 phút trước</button>
+            <button class="btn btn-sm btn-outline-secondary" data-minutes="15">15 phút trước</button>
+            <form id="ttForm" class="input-group input-group-sm" style="max-width:260px">
+                <span class="input-group-text">SCN</span>
+                <input id="ttScn" class="form-control" inputmode="numeric" placeholder="ví dụ 26205207" />
+                <button class="btn btn-outline-primary">Xem</button>
+            </form>
+        </div>
+        <div id="ttMsg"></div>
+        <div id="ttResult"></div>
+    </div>
 </div>
 
 @section Scripts {
     <script>const ORDER_ID = @orderId;</script>
     <script src="~/js/orders-details.js" asp-append-version="true"></script>
+    <script src="~/js/orders-timetravel.js" asp-append-version="true"></script>
 }

@@ -186,6 +186,15 @@ Không màn hình nào tải danh sách **tất cả** khách: các ô chọn kh
 trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
 `OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
 
+### Xem đơn theo thời gian (Flashback Query trên Duality View)
+
+Trang chi tiết đơn có tab **Theo thời gian**: chọn "Lúc mở trang" (SCN `_metadata.asof` của tài liệu vừa đọc), "1 / 5 / 15 phút
+trước" hoặc nhập SCN → `GET /api/orders/{id}/asof?scn=…|minutesAgo=…` → `SELECT … FROM order_dv AS OF SCN n` → bảng so sánh
+"lúc đó / hiện tại" (tô vàng mục đã đổi) và hai tài liệu JSON đầy đủ. Quyền giống xem đơn. Oracle dựng lại tài liệu từ undo của
+5 bảng nền: giữ tối thiểu 15 phút (`undo_retention = 900`), không quay về được trước lần `db.ps1 reset` gần nhất (TRUNCATE →
+ORA-01466) → API trả 410. SCN được ghi thẳng vào SQL dưới dạng **số** (đã ép kiểu `long`), không dùng bind variable, vì trên
+23.26.3 `order_dv AS OF SCN :scn` làm đứt phiên (ORA-03113) – xem Đ19. Kiểm thử: `node tests/asof_test.mjs` (AS-01…04).
+
 ### Demo nhiều khách cùng mua (TC-10 trên web)
 
 Trang **Mua đồng thời** (`/Demo/Concurrency`, chỉ quản trị; lối tắt ở thẻ TH-5 trang chủ): chọn sản phẩm, đặt lại tồn kho

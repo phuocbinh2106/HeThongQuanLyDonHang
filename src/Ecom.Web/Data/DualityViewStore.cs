@@ -36,6 +36,51 @@ public class DualityViewStore(OracleConnectionFactory db)
         return await cmd.ExecuteScalarAsync(ct) as string;
     }
 
+    /// <summary>
+    /// Đọc tài liệu như nó đã là tại SCN cho trước (Flashback Query: … FROM order_dv AS OF SCN n …).
+    /// Oracle dựng lại tài liệu từ dữ liệu undo của các bảng nền tại đúng thời điểm đó.
+    /// Trả (tài liệu hoặc null nếu lúc đó chưa có, thời điểm của SCN).
+    /// LƯU Ý: SCN được ghi thẳng vào câu SQL dưới dạng SỐ (không dùng bind variable :scn) vì trên Oracle 23.26.3
+    /// "order_dv AS OF SCN :scn" làm đứt phiên (ORA-03113) và "AS OF TIMESTAMP :ts" báo ORA-00932 – đã thử thật.
+    /// An toàn trước SQL injection vì tham số có kiểu long (đã ép kiểu ở C#), chuỗi chèn vào chỉ có thể là chữ số.
+    /// </summary>
+    public async Task<(string? Doc, DateTime? At)> GetAsOfAsync(DualityView view, long id, long scn, CancellationToken ct)
+    {
+        await using var conn = await db.OpenAsync(ct: ct);
+        var scnText = scn.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var sql = $"""
+            SELECT JSON_SERIALIZE(d.data RETURNING CLOB)
+              FROM {view} AS OF SCN {scnText} d
+             WHERE d.data."_id" = :id
+            """;
+        string? doc;
+        await using (var cmd = new OracleCommand(sql, conn))
+        {
+            cmd.Parameters.Add(new OracleParameter("id", id));
+            doc = await cmd.ExecuteScalarAsync(ct) as string;
+        }
+        // Thời điểm tương ứng với SCN (hàm thường, bind được); không đổi được thì để trống
+        DateTime? at = null;
+        try
+        {
+            await using var t = new OracleCommand("SELECT CAST(SCN_TO_TIMESTAMP(:scn) AS DATE) FROM dual", conn);
+            t.Parameters.Add(new OracleParameter("scn", scn));
+            at = await t.ExecuteScalarAsync(ct) as DateTime?;
+        }
+        catch (OracleException) { /* SCN quá cũ để đổi ra thời gian: bỏ qua */ }
+        return (doc, at);
+    }
+
+    /// <summary>SCN ứng với "n phút trước" (TIMESTAMP_TO_SCN, có bind bình thường).</summary>
+    public async Task<long> ScnMinutesAgoAsync(int minutes, CancellationToken ct)
+    {
+        await using var conn = await db.OpenAsync(ct: ct);
+        await using var cmd = new OracleCommand(
+            "SELECT TIMESTAMP_TO_SCN(SYSTIMESTAMP - NUMTODSINTERVAL(:m, 'MINUTE')) FROM dual", conn);
+        cmd.Parameters.Add(new OracleParameter("m", minutes));
+        return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct));
+    }
+
     /// <summary>Thêm một tài liệu. Trả về (_id mới, tài liệu đầy đủ do Oracle sinh lại).</summary>
     public async Task<(long Id, string Doc)> InsertAsync(DualityView view, string doc, string user, CancellationToken ct)
     {

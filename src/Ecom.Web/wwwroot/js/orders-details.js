@@ -38,6 +38,7 @@ function renderJson(doc, etag) {
     <span class="mx-2 opacity-50">|</span>Tổng: <b class="text-success">${fmtMoney(doc.totalAmount)}</b>`;
   $('etag').textContent = etag;
   $('asof').textContent = doc._metadata?.asof ?? '—';
+  window.openAsof ??= doc._metadata?.asof;   // SCN lúc mở trang (tab "Theo thời gian" dùng để xem lại bản này)
   $('jsonDoc').innerHTML = highlightJson(JSON.stringify(doc, null, 2));
 }
 

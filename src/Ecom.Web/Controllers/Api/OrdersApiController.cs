@@ -96,6 +96,49 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
     }
 
     /// <summary>
+    /// GET /api/orders/{id}/asof?scn=… | ?minutesAgo=… : tài liệu đơn như nó đã là tại một thời điểm trong quá khứ
+    /// (Flashback Query trên Duality View). SCN lấy từ _metadata.asof của một lần đọc trước, hoặc đổi từ "n phút trước".
+    /// Quyền giống xem đơn. Thời điểm không còn đọc được (quá xa so với undo, trước lần reset dữ liệu) -> 410.
+    /// </summary>
+    [HttpGet("{id:long}/asof")]
+    public async Task<IActionResult> AsOf(long id, [FromQuery] string? scn, [FromQuery] string? minutesAgo, CancellationToken ct)
+    {
+        // Kiểm tra tham số TRƯỚC: chỉ nhận số nguyên dương (SCN sẽ được ghi thẳng vào SQL dưới dạng số)
+        long? scnValue = null;
+        if (!string.IsNullOrEmpty(scn))
+        {
+            if (!long.TryParse(scn, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var s) || s <= 0)
+                return Problem(statusCode: 400, title: "SCN không hợp lệ", detail: "SCN là số nguyên dương, ví dụ 26205207.");
+            scnValue = s;
+        }
+        int? minutes = null;
+        if (scnValue is null)
+        {
+            if (!int.TryParse(minutesAgo, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var m) || m <= 0)
+                return Problem(statusCode: 400, title: "Thiếu thời điểm",
+                               detail: "Gửi ?scn=<số> (từ _metadata.asof) hoặc ?minutesAgo=<số phút dương>.");
+            minutes = m;
+        }
+        if (await CheckAccess(id, ct) is { } denied) return denied;
+
+        try
+        {
+            var target = scnValue ?? await store.ScnMinutesAgoAsync(minutes!.Value, ct);
+            var (doc, at) = await store.GetAsOfAsync(DualityView.ORDER_DV, id, target, ct);
+            if (doc is null) return Problem(statusCode: 404, title: "Tại thời điểm đó đơn hàng chưa tồn tại");
+            return Ok(new { orderId = id, scn = target.ToString(), asOfTime = at, doc = JsonNode.Parse(doc) });
+        }
+        catch (Oracle.ManagedDataAccess.Client.OracleException ex) when (ex.Number is 1466 or 1555 or 8180 or 8181)
+        {
+            // 1466: bảng đã bị TRUNCATE / đổi cấu trúc sau thời điểm đó (ví dụ db.ps1 reset)
+            // 1555 / 8180: dữ liệu undo của thời điểm đó đã bị ghi đè (quá xa)   8181: SCN không hợp lệ
+            return Problem(statusCode: 410, title: "Không đọc được đơn tại thời điểm đó",
+                detail: $"ORA-{ex.Number:D5}: Oracle chỉ giữ dữ liệu cũ (undo) trong một khoảng thời gian (tối thiểu 15 phút) và không "
+                      + "quay về được trước lần xoá dữ liệu gần nhất (reset). Hãy chọn thời điểm gần hơn.");
+        }
+    }
+
+    /// <summary>
     /// PUT /api/orders/{id} + If-Match: ghi đè CẢ tài liệu đơn bằng MỘT câu UPDATE order_dv.
     /// Quyền theo TỪNG TRƯỜNG: khách hàng chỉ đổi địa chỉ giao, dòng hàng và THÊM thanh toán cho đơn mình;
     /// người bán chỉ thêm / sửa vận đơn (shipments[]); quản trị đổi được mọi trường ghi được.

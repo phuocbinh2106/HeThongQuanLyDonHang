@@ -277,3 +277,26 @@ tính kiểu "danh sách" thành số (size "30", "32" trong dữ liệu là chu
   Không đổi CSDL: dùng nguyên `ORDER_DV`, `pkg_order.sp_reserve_stock`, `pkg_order.sp_cancel_order`.
 - **Kết quả chạy thật** (tồn / số khách → thành công / hết hàng): 5 / 20 → 5 / 15; 3 / 50 → 3 / 47; 10 / 40 → 10 / 30;
   0 / 10 → 0 / 10. Lỗi khác 0, bán vượt 0; huỷ các đơn vừa tạo → tồn trở lại. `tests/concurrency_demo.mjs` 3/3 PASS.
+
+## 15. Đ19 – Xem đơn theo thời gian (Flashback Query trên ORDER_DV)
+
+- **Thêm:** tab "Theo thời gian" ở trang chi tiết đơn + `GET /api/orders/{id}/asof?scn=|minutesAgo=` (quyền như xem đơn).
+  Đọc tài liệu tại SCN cũ: `SELECT JSON_SERIALIZE(d.data) FROM order_dv AS OF SCN n d WHERE d.data."_id" = :id`. Không đổi CSDL,
+  không cần bảng lưu phiên bản: Oracle dựng lại tài liệu từ undo của các bảng nền. `_metadata.asof` của mọi tài liệu chính là
+  SCN lúc đọc (hex) nên "xem lại bản lúc mở trang" chỉ cần đổi hex → số.
+- **Phát hiện khi thử thật trên 23.26.3:**
+
+  | Câu lệnh | Kết quả |
+  |---|---|
+  | `order_dv AS OF SCN 26202506` (hằng số) | chạy, trả đúng tài liệu cũ |
+  | `order_dv AS OF SCN :scn` (bind) | **ORA-03113** – phiên bị đứt |
+  | `order_dv AS OF TIMESTAMP to_timestamp(:ts, …)` | ORA-00932 |
+  | `orders AS OF SCN :scn` (bảng thường, bind) | chạy |
+  | SCN trước lần reset (TRUNCATE) | ORA-01466; SCN không hợp lệ: ORA-08181 |
+
+  → SCN ghi thẳng vào SQL **dưới dạng số** sau khi ép kiểu `long` ở C# (chuỗi chèn vào chỉ có chữ số nên không thể SQL injection);
+  đây là ngoại lệ duy nhất với quy tắc "luôn dùng bind variable". "n phút trước" đổi sang SCN bằng `TIMESTAMP_TO_SCN` (bind bình
+  thường). ORA-01466 / 01555 / 08180 / 08181 → HTTP 410 kèm lời giải thích.
+- **Giới hạn:** undo giữ tối thiểu 15 phút (`undo_retention = 900`); thời điểm hiển thị là giờ máy chủ CSDL (UTC).
+- **Kiểm thử:** `tests/asof_test.mjs` AS-01…04 (viết trước, FAIL 404, rồi PASS 4/4); thử trên giao diện: sửa địa chỉ đơn #60 →
+  "Lúc mở trang" hiện địa chỉ cũ, tô vàng địa chỉ và ETag.
