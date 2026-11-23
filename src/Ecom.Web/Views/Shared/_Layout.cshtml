@@ -117,6 +117,11 @@
             <a class="@Active("Ords")" asp-controller="Ords" asp-action="Index">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h16M4 17h9" /><path d="m17 5 3 2-3 2M15 15l3 2-3 2" /></svg>C# và ORDS</a>
             }
+            @if (canReports)
+            {
+            <a class="@Active("Demo")" asp-controller="Demo" asp-action="Concurrency">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8" r="2.5" /><circle cx="17" cy="8" r="2.5" /><path d="M3 19c.5-3 2-4.5 4-4.5s3.5 1.5 4 4.5M13 19c.5-3 2-4.5 4-4.5s3.5 1.5 4 4.5" /></svg>Mua đồng thời</a>
+            }
         </div>
     </nav>
 

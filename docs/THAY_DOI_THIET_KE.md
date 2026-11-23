@@ -268,3 +268,12 @@ tính kiểu "danh sách" thành số (size "30", "32" trong dữ liệu là chu
   - Mặc định ORDS giấu lỗi CSDL thành `ORDS-25001 Bad Request`; bật `debug.printDebugToScreen` để thấy `ORA-20001` khi demo.
 - **Ý nghĩa:** cùng một Duality View phục vụ hai REST API (tự viết và tự sinh) mà không nhân bản dữ liệu; quy tắc nghiệp vụ nằm
   ở bảng nền nên kênh ghi nào cũng bị kiểm tra; phân quyền theo vai trò thì nằm ở API C# (ORDS cần OAuth2 nếu đưa vào dùng thật).
+
+## 14. Đ18 – Trang demo nhiều khách cùng mua (TC-10 trên web)
+
+- **Trước:** TC-10 (20 request đồng thời mua sản phẩm còn 5) chỉ chạy trong `tests/api_test_cases.mjs`.
+- **Sau:** trang `/Demo/Concurrency` + `POST /api/demo/concurrency` (chỉ quản trị). Server tự chạy song song (`Task.WhenAll`)
+  thay vì để trình duyệt gửi 20 request, vì trình duyệt chỉ mở khoảng 6 kết nối tới một địa chỉ nên không đồng thời thật.
+  Không đổi CSDL: dùng nguyên `ORDER_DV`, `pkg_order.sp_reserve_stock`, `pkg_order.sp_cancel_order`.
+- **Kết quả chạy thật** (tồn / số khách → thành công / hết hàng): 5 / 20 → 5 / 15; 3 / 50 → 3 / 47; 10 / 40 → 10 / 30;
+  0 / 10 → 0 / 10. Lỗi khác 0, bán vượt 0; huỷ các đơn vừa tạo → tồn trở lại. `tests/concurrency_demo.mjs` 3/3 PASS.

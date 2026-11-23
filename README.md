@@ -186,6 +186,16 @@ Không màn hình nào tải danh sách **tất cả** khách: các ô chọn kh
 trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
 `OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
 
+### Demo nhiều khách cùng mua (TC-10 trên web)
+
+Trang **Mua đồng thời** (`/Demo/Concurrency`, chỉ quản trị; lối tắt ở thẻ TH-5 trang chủ): chọn sản phẩm, đặt lại tồn kho
+(mặc định 5) và số khách (mặc định 20, tối đa 50) → `POST /api/demo/concurrency`: server tạo các đơn **song song**
+(`Services/ConcurrencyDemo.cs`; mỗi đơn một kết nối, một giao dịch, ghi tài liệu vào `ORDER_DV` như `POST /api/orders`).
+Kết quả: lưới từng khách (mã đơn hoặc ORA-20001, thời gian) và tổng kết thành công / hết hàng / tồn trước → sau / bán vượt.
+Nút **Huỷ các đơn vừa tạo** gọi `sp_cancel_order` → trigger hoàn kho. Không bán vượt nhờ câu `UPDATE … WHERE stock_qty >= :qty`
+nguyên tử trong `pkg_order.sp_reserve_stock` (READ COMMITTED là đủ). Demo đặt lại tồn kho của sản phẩm nên sau khi demo chạy
+`.\scripts\db.ps1 reset` để về dữ liệu mẫu. Kiểm thử: `node tests/concurrency_demo.mjs` (CD-01…03).
+
 ### ORDS AutoREST (tuỳ chọn) – REST do Oracle tự sinh
 
 ORDS (Oracle REST Data Services) bật **AutoREST** cho 3 Duality View: Oracle tự sinh REST API đầy đủ (GET / POST / PUT,

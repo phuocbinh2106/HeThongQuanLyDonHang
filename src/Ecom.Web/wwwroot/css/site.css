@@ -521,3 +521,15 @@ details > summary::marker { color: var(--sp-gold-500); }
 .attr-table th { font-weight: 600; color: var(--sp-muted); font-size: .74rem; }
 .attr-table td { padding: .2rem .25rem; }
 #cardPreview .product-card:hover { transform: none; }
+
+/* ---------------------------------------------------------------- Demo mua đồng thời */
+.buy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .5rem; }
+.buy-tile { border-radius: 10px; padding: .45rem .55rem; font-size: .74rem; border: 1px solid var(--sp-line); background: #fff; }
+.buy-tile b { display: block; font-size: .8rem; }
+.buy-tile.ok { background: #e8f7ef; border-color: #9fd8b8; color: #145c38; }
+.buy-tile.fail { background: #fdeceb; border-color: #f2b8b3; color: #8a2a22; }
+.buy-tile .ms { opacity: .7; }
+.buy-sum { display: flex; flex-wrap: wrap; gap: .5rem; }
+.buy-sum > div { background: #fff; border: 1px solid var(--sp-line); border-radius: 12px; padding: .5rem .8rem; min-width: 120px; }
+.buy-sum b { display: block; font-size: 1.35rem; color: var(--sp-green-800); }
+.buy-sum span { font-size: .75rem; color: var(--sp-muted); }

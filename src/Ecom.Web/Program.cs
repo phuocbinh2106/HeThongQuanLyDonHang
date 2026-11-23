@@ -15,6 +15,7 @@ builder.Services.AddScoped<CustomerRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<ReportRepository>();
 builder.Services.AddSingleton<Ecom.Web.Services.ProductImageStore>();   // ảnh sản phẩm (tệp trên đĩa)
+builder.Services.AddScoped<Ecom.Web.Services.ConcurrencyDemo>();          // demo nhiều khách cùng mua (TC-10)
 // ORDS AutoREST (tuỳ chọn): trang /Ords so sánh API C# với REST do Oracle tự sinh
 builder.Services.AddHttpClient("ords", c =>
 {

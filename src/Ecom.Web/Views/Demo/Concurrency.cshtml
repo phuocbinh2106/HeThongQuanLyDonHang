@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Nhiều khách cùng mua";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Demo nhiều khách cùng mua</div>
+        <h1>Nhiều khách cùng mua sản phẩm sắp hết</h1>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><span class="step">1</span>Thiết lập</div>
+            <div class="card-body small">
+                <form id="demoForm">
+                    <label class="form-label">Sản phẩm</label>
+                    <select id="product" class="form-select form-select-sm mb-2"></select>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Đặt lại tồn kho</label>
+                            <input id="stock" type="number" min="0" max="1000" value="5" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Số khách cùng mua</label>
+                            <input id="buyers" type="number" min="1" max="50" value="20" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <div class="form-text mb-2">Mỗi khách mua 1 cái. Server tạo các đơn <b>song song</b>: mỗi đơn một kết nối,
+                        một giao dịch Oracle riêng, ghi tài liệu JSON vào <code>ORDER_DV</code> giống hệt khi khách bấm mua.
+                        Lưu ý: tồn kho của sản phẩm bị <b>đặt lại</b> theo ô trên; muốn về dữ liệu mẫu thì chạy
+                        <code>.\scripts\db.ps1 reset</code>.</div>
+                    <button class="btn btn-primary w-100" id="btnRun">Bắt đầu</button>
+                </form>
+                <button class="btn btn-outline-secondary w-100 mt-2" id="btnCancel" disabled>Huỷ các đơn vừa tạo (hoàn kho)</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Vì sao không bán vượt?</div>
+            <div class="card-body small">
+                <p class="mb-2">Trừ kho nằm trong <code>pkg_order.sp_reserve_stock</code> bằng <b>một câu lệnh nguyên tử</b>:</p>
+<pre class="bg-light small mb-2">UPDATE products
+   SET stock_qty = stock_qty - :qty
+ WHERE product_id = :id
+   AND status = 'ACTIVE'
+   AND stock_qty >= :qty
+RETURNING price INTO :price;
+-- 0 dòng -> ORA-20001 (hết hàng)</pre>
+                <p class="mb-0">Câu UPDATE khoá dòng sản phẩm; giao dịch sau phải chờ giao dịch trước COMMIT rồi Oracle
+                    <b>đánh giá lại</b> điều kiện <code>stock_qty &gt;= :qty</code> trên giá trị mới nhất. Không có bước
+                    "đọc tồn rồi mới trừ" tách rời nên mức cô lập mặc định <b>READ COMMITTED</b> là đủ.
+                    Đơn bị từ chối thì cả đơn rollback (không còn dòng hàng hay lịch sử nào).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div id="demoMsg"></div>
+        <div id="summary" class="buy-sum mb-3"></div>
+        <div id="grid" class="buy-grid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/demo-concurrency.js" asp-append-version="true"></script>
+}
