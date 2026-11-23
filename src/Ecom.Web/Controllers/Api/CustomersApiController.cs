@@ -76,7 +76,6 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
         return new ContentResult { StatusCode = 201, Content = created, ContentType = "application/json" };
     }
 
-    /// <summary>GET /api/sellers: danh sách người bán (màn hình chọn vai trò).</summary>
     /// <summary>Khách hàng chỉ truy cập hồ sơ của chính mình; quản trị truy cập mọi hồ sơ.</summary>
     private IActionResult? Self(long id)
     {
@@ -85,6 +84,7 @@ public class CustomersApiController(CustomerRepository repo) : ControllerBase
             : AccessControl.Denied(role, $"{role.Display} chỉ xem / sửa được hồ sơ của chính mình, không phải khách #{id}.");
     }
 
+    /// <summary>GET /api/sellers: danh sách người bán (màn hình chọn vai trò).</summary>
     [HttpGet("/api/sellers")]
     public async Task<IActionResult> Sellers(CancellationToken ct) => Ok(await repo.SellersAsync(ct));
 }

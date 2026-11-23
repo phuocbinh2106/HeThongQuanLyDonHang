@@ -1,5 +1,5 @@
 // =============================================================================
-// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-16): mỗi vai trò chỉ làm được đúng phần việc của mình.
+// KIỂM THỬ PHÂN QUYỀN (AZ-01 … AZ-22): mỗi vai trò chỉ làm được đúng phần việc của mình.
 // Vai trò mô phỏng bằng cookie ecom_user (customer:N | seller:N | admin); không cookie = khách vãng lai.
 // Server phải chặn ở API (401 / 403) VÀ ở trang MVC, không chỉ ẩn nút trên giao diện.
 //
@@ -195,6 +195,63 @@ await az('AZ-16', 'Đăng bán + ảnh: người bán tạo sản phẩm cho sho
   const g = (await fetch(`${BASE}/products/${id}/image`)).status;
   return { ok: c.status === 403 && ok.status === 201 && ok.data.seller.sellerId === 1 && s.join() === '401,403,403,422,200' && g === 200,
     detail: `POST cho shop khác: ${c.status}; POST shop mình: ${ok.status} (#${id}, seller ${ok.data?.seller?.sellerId}); tải ảnh: ${s.join('/')}; GET ảnh: ${g}` };
+});
+
+// ---------- Các lỗi tìm thấy khi rà soát code (AZ-17 … AZ-22) ----------
+await az('AZ-17', 'Người bán không chuyển được sản phẩm sang shop khác, kể cả gửi sellerId dạng số thực 3.0 -> 403, sản phẩm vẫn của shop mình', async () => {
+  const g = await call('GET', '/products/1', null, { user: 'seller:1' });
+  const raw = JSON.stringify({ ...g.data, seller: { sellerId: 999999 } }).replace('999999', '3.0');
+  const r = await fetch(`${BASE}/products/1`, { method: 'PUT', body: raw,
+    headers: { 'Content-Type': 'application/json', Cookie: 'ecom_user=seller:1', 'If-Match': g.etag } });
+  const after = (await call('GET', '/products/1', null, A)).data.seller.sellerId;
+  return { ok: r.status === 403 && after === 1, detail: `PUT sellerId 3.0: HTTP ${r.status}; sản phẩm #1 sau đó thuộc seller ${after}` };
+});
+
+await az('AZ-18', 'Khách không chuyển được đơn của mình sang khách khác (đổi customer.customerId) -> 403, đơn vẫn của mình', async () => {
+  const g = await call('GET', `/orders/${ownOrder}`, null, { user: 'customer:1' });
+  const r = await call('PUT', `/orders/${ownOrder}`, { ...g.data, customer: { customerId: 2 } }, { user: 'customer:1', ifMatch: g.etag });
+  const after = (await call('GET', `/orders/${ownOrder}`, null, A)).data.customer.customerId;
+  return { ok: r.status === 403 && after === 1, detail: `PUT customerId 2: HTTP ${r.status}; đơn #${ownOrder} sau đó thuộc khách ${after}` };
+});
+
+await az('AZ-19', 'Khách chỉ được THÊM thanh toán, không sửa thanh toán đã có (đổi status / amount) -> 403', async () => {
+  const mine = all.filter(o => o.customerId === 1).map(o => o.orderId);
+  let g = null;
+  for (const id of mine) {
+    const d = await call('GET', `/orders/${id}`, null, { user: 'customer:1' });
+    if (d.data.payments?.length) { g = d; break; }
+  }
+  if (!g) return { ok: false, detail: 'không có đơn nào của khách #1 có thanh toán' };
+  const pays = structuredClone(g.data.payments);
+  pays[0].status = pays[0].status === 'REFUNDED' ? 'PAID' : 'REFUNDED';
+  const r = await call('PUT', `/orders/${g.data._id}`, { ...g.data, payments: pays }, { user: 'customer:1', ifMatch: g.etag });
+  return { ok: r.status === 403, detail: `đơn #${g.data._id}: đổi status thanh toán ${g.data.payments[0].status} -> ${pays[0].status}: HTTP ${r.status}` };
+});
+
+await az('AZ-20', 'Hai vai trò cùng sửa một đơn: người bán lưu bằng tài liệu cũ sau khi khách đã sửa -> 412 (không phải 403)', async () => {
+  // đơn của khách #1 có sản phẩm của người bán nào thì dùng người bán đó
+  const g0 = await call('GET', `/orders/${ownOrder}`, null, A);
+  const seller = (await call('GET', `/products/${g0.data.items[0].productId}`, null, A)).data.seller.sellerId;
+  const sDoc = await call('GET', `/orders/${ownOrder}`, null, { user: `seller:${seller}` });        // người bán mở đơn
+  const cDoc = await call('GET', `/orders/${ownOrder}`, null, { user: 'customer:1' });
+  const c = await call('PUT', `/orders/${ownOrder}`, { ...cDoc.data, shipAddress: cDoc.data.shipAddress + ' (AZ-20)' },
+    { user: 'customer:1', ifMatch: cDoc.etag });                                                   // khách sửa địa chỉ trước
+  const s = await call('PUT', `/orders/${ownOrder}`, { ...sDoc.data, shipments: [...(sDoc.data.shipments ?? []), { carrier: 'GHN', trackingNo: 'AZ20' }] },
+    { user: `seller:${seller}`, ifMatch: sDoc.etag });                                              // người bán lưu bằng tài liệu cũ
+  return { ok: c.status === 200 && s.status === 412, detail: `khách sửa địa chỉ: HTTP ${c.status}; người bán (seller ${seller}) lưu tài liệu cũ: HTTP ${s.status}` };
+});
+
+await az('AZ-21', 'Vãng lai gửi request sai định dạng tới API cần quyền -> 401 (quyền kiểm tra trước khi đọc body)', async () => {
+  const r1 = await fetch(`${BASE}/products/1/image`, { method: 'POST' });                          // thiếu tệp
+  const r2 = await fetch(`${BASE}/orders/1`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{sai json' });
+  return { ok: r1.status === 401 && r2.status === 401, detail: `POST ảnh không có tệp: ${r1.status}; PUT đơn JSON hỏng: ${r2.status}` };
+});
+
+await az('AZ-22', 'Ô chọn vai trò (/api/session/customers) chỉ tìm theo mã / họ tên, không tra được bằng email hay SĐT', async () => {
+  const byMail = await call('GET', '/session/customers?q=%40');
+  const byName = await call('GET', '/session/customers?q=nguyen');
+  return { ok: byMail.data.total === 0 && byName.data.total > 0,
+    detail: `q=@ -> ${byMail.data.total} khách; q=nguyen -> ${byName.data.total} khách` };
 });
 
 // dọn dẹp: huỷ các đơn tạo thử còn lại (hoàn kho)

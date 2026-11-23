@@ -166,11 +166,17 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
   "Không có quyền" (`Views/Shared/Forbidden.cshtml`).
 - Quyền trên **từng bản ghi**: đơn của khách nào / có sản phẩm của người bán nào (`OrderRepository.GetAccessAsync`), sản phẩm
   thuộc shop nào; khi PUT tài liệu đơn, so tài liệu mới với tài liệu hiện tại để biết **trường nào bị đổi** và chặn trường
-  không thuộc quyền của vai trò (ví dụ khách hàng tự đặt `discount` → 403).
+  không thuộc quyền của vai trò (ví dụ khách hàng tự đặt `discount` → 403). ETag được so **trước** (bản cũ → 412, không báo
+  nhầm thành 403); khách hàng chỉ được **thêm** thanh toán, không sửa dòng đã có; chỉ quản trị đổi được khách của đơn
+  (`customer.customerId`) và người bán không đổi được shop của sản phẩm (`seller.sellerId`) – vì Duality View sẽ đổi luôn
+  khoá ngoại `orders.customer_id` / `products.seller_id` nếu client đổi khoá của object con.
+- `[RequireRole]` là **bộ lọc phân quyền** (`IAuthorizationFilter`): chạy trước khi đọc body, nên người không đủ quyền luôn
+  nhận 401 / 403 chứ không phải 400.
 - Danh sách đơn: khách hàng luôn bị giới hạn `customer_id` = chính mình (bỏ qua tham số client gửi); người bán chỉ thấy đơn có
   sản phẩm của shop (`EXISTS` trên `order_items` ⋈ `products`).
 - Màn hình chọn vai trò dùng `GET /api/session/customers` (chỉ mã + họ tên); `GET /api/customers` đầy đủ chỉ dành cho quản trị.
-- Kiểm thử: `node tests/api_authz.mjs` – 16 kịch bản AZ-01…AZ-16 (gọi thẳng API và trang bằng từng vai trò).
+- Kiểm thử: `node tests/api_authz.mjs` – 22 kịch bản AZ-01…AZ-22 (gọi thẳng API và trang bằng từng vai trò). AZ-16 tạo
+  một sản phẩm thử (INACTIVE) kèm ảnh; chạy `.scriptsdb.ps1 reset` sau khi kiểm thử để dữ liệu về như ban đầu.
 
 ### Tìm khách hàng phía server
 

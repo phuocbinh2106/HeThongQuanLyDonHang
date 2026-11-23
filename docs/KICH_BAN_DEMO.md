@@ -11,7 +11,7 @@ docker start oracle23ai                       # nếu container đang tắt; đ�
 .\scripts\db.ps1 reset                         # đưa dữ liệu demo về ban đầu (60 đơn, 36 sản phẩm)
 cd src\Ecom.Web; dotnet run --launch-profile http
 ```
-- Mở trình duyệt: <http://localhost:5148> — ô "Kiểm tra kết nối" phải báo **thành công, INVALID = 0**.
+- Mở trình duyệt: <http://localhost:5148> → chọn vai **Quản trị** → menu **Hệ thống** (`/System`): phải báo **thành công, INVALID = 0**. Xong thì bấm "bỏ chọn" vai trò ở trang chủ.
 - Mở sẵn DBeaver kết nối `localhost:1521/ecom` (user `ecom_schema`) cho bước 4.
 - Mở sẵn một terminal ở thư mục repo cho bước 9.
 - Đóng các tab trình duyệt cũ; bỏ chọn vai trò (trang chủ → khu "Bạn là ai?" → "bỏ chọn").
@@ -26,7 +26,7 @@ trên bảng chuẩn hoá. Nhóm dùng JSON Relational Duality View của Oracle
 API C# đọc/ghi **trực tiếp** Duality View, còn nghiệp vụ và báo cáo gọi package PL/SQL."
 
 **Làm:** Trang chủ Shopia → chỉ phần hero "một nguồn – hai cách nhìn" (số sản phẩm / đơn / khách lấy thật từ CSDL)
-→ cuộn xuống ô *Kiểm tra kết nối* (phiên bản Oracle, 3 Duality View, INVALID = 0) → khu **"Bạn là ai?"** chọn
+→ cuộn xuống khu **"Bạn là ai?"** chọn
 **Khách hàng #1 – Nguyễn Văn An** → "Vào vai khách hàng" (góc phải header hiện avatar + vai trò).
 → Chỉ menu chỉ còn *Tạo đơn / Đơn của tôi / Hồ sơ của tôi* → gõ thẳng địa chỉ **/Reports** → trang **403 – Không có quyền**.
 

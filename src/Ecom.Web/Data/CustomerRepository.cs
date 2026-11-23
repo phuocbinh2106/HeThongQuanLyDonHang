@@ -18,7 +18,7 @@ public class CustomerRepository(OracleConnectionFactory db, DualityViewStore sto
     /// Truy vấn trong lấy đúng một trang + tổng số dòng khớp (COUNT(*) OVER () tính trước khi cắt trang);
     /// truy vấn ngoài chỉ đếm địa chỉ / đơn cho các dòng của trang đó.
     /// </summary>
-    public async Task<CustomerPage> SearchAsync(string? q, int limit, int offset, CancellationToken ct)
+    public async Task<CustomerPage> SearchAsync(string? q, int limit, int offset, CancellationToken ct, bool nameOnly = false)
     {
         const string sql = """
             SELECT p.customer_id, p.full_name, p.email, p.phone, p.status, p.total,
@@ -30,8 +30,8 @@ public class CustomerRepository(OracleConnectionFactory db, DualityViewStore sto
                      WHERE :q IS NULL
                         OR TO_CHAR(c.customer_id) = :q
                         OR c.full_name COLLATE BINARY_AI LIKE '%' || :q || '%'
-                        OR LOWER(c.email) LIKE '%' || LOWER(:q) || '%'
-                        OR c.phone LIKE '%' || :q || '%'
+                        OR (:full = 1 AND LOWER(c.email) LIKE '%' || LOWER(:q) || '%')
+                        OR (:full = 1 AND c.phone LIKE '%' || :q || '%')
                      ORDER BY c.customer_id
                     OFFSET :off ROWS FETCH NEXT :lim ROWS ONLY) p
              ORDER BY p.customer_id
@@ -40,6 +40,8 @@ public class CustomerRepository(OracleConnectionFactory db, DualityViewStore sto
         // BindByName: :q xuất hiện nhiều lần nhưng chỉ cần gán một lần
         await using var cmd = new OracleCommand(sql, conn) { BindByName = true };
         cmd.Parameters.Add("q", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
+        // nameOnly (ô chọn vai trò công khai): chỉ tìm theo mã / họ tên, không cho tra ngược từ email / SĐT
+        cmd.Parameters.Add("full", OracleDbType.Int32).Value = nameOnly ? 0 : 1;
         cmd.Parameters.Add("off", OracleDbType.Int32).Value = Math.Max(0, offset);
         cmd.Parameters.Add("lim", OracleDbType.Int32).Value = Math.Clamp(limit, 1, 100);
         await using var r = await cmd.ExecuteReaderAsync(ct);

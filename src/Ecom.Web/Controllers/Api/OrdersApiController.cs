@@ -97,8 +97,9 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
 
     /// <summary>
     /// PUT /api/orders/{id} + If-Match: ghi đè CẢ tài liệu đơn bằng MỘT câu UPDATE order_dv.
-    /// Quyền theo TỪNG TRƯỜNG: khách hàng chỉ đổi địa chỉ giao, dòng hàng, thanh toán của đơn mình;
+    /// Quyền theo TỪNG TRƯỜNG: khách hàng chỉ đổi địa chỉ giao, dòng hàng và THÊM thanh toán cho đơn mình;
     /// người bán chỉ thêm / sửa vận đơn (shipments[]); quản trị đổi được mọi trường ghi được.
+    /// Không ai trừ quản trị đổi được khách của đơn (customer.customerId).
     /// ETag sai -> 412; sửa dòng hàng khi đơn đã khoá -> 409 (ORA-20004 do trigger ném ra).
     /// </summary>
     [HttpPut("{id:long}")]
@@ -114,14 +115,31 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
         var role = HttpContext.Role();
         if (!role.IsAdmin)
         {
-            var current = await store.GetAsync(DualityView.ORDER_DV, id, ct);
-            if (current is null) return Problem(statusCode: 404, title: "Không tìm thấy đơn hàng");
+            var json = await store.GetAsync(DualityView.ORDER_DV, id, ct);
+            if (json is null) return Problem(statusCode: 404, title: "Không tìm thấy đơn hàng");
+            var current = JsonNode.Parse(json)!.AsObject();
+
+            // (1) So ETag TRƯỚC: client đang sửa bản cũ thì báo đúng nguyên nhân là xung đột (412),
+            //     không so từng trường với bản mới rồi báo nhầm thành "không có quyền" (403).
+            if (!string.Equals(DocEtag.Normalize(current["_metadata"]?["etag"]?.GetValue<string>()), etag,
+                               StringComparison.OrdinalIgnoreCase))
+                return Problem(statusCode: 412, title: "Xung đột ETag: tài liệu đã bị người khác sửa, hãy tải lại",
+                               detail: "Tài liệu bạn gửi dựa trên phiên bản cũ của đơn. Hãy GET lại rồi sửa trên bản mới.");
+
+            // (2) Các trường ghi được bị đổi phải nằm trong quyền của vai trò
             var allowed = role.Kind == RoleKind.Customer ? CustomerFields : SellerFields;
-            var notAllowed = AccessControl.ChangedFields(JsonNode.Parse(current)!.AsObject(), doc, Writable)
-                                          .Except(allowed).ToList();
+            var notAllowed = AccessControl.ChangedFields(current, doc, Writable).Except(allowed).ToList();
+            // Khách hàng: payments[] chỉ được THÊM dòng mới, không sửa / xoá dòng đã có
+            if (role.Kind == RoleKind.Customer && !AccessControl.OnlyAppended(current["payments"], doc["payments"]))
+                notAllowed.Add("payments (chỉ được thêm thanh toán mới)");
+            // (3) Khách của đơn: Duality View sẽ đổi luôn orders.customer_id nếu client đổi customer.customerId
+            if (doc["customer"] is not null && !AccessControl.SameId(doc["customer"]?["customerId"],
+                                                                    current["customer"]?["customerId"]?.GetValue<long>()))
+                notAllowed.Add("customer");
             if (notAllowed.Count > 0)
                 return AccessControl.Denied(role,
                     $"{role.Display} không được sửa: {string.Join(", ", notAllowed)}. Được phép sửa: {string.Join(", ", allowed)}.");
+            doc["customer"] = current["customer"]!.DeepClone();   // luôn giữ khách hiện tại của đơn
         }
 
         var updated = await store.UpdateAsync(DualityView.ORDER_DV, id, DocEtag.PrepareForUpdate(doc, id, etag),
@@ -183,8 +201,7 @@ public class OrdersApiController(DualityViewStore store, OrderRepository orders)
         if (role.IsAdmin) return null;
         var access = await orders.GetAccessAsync(id, ct);
         if (access is null) return Problem(statusCode: 404, title: "Không tìm thấy đơn hàng");
-        if (role.Kind == RoleKind.Customer && access.CustomerId == role.Id) return null;
-        if (role.Kind == RoleKind.Seller && role.Id is long sid && access.SellerIds.Contains(sid)) return null;
+        if (access.Allows(role)) return null;
         return AccessControl.Denied(role, role.Kind == RoleKind.Customer
             ? $"Đơn #{id} không phải đơn của {role.Display}."
             : $"Đơn #{id} không có sản phẩm nào của {role.Display}.");

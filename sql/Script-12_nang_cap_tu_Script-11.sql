@@ -7,9 +7,11 @@
 -- 13 chỉ mục, dữ liệu mẫu 60 đơn / 36 sản phẩm / 10 khách.
 --
 -- Những gì file này sửa so với Script-11 (lý do chi tiết: docs/THAY_DOI_THIET_KE.md, Bảng 3.3 báo cáo):
---   Phần 1-2  Bỏ 3 Duality View cũ; đổi CHECK (attributes IS JSON VALIDATE ...) rời thành JSON Schema
---             khai báo trên kiểu cột - CHECK rời bị bỏ qua khi ghi qua PRODUCT_DV (Đ6).
---   Phần 3    Xoá dữ liệu thử của Script-11, đặt lại identity và seq_order_no về 1.
+--   Phần 1    Bỏ 3 Duality View cũ và các chỉ mục tối ưu (nếu đã có) để chạy lại file này nhiều lần vẫn được.
+--   Phần 2    Xoá dữ liệu thử của Script-11, đặt lại identity và seq_order_no về 1. Làm TRƯỚC Phần 3 vì
+--             dữ liệu cũ ghi qua PRODUCT_DV có thể thiếu "brand" (CHECK rời bị bỏ qua), khi đó lệnh đổi cột lỗi.
+--   Phần 3    Đổi CHECK (attributes IS JSON VALIDATE ...) rời thành JSON Schema khai báo trên kiểu cột
+--             - CHECK rời bị bỏ qua khi ghi qua PRODUCT_DV (Đ6).
 --   Phần 4    Thêm chỉ mục tối ưu IX-1, IX-5, IX-6 (Chương 4).
 --   Phần 5    PKG_ORDER_CTX (biến trạng thái tách khỏi PKG_ORDER, tránh ORA-04068 - Đ7) và PKG_ORDER
 --             mới (thêm sp_refund_order_payments - BR-12).
@@ -20,39 +22,29 @@
 --   Phần 10   Biên dịch lại, thu thập thống kê, kiểm tra không còn đối tượng INVALID.
 -- Bảng, khoá chính / ngoại, UNIQUE, CHECK khác và identity BY DEFAULT ON NULL đã có từ Script-11 nên
 -- không tạo lại.
+-- Lưu ý: ảnh sản phẩm người bán tải lên ở web nằm ở src/Ecom.Web/App_Data/uploads/products (đặt tên theo mã
+-- sản phẩm). File này đánh lại mã sản phẩm từ 1, nên hãy xoá thư mục đó (hoặc dùng .scriptsdb.ps1 reset).
 -- ==============================================================================
 
 -- ##############################################################################
--- PHẦN 1. Bỏ 3 Duality View cũ (sẽ tạo lại ở Phần 7)
+-- PHẦN 1. Bỏ 3 Duality View cũ (tạo lại ở Phần 7) và chỉ mục tối ưu nếu đã có (tạo lại ở Phần 4)
 -- ##############################################################################
 BEGIN
   FOR r IN (SELECT view_name FROM user_views WHERE view_name IN ('ORDER_DV','PRODUCT_DV','CUSTOMER_DV')) LOOP
     EXECUTE IMMEDIATE 'DROP VIEW ' || r.view_name;
   END LOOP;
+  -- chạy lại file lần 2 thì các chỉ mục này đã có -> bỏ trước để Phần 4 không lỗi ORA-00955
+  FOR r IN (SELECT index_name FROM user_indexes
+             WHERE index_name IN ('IX_ORDERS_CUST_DATE','IX_PAYMENTS_ORDER','IX_SHIPMENTS_ORDER',
+                                  'IX_HISTORY_ORDER','IX_PRODUCTS_BRAND')) LOOP
+    EXECUTE IMMEDIATE 'DROP INDEX ' || r.index_name;
+  END LOOP;
 END;
 /
 
--- ##############################################################################
--- PHẦN 2. JSON Schema của products.attributes: CHECK rời -> khai báo trên kiểu cột (Đ6)
--- ##############################################################################
-BEGIN
-  EXECUTE IMMEDIATE 'ALTER TABLE products DROP CONSTRAINT products_attr_chk';
-EXCEPTION WHEN OTHERS THEN
-  -- ORA-02443: ràng buộc không tồn tại -> bỏ qua
-  IF SQLCODE <> -2443 THEN RAISE; END IF;
-END;
-/
-ALTER TABLE products MODIFY (attributes JSON CONSTRAINT products_attr_chk VALIDATE '{
-                  "type"       : "object",
-                  "properties" : {
-                    "brand"          : { "type" : "string" },
-                    "warrantyMonths" : { "type" : "number", "minimum" : 0 }
-                  },
-                  "required"   : [ "brand" ]
-                }');
 
 -- ##############################################################################
--- PHẦN 3. Xoá dữ liệu thử của Script-11, đặt lại identity và seq_order_no (theo t00_reset.sql)
+-- PHẦN 2. Xoá dữ liệu thử của Script-11, đặt lại identity và seq_order_no (theo t00_reset.sql)
 -- ##############################################################################
 DECLARE
   TYPE t_names IS TABLE OF VARCHAR2(128);
@@ -91,6 +83,25 @@ BEGIN
 END;
 /
 
+
+-- ##############################################################################
+-- PHẦN 3. JSON Schema của products.attributes: CHECK rời -> khai báo trên kiểu cột (Đ6)
+-- ##############################################################################
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE products DROP CONSTRAINT products_attr_chk';
+EXCEPTION WHEN OTHERS THEN
+  -- ORA-02443: ràng buộc không tồn tại -> bỏ qua
+  IF SQLCODE <> -2443 THEN RAISE; END IF;
+END;
+/
+ALTER TABLE products MODIFY (attributes JSON CONSTRAINT products_attr_chk VALIDATE '{
+                  "type"       : "object",
+                  "properties" : {
+                    "brand"          : { "type" : "string" },
+                    "warrantyMonths" : { "type" : "number", "minimum" : 0 }
+                  },
+                  "required"   : [ "brand" ]
+                }');
 
 -- ##############################################################################
 -- PHẦN 4. Chỉ mục tối ưu IX-1, IX-5, IX-6 (03b_indexes_toi_uu.sql)

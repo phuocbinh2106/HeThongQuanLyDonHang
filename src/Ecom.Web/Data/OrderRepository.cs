@@ -4,7 +4,14 @@ using Oracle.ManagedDataAccess.Client;
 namespace Ecom.Web.Data;
 
 /// <summary>Chủ sở hữu của một đơn: khách đặt đơn và các người bán có sản phẩm trong đơn.</summary>
-public record OrderAccess(long CustomerId, HashSet<long> SellerIds);
+public record OrderAccess(long CustomerId, HashSet<long> SellerIds)
+{
+    /// <summary>Quản trị: mọi đơn; khách hàng: đơn của mình; người bán: đơn có sản phẩm của shop mình.</summary>
+    public bool Allows(Ecom.Web.Infrastructure.CurrentRole role) =>
+        role.IsAdmin
+        || (role.Kind == Ecom.Web.Infrastructure.RoleKind.Customer && CustomerId == role.Id)
+        || (role.Kind == Ecom.Web.Infrastructure.RoleKind.Seller && role.Id is long sid && SellerIds.Contains(sid));
+}
 
 /// <summary>Kết quả một truy vấn bảng: câu SQL đã chạy, tên cột, các dòng.</summary>
 public record TableRows(string Sql, List<string> Columns, List<Dictionary<string, object?>> Rows);
@@ -256,7 +263,7 @@ public class OrderRepository(OracleConnectionFactory db)
         return new OrderAccess(r.GetInt64(0), sellers);
     }
 
-        /// <summary>Các dòng của đơn trong 5 bảng nền; null nếu không có đơn này.</summary>
+    /// <summary>Các dòng của đơn trong 5 bảng nền; null nếu không có đơn này.</summary>
     public async Task<Dictionary<string, TableRows>?> GetRelationalAsync(long id, CancellationToken ct)
     {
         await using var conn = await db.OpenAsync(ct: ct);

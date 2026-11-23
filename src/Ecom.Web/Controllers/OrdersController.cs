@@ -28,10 +28,7 @@ public class OrdersController(OrderRepository orders) : Controller
         if (!role.IsAdmin)
         {
             var access = await orders.GetAccessAsync(id, ct);
-            var ok = access is not null
-                     && ((role.Kind == RoleKind.Customer && access.CustomerId == role.Id)
-                         || (role.Kind == RoleKind.Seller && role.Id is long sid && access.SellerIds.Contains(sid)));
-            if (!ok && access is not null)
+            if (access is not null && !access.Allows(role))
                 return RequireRoleAttribute.Forbidden(this, role, role.Kind == RoleKind.Customer
                     ? $"Đơn #{id} không phải đơn của {role.Display}."
                     : $"Đơn #{id} không có sản phẩm nào của {role.Display}.");

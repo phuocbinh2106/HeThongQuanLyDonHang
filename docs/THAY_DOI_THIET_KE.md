@@ -230,3 +230,26 @@ qua kênh web (`tests/api_test_cases.mjs`, 16/16 PASS); phần execution plan c�
 - **Ảnh mẫu:** 43 ảnh (36 sản phẩm, 7 danh mục) giấy phép tự do, nguồn ghi ở `wwwroot/img/CREDITS.md`.
 - **Kiểm thử:** AZ-16 trong `tests/api_authz.mjs` (16/16 PASS).
 - Báo cáo Word **chưa** cập nhật Đ16 (nhóm tạm dừng cập nhật báo cáo).
+
+## 12. Sửa sau khi rà soát code (Superpowers code review)
+
+Rà soát phát hiện 4 lỗ hổng phân quyền khi PUT tài liệu (2 lỗi đầu đã tái hiện thật trên Oracle 23.26.3):
+
+| Lỗi | Trước | Sau |
+|---|---|---|
+| Người bán đổi shop của sản phẩm | gửi `"sellerId": 3.0` vượt qua phép kiểm tra (đọc kiểu `long` thất bại) → Duality View đổi luôn `products.seller_id` | so theo giá trị số (`AccessControl.SameId`), khác → 403; rồi ghi đè `seller` bằng chính người bán |
+| Khách đổi khách của đơn | API không so `customer` → Duality View đổi luôn `orders.customer_id` | khác `customerId` hiện tại → 403; người không phải quản trị luôn giữ `customer` hiện tại |
+| Khách sửa thanh toán đã có | cả mảng `payments` được coi là "được sửa" (đổi REFUNDED → PAID trên đơn đã huỷ) | chỉ được **thêm** phần tử mới không có `paymentId` (`AccessControl.OnlyAppended`) |
+| Xung đột báo nhầm 403 | so từng trường với bản mới nhất trước khi so ETag | so ETag trước → 412 |
+
+**Bài học về Duality View** (dùng khi vấn đáp): object con khai báo `NOUPDATE` (`seller`, `customer`) chỉ cấm sửa
+**bảng con**; đổi **khoá** của object con thì Oracle hiểu là trỏ sang dòng khác và cập nhật **khoá ngoại ở bảng gốc**. Vì vậy
+quyền "được trỏ sang khách / shop nào" phải kiểm tra ở API (hoặc trigger), Duality View không tự chặn.
+
+Mục nhỏ: `[RequireRole]` đổi thành `IAuthorizationFilter` (401/403 trước khi đọc body); `/api/session/customers` chỉ tìm
+theo mã / họ tên; quy tắc "ai xem được đơn" gom vào `OrderAccess.Allows`; Script-12 xoá dữ liệu **trước** khi đổi JSON
+Schema và chạy lại được nhiều lần; sửa chú thích Swagger. Kiểm thử thêm AZ-17…AZ-22 (viết trước, chạy thấy FAIL, sửa rồi
+PASS): `api_authz` 22/22, `api_test_cases` 16/16, `db.ps1 test` không FAIL. Báo cáo Word chưa cập nhật.
+
+Góp ý **không** làm: khôi phục khung "Hai cách nhìn khớp nhau" ở M4 (nhóm đã chủ động bỏ); đổi danh sách số trong thuộc
+tính kiểu "danh sách" thành số (size "30", "32" trong dữ liệu là chuỗi và bộ lọc `JSON_EXISTS` so sánh chuỗi).

@@ -73,7 +73,8 @@ function readValue(type, raw) {
   if (raw === '') return undefined;
   if (type === 'number') return Number(raw);
   if (type === 'boolean') return raw === 'true';
-  if (type === 'array') return raw.split(',').map(x => x.trim()).filter(Boolean);   // "S, M, L" -> ["S","M","L"]
+  // "S, M, L" -> ["S","M","L"]. Giữ dạng chuỗi: size "30", "32" trong dữ liệu mẫu là chuỗi và bộ lọc so sánh chuỗi
+  if (type === 'array') return raw.split(',').map(x => x.trim()).filter(Boolean);
   return raw;
 }
 

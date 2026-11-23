@@ -52,8 +52,14 @@ public class ProductsApiController(ProductRepository repo, ProductImageStore ima
         // Người bán chỉ sửa sản phẩm của shop mình và không được chuyển sản phẩm sang shop khác
         var role = HttpContext.Role();
         if (await CheckOwnerAsync(id, ct) is IActionResult denied) return denied;
-        if (role.Kind == RoleKind.Seller && SellerOf(doc) is long target && target != role.Id)
-            return AccessControl.Denied(role, "Không được chuyển sản phẩm sang người bán khác.");
+        if (role.Kind == RoleKind.Seller)
+        {
+            // Duality View đổi luôn products.seller_id nếu client đổi seller.sellerId -> người bán không được làm vậy.
+            // So theo giá trị số (3 / 3.0 / 3e0 như nhau), rồi ghi đè bằng chính người bán đang thao tác.
+            if (doc["seller"] is not null && !AccessControl.SameId(doc["seller"]?["sellerId"], role.Id))
+                return AccessControl.Denied(role, "Không được chuyển sản phẩm sang người bán khác.");
+            doc["seller"] = new JsonObject { ["sellerId"] = role.Id };
+        }
         // Bắt buộc có ETag (header If-Match, hoặc _metadata.etag trong tài liệu) để chống ghi đè
         var etag = DocEtag.Normalize(Request.Headers.IfMatch.ToString())
                    ?? doc["_metadata"]?["etag"]?.GetValue<string>();
@@ -77,8 +83,8 @@ public class ProductsApiController(ProductRepository repo, ProductImageStore ima
         var role = HttpContext.Role();
         if (role.Kind == RoleKind.Seller)
         {
-            if (SellerOf(doc) is long target && target != role.Id)
-                return AccessControl.Denied(role, $"{role.Display} không được thêm sản phẩm cho người bán #{target}.");
+            if (doc["seller"] is not null && !AccessControl.SameId(doc["seller"]?["sellerId"], role.Id))
+                return AccessControl.Denied(role, $"{role.Display} chỉ được thêm sản phẩm cho shop của mình.");
             doc["seller"] = new JsonObject { ["sellerId"] = role.Id };
         }
         doc.Remove("_id");        // khoá do identity sinh
