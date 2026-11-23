@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Thống kê shop";
+}
+
+<div class="page-head">
+    <div>
+        <div class="crumbs"><a href="/">Trang chủ</a> / Thống kê shop</div>
+        <h1>Thống kê shop <span id="shopName" class="text-muted fs-5"></span></h1>
+    </div>
+    <div class="d-flex gap-2 align-items-center small" data-roles="admin">
+        <span>Người bán</span>
+        <select id="sellerPick" class="form-select form-select-sm" style="width:240px"></select>
+    </div>
+</div>
+
+<div id="statsMsg"></div>
+<div id="kpis" class="buy-sum mb-3"></div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Doanh thu theo tháng <span class="text-muted small">(tiền hàng của shop, đơn đã giao)</span></div>
+            <div class="card-body small">
+                <div id="monthChart"></div>
+                <div id="monthTable"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Sắp hết hàng <span class="text-muted small">(đang bán, tồn ≤ 5)</span></div>
+            <div class="card-body small" id="lowStock"></div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Sản phẩm của shop <span class="text-muted small">(xếp hạng bán chạy bằng DENSE_RANK)</span></div>
+            <div class="card-body small" id="productTable"></div>
+        </div>
+    </div>
+</div>
+<p class="form-text mt-2">
+    Số liệu do 3 hàm PL/SQL <code>pkg_order_rpt.fn_s1_seller_summary</code>, <code>fn_s2_seller_revenue_by_month</code>,
+    <code>fn_s3_seller_products</code> tính trên bảng chuẩn hoá (đường quan hệ), cùng nguồn dữ liệu với tài liệu JSON.
+</p>
+
+@section Scripts {
+    <script src="~/js/seller-stats.js" asp-append-version="true"></script>
+}

@@ -16,7 +16,7 @@ public record ReportResult(string Code, string Call, List<string> Columns, List<
 public class ReportRepository(OracleConnectionFactory db)
 {
     /// <summary>Tham số báo cáo nhận từ query string.</summary>
-    public record ReportArgs(DateTime? From, DateTime? To, int? Top, int? Months);
+    public record ReportArgs(DateTime? From, DateTime? To, int? Top, int? Months, long? SellerId = null);
 
     // Danh sách trắng: mã báo cáo -> tên hàm + cách tạo tham số
     private static readonly Dictionary<string, (string Function, Func<ReportArgs, OracleParameter[]> Params)> Reports = new()
@@ -27,6 +27,10 @@ public class ReportRepository(OracleConnectionFactory db)
         ["r4"] = ("fn_r4_status_matrix", a => [new OracleParameter("p_months", a.Months ?? 12)]),
         ["r5"] = ("fn_r5_cancel_return_rate", _ => []),
         ["r6"] = ("fn_r6_revenue_by_brand", _ => []),
+        // Thống kê MỘT shop (trang "Thống kê shop"; chỉ gọi qua /api/seller-stats, không qua /api/reports)
+        ["s1"] = ("fn_s1_seller_summary", a => [new OracleParameter("p_seller_id", a.SellerId)]),
+        ["s2"] = ("fn_s2_seller_revenue_by_month", a => [new OracleParameter("p_seller_id", a.SellerId)]),
+        ["s3"] = ("fn_s3_seller_products", a => [new OracleParameter("p_seller_id", a.SellerId)]),
     };
 
     private static OracleParameter DateParam(string name, DateTime? v) =>

@@ -22,7 +22,8 @@ public class ReportsApiController(ReportRepository repo) : ControllerBase
                                          [FromQuery] int? top, [FromQuery] int? months, CancellationToken ct)
     {
         code = code.ToLowerInvariant();
-        if (!ReportRepository.Exists(code)) return Problem(statusCode: 404, title: "Không có báo cáo " + code);
+        // chỉ báo cáo toàn sàn r1..r6; s1..s3 (một shop) đi qua /api/seller-stats để kiểm tra đúng shop
+        if (!code.StartsWith('r') || !ReportRepository.Exists(code)) return Problem(statusCode: 404, title: "Không có báo cáo " + code);
         return Ok(await repo.RunAsync(code, new(from, to, top, months), ct));
     }
 
@@ -31,7 +32,8 @@ public class ReportsApiController(ReportRepository repo) : ControllerBase
     public async Task<IActionResult> Source(string code, CancellationToken ct)
     {
         code = code.ToLowerInvariant();
-        if (!ReportRepository.Exists(code)) return Problem(statusCode: 404, title: "Không có báo cáo " + code);
+        // chỉ báo cáo toàn sàn r1..r6; s1..s3 (một shop) đi qua /api/seller-stats để kiểm tra đúng shop
+        if (!code.StartsWith('r') || !ReportRepository.Exists(code)) return Problem(statusCode: 404, title: "Không có báo cáo " + code);
         return Content(await repo.SourceAsync(code, ct), "text/plain; charset=utf-8");
     }
 }

@@ -87,6 +87,11 @@
             <a class="@Active("Products", "Create")" asp-controller="Products" asp-action="Create">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M12 8.5v7M8.5 12h7" /></svg>Đăng bán</a>
             }
+            @if (canSell)
+            {
+            <a class="@Active("Seller")" asp-controller="Seller" asp-action="Stats">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16" /><path d="m5 15 4-4 3 3 6-6" /><path d="M15 8h3v3" /></svg>Thống kê shop</a>
+            }
             @if (canOrder)
             {
             <a class="@Active("Orders", "Create")" asp-controller="Orders" asp-action="Create">

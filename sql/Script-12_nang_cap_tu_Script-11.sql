@@ -17,7 +17,7 @@
 --             mới (thêm sp_refund_order_payments - BR-12).
 --   Phần 6    6 trigger bản mới (hoàn tiền khi huỷ / trả hàng; TRG_PAY_CHECK chỉ ghi nhận dòng PAID).
 --   Phần 7    3 Duality View bản mới (status NOUPDATE; subtotal / totalAmount NOUPDATE NOCHECK - Đ4, Đ5).
---   Phần 8    PKG_ORDER_RPT (báo cáo R1-R6).
+--   Phần 8    PKG_ORDER_RPT (báo cáo R1-R6 + thống kê shop S1-S3).
 --   Phần 9    Dữ liệu mẫu đầy đủ (08_seed.sql).
 --   Phần 10   Biên dịch lại, thu thập thống kê, kiểm tra không còn đối tượng INVALID.
 -- Bảng, khoá chính / ngoại, UNIQUE, CHECK khác và identity BY DEFAULT ON NULL đã có từ Script-11 nên
@@ -657,6 +657,14 @@ CREATE OR REPLACE PACKAGE pkg_order_rpt AS
   FUNCTION fn_r5_cancel_return_rate RETURN SYS_REFCURSOR;
   -- R6 (bổ sung): doanh thu theo thương hiệu, đọc từ cột JSON products.attributes
   FUNCTION fn_r6_revenue_by_brand RETURN SYS_REFCURSOR;
+
+  -- ---- Thống kê cho MỘT người bán (trang "Thống kê shop"); doanh thu = tiền hàng của shop trong đơn DELIVERED ----
+  -- S1: một dòng tổng quan (doanh thu, số đơn theo nhóm trạng thái, số sản phẩm, sắp hết hàng)
+  FUNCTION fn_s1_seller_summary(p_seller_id NUMBER) RETURN SYS_REFCURSOR;
+  -- S2: doanh thu theo tháng + luỹ kế của shop (SUM() OVER)
+  FUNCTION fn_s2_seller_revenue_by_month(p_seller_id NUMBER) RETURN SYS_REFCURSOR;
+  -- S3: từng sản phẩm của shop: đã bán, doanh thu, hạng bán chạy (DENSE_RANK), cờ sắp hết hàng
+  FUNCTION fn_s3_seller_products(p_seller_id NUMBER) RETURN SYS_REFCURSOR;
 END pkg_order_rpt;
 /
 
@@ -818,6 +826,78 @@ CREATE OR REPLACE PACKAGE BODY pkg_order_rpt AS
        ORDER BY doanh_thu DESC;
     RETURN rc;
   END fn_r6_revenue_by_brand;
+
+  -- S1 -------------------------------------------------------------------------
+  -- "Đơn của shop" = đơn có ít nhất một dòng hàng thuộc sản phẩm của shop (một đơn có thể có hàng của nhiều shop).
+  -- Doanh thu chỉ cộng các dòng hàng CỦA SHOP trong đơn DELIVERED (giống cột tổng phụ của R2).
+  FUNCTION fn_s1_seller_summary(p_seller_id NUMBER) RETURN SYS_REFCURSOR IS
+    rc SYS_REFCURSOR;
+  BEGIN
+    OPEN rc FOR
+      WITH dong_hang AS (            -- các dòng hàng thuộc sản phẩm của shop
+        SELECT o.order_id, o.status, oi.quantity * oi.unit_price AS tien
+          FROM orders o
+          JOIN order_items oi ON oi.order_id  = o.order_id
+          JOIN products    p  ON p.product_id = oi.product_id
+         WHERE p.seller_id = p_seller_id),
+      don AS (SELECT DISTINCT order_id, status FROM dong_hang)
+      SELECT s.shop_name,
+             (SELECT NVL(SUM(tien), 0) FROM dong_hang WHERE status = 'DELIVERED')                    AS doanh_thu,
+             (SELECT COUNT(*) FROM don)                                                              AS so_don,
+             (SELECT COUNT(*) FROM don WHERE status IN ('PENDING', 'CONFIRMED', 'PACKING'))          AS don_cho_xu_ly,
+             (SELECT COUNT(*) FROM don WHERE status = 'SHIPPING')                                    AS don_dang_giao,
+             (SELECT COUNT(*) FROM don WHERE status = 'DELIVERED')                                   AS don_da_giao,
+             (SELECT COUNT(*) FROM don WHERE status IN ('CANCELLED', 'RETURNED'))                    AS don_huy_tra,
+             (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.seller_id)                       AS so_san_pham,
+             (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.seller_id AND p.status = 'ACTIVE') AS dang_ban,
+             (SELECT COUNT(*) FROM products p
+               WHERE p.seller_id = s.seller_id AND p.status = 'ACTIVE' AND p.stock_qty <= 5)          AS sap_het
+        FROM sellers s
+       WHERE s.seller_id = p_seller_id;
+    RETURN rc;
+  END fn_s1_seller_summary;
+
+  -- S2 -------------------------------------------------------------------------
+  FUNCTION fn_s2_seller_revenue_by_month(p_seller_id NUMBER) RETURN SYS_REFCURSOR IS
+    rc SYS_REFCURSOR;
+  BEGIN
+    OPEN rc FOR
+      SELECT TO_CHAR(m.thang, 'YYYY-MM')              AS thang,
+             m.so_don,
+             m.doanh_thu,
+             SUM(m.doanh_thu) OVER (ORDER BY m.thang) AS luy_ke
+        FROM (SELECT TRUNC(o.order_date, 'MM')        AS thang,
+                     COUNT(DISTINCT o.order_id)       AS so_don,
+                     SUM(oi.quantity * oi.unit_price) AS doanh_thu
+                FROM orders o
+                JOIN order_items oi ON oi.order_id  = o.order_id
+                JOIN products    p  ON p.product_id = oi.product_id
+               WHERE o.status = 'DELIVERED' AND p.seller_id = p_seller_id
+               GROUP BY TRUNC(o.order_date, 'MM')) m
+       ORDER BY m.thang;
+    RETURN rc;
+  END fn_s2_seller_revenue_by_month;
+
+  -- S3 -------------------------------------------------------------------------
+  -- LEFT JOIN để sản phẩm chưa bán được cái nào vẫn có mặt (da_ban = 0).
+  FUNCTION fn_s3_seller_products(p_seller_id NUMBER) RETURN SYS_REFCURSOR IS
+    rc SYS_REFCURSOR;
+  BEGIN
+    OPEN rc FOR
+      SELECT x.product_id, x.sku, x.product_name, x.price, x.stock_qty, x.status, x.da_ban, x.doanh_thu,
+             DENSE_RANK() OVER (ORDER BY x.da_ban DESC)                       AS hang,
+             CASE WHEN x.status = 'ACTIVE' AND x.stock_qty <= 5 THEN 1 ELSE 0 END AS sap_het
+        FROM (SELECT p.product_id, p.sku, p.product_name, p.price, p.stock_qty, p.status,
+                     NVL(SUM(CASE WHEN o.status = 'DELIVERED' THEN oi.quantity END), 0)                AS da_ban,
+                     NVL(SUM(CASE WHEN o.status = 'DELIVERED' THEN oi.quantity * oi.unit_price END), 0) AS doanh_thu
+                FROM products p
+                LEFT JOIN order_items oi ON oi.product_id = p.product_id
+                LEFT JOIN orders      o  ON o.order_id    = oi.order_id
+               WHERE p.seller_id = p_seller_id
+               GROUP BY p.product_id, p.sku, p.product_name, p.price, p.stock_qty, p.status) x
+       ORDER BY x.da_ban DESC, x.product_id;
+    RETURN rc;
+  END fn_s3_seller_products;
 
 END pkg_order_rpt;
 /
