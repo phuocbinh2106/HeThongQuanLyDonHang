@@ -300,3 +300,22 @@ tính kiểu "danh sách" thành số (size "30", "32" trong dữ liệu là chu
 - **Giới hạn:** undo giữ tối thiểu 15 phút (`undo_retention = 900`); thời điểm hiển thị là giờ máy chủ CSDL (UTC).
 - **Kiểm thử:** `tests/asof_test.mjs` AS-01…04 (viết trước, FAIL 404, rồi PASS 4/4); thử trên giao diện: sửa địa chỉ đơn #60 →
   "Lúc mở trang" hiện địa chỉ cũ, tô vàng địa chỉ và ETag.
+
+## 16. Đ20 – Thống kê shop cho người bán (3 hàm PL/SQL mới)
+
+- **Trước:** báo cáo R1–R6 chỉ cho quản trị, tính toàn sàn; người bán không có số liệu của shop mình.
+- **Sau:** thêm vào `PKG_ORDER_RPT` (`sql/07_pkg_order_rpt.sql`, đã chép sang Phần 8 của `Script-12`):
+  `fn_s1_seller_summary`, `fn_s2_seller_revenue_by_month`, `fn_s3_seller_products` (tham số `p_seller_id`, trả `SYS_REFCURSOR`).
+  "Đơn của shop" = đơn có ít nhất một dòng hàng của shop; doanh thu = tiền hàng của shop trong đơn DELIVERED (cùng quy ước R2).
+- API `GET /api/seller-stats` (người bán: luôn shop mình; quản trị: bắt buộc `sellerId`), trang `/Seller/Stats`.
+  `/api/reports/{code}` chỉ còn nhận r1..r6 (s1..s3 phải đi qua `/api/seller-stats` để kiểm tra đúng shop).
+- **Kiểm thử:** SS-01…04 (doanh thu khớp tổng phụ R2, tổng theo tháng = tổng, quyền). Script-12 chạy lại sau khi đồng bộ: 0 lỗi ORA.
+
+## 17. Đ21 – Thêm nhiều sản phẩm trong một giao dịch
+
+- `POST /api/products/bulk` + tab "Nhiều sản phẩm (mảng JSON)" ở trang Đăng bán. `DualityViewStore.InsertManyAsync`: lần lượt
+  `INSERT INTO product_dv` trên cùng một giao dịch, lỗi ở tài liệu i → `ROLLBACK` cả lô, ném `BulkInsertException(i)` để API
+  báo "Sản phẩm #i".
+- **Vì sao không dùng một câu `INSERT … SELECT FROM JSON_TABLE(:mảng)`:** cũng nguyên tử, nhưng khi lỗi Oracle không cho biết tài
+  liệu nào sai; ghi lần lượt trong một giao dịch vẫn nguyên tử mà chỉ ra được đúng tài liệu lỗi, và dễ giải thích hơn.
+- **Kiểm thử:** BK-01…04 (3 sản phẩm → 201; #2 thiếu brand → 422 "#2", không thêm gì; trùng SKU #3 → 409; giới hạn / quyền).

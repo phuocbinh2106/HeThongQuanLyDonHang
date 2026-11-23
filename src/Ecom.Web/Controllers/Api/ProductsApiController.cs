@@ -14,6 +14,7 @@ namespace Ecom.Web.Controllers.Api;
 ///   GET  /api/products/{id}              -> tài liệu + header ETag
 ///   PUT  /api/products/{id}  (If-Match)  -> ghi đè tài liệu; sai ETag -> 412
 ///   POST /api/products                   -> tạo sản phẩm từ một tài liệu JSON
+///   POST /api/products/bulk              -> tạo NHIỀU sản phẩm từ một mảng tài liệu, trong MỘT giao dịch
 ///   GET  /api/products/facets?categoryId=  -> cây danh mục, thương hiệu, thuộc tính JSON (dataguide)
 ///   GET  /api/products/{id}/image        -> ảnh sản phẩm (tệp trên đĩa, không nằm trong CSDL)
 ///   POST /api/products/{id}/image        -> người bán / quản trị tải ảnh lên (multipart, field "file")
@@ -93,6 +94,52 @@ public class ProductsApiController(ProductRepository repo, ProductImageStore ima
         Response.Headers.ETag = DocEtag.FromDoc(created);
         return new ContentResult { StatusCode = 201, Content = created, ContentType = "application/json" };
     }
+
+    /// <summary>
+    /// Thêm nhiều sản phẩm (tối đa 50) bằng một mảng tài liệu PRODUCT_DV, trong MỘT giao dịch:
+    /// tài liệu nào lỗi (thiếu brand, trùng SKU, giá âm…) thì không sản phẩm nào được thêm, và lỗi chỉ rõ tài liệu thứ mấy.
+    /// </summary>
+    [HttpPost("bulk")]
+    [RequireRole(RoleKind.Seller, RoleKind.Admin)]
+    public async Task<IActionResult> PostBulk([FromBody] JsonNode? body, CancellationToken ct)
+    {
+        if (body is not JsonArray arr || arr.Count is 0 or > MaxBulk || arr.Any(n => n is not JsonObject))
+            return Problem(statusCode: 400, title: "Dữ liệu không hợp lệ",
+                           detail: $"Gửi một MẢNG từ 1 đến {MaxBulk} tài liệu sản phẩm (mỗi phần tử là một object).");
+        var role = HttpContext.Role();
+        var docs = new List<string>();
+        for (var i = 0; i < arr.Count; i++)
+        {
+            var doc = arr[i]!.AsObject();
+            if (role.Kind == RoleKind.Seller)
+            {
+                // giống POST một sản phẩm: người bán chỉ đăng cho shop mình
+                if (doc["seller"] is not null && !AccessControl.SameId(doc["seller"]?["sellerId"], role.Id))
+                    return AccessControl.Denied(role, $"Sản phẩm #{i + 1}: {role.Display} chỉ được thêm sản phẩm cho shop của mình.");
+                doc["seller"] = new JsonObject { ["sellerId"] = role.Id };
+            }
+            else if (doc["seller"]?["sellerId"] is null)   // quản trị đăng hộ: phải nói rõ shop nào
+                return Problem(statusCode: 400, title: "Thiếu người bán",
+                               detail: $"Sản phẩm #{i + 1}: quản trị cần ghi \"seller\": {{ \"sellerId\": … }} cho từng sản phẩm.");
+            doc.Remove("_id");
+            doc.Remove("_metadata");
+            docs.Add(doc.ToJsonString());
+        }
+        try
+        {
+            var created = await repo.InsertManyDocsAsync(docs, HttpContext.CurrentUser(), ct);
+            var json = $"{{\"count\":{created.Count},\"items\":[{string.Join(",", created.Select(c => c.Doc))}]}}";
+            return new ContentResult { StatusCode = 201, Content = json, ContentType = "application/json" };
+        }
+        catch (BulkInsertException ex)
+        {
+            var e = Services.OracleErrorMapper.Map(ex.Oracle);
+            return Problem(statusCode: e.Status, title: e.Title,
+                detail: $"Sản phẩm #{ex.Index + 1}: {e.Title} ({e.Code}). Không sản phẩm nào được thêm – cả lô đã rollback.");
+        }
+    }
+
+    private const int MaxBulk = 50;
 
     /// <summary>Ảnh sản phẩm: ảnh người bán tải lên, nếu không có thì ảnh mẫu; chưa có ảnh -> 404 (giao diện hiện biểu tượng danh mục).</summary>
     [HttpGet("{id:long}/image")]

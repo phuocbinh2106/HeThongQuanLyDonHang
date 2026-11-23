@@ -186,6 +186,23 @@ Không màn hình nào tải danh sách **tất cả** khách: các ô chọn kh
 trang Khách hàng tải từng trang 20 khách ("Xem thêm"). CSDL lọc theo mã KH / họ tên / email / SĐT rồi cắt trang bằng
 `OFFSET … FETCH NEXT`, trả `{ total, items }`; họ tên so sánh bằng `COLLATE BINARY_AI` nên gõ "nguyen" vẫn ra "Nguyễn".
 
+### Thống kê shop (người bán)
+
+Trang **Thống kê shop** (`/Seller/Stats`; người bán xem shop mình, quản trị chọn shop) → `GET /api/seller-stats?sellerId=`
+chạy 3 hàm PL/SQL mới của `PKG_ORDER_RPT` trên bảng chuẩn hoá: `fn_s1_seller_summary` (doanh thu, đơn theo nhóm trạng thái,
+sản phẩm, sắp hết hàng), `fn_s2_seller_revenue_by_month` (theo tháng + luỹ kế, `SUM() OVER`), `fn_s3_seller_products` (đã bán,
+doanh thu, hạng `DENSE_RANK`, cờ tồn ≤ 5). Doanh thu = tiền hàng của shop trong đơn DELIVERED (khớp tổng phụ của R2). Người bán
+luôn chỉ xem shop mình (server bỏ qua `sellerId` client gửi).
+
+### Thêm nhiều sản phẩm bằng một mảng JSON
+
+Tab **Nhiều sản phẩm (mảng JSON)** ở trang Đăng bán → `POST /api/products/bulk` (người bán / quản trị, 1–50 tài liệu): server
+lần lượt `INSERT INTO product_dv` trên **cùng một giao dịch**, lỗi ở tài liệu nào thì **rollback cả lô** và báo "Sản phẩm #n: …"
+(ví dụ thiếu `brand` → 422, trùng SKU → 409). Người bán luôn được gán `seller.sellerId` = shop mình; quản trị phải ghi
+`seller.sellerId` cho từng tài liệu. Kiểm thử cả hai tính năng: `node tests/seller_bulk_test.mjs` (SS-01…04, BK-01…04).
+
+> Sau `.\scripts\db.ps1 install` (xoá sạch schema) cần chạy lại `.\scripts\db.ps1 file 11_ords_autorest.sql` nếu dùng ORDS.
+
 ### Xem đơn theo thời gian (Flashback Query trên Duality View)
 
 Trang chi tiết đơn có tab **Theo thời gian**: chọn "Lúc mở trang" (SCN `_metadata.asof` của tài liệu vừa đọc), "1 / 5 / 15 phút

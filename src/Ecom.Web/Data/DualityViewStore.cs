@@ -37,6 +37,40 @@ public class DualityViewStore(OracleConnectionFactory db)
     }
 
     /// <summary>
+    /// Thêm NHIỀU tài liệu trong MỘT giao dịch: lần lượt INSERT từng tài liệu trên cùng kết nối / giao dịch, xong hết mới
+    /// COMMIT. Tài liệu thứ i lỗi (ràng buộc, JSON Schema, trùng khoá…) thì ROLLBACK toàn bộ và ném BulkInsertException(i)
+    /// để API báo đúng tài liệu nào sai. Nguyên tử như TH-3 nhưng ở mức nhiều tài liệu.
+    /// </summary>
+    public async Task<List<(long Id, string Doc)>> InsertManyAsync(DualityView view, IReadOnlyList<string> docs, string user, CancellationToken ct)
+    {
+        await using var conn = await db.OpenAsync(user, ct);
+        await using var tx = conn.BeginTransaction();
+        var sql = $"""
+            INSERT INTO {view} (data) VALUES (JSON(:doc))
+            RETURNING JSON_VALUE(data, '$._id' RETURNING NUMBER) INTO :new_id
+            """;
+        var ids = new List<long>();
+        for (var i = 0; i < docs.Count; i++)
+        {
+            await using var cmd = new OracleCommand(sql, conn) { BindByName = true, Transaction = tx };
+            cmd.Parameters.Add(new OracleParameter("doc", OracleDbType.Clob) { Value = docs[i] });
+            var outId = new OracleParameter("new_id", OracleDbType.Int64) { Direction = System.Data.ParameterDirection.Output };
+            cmd.Parameters.Add(outId);
+            try { await cmd.ExecuteNonQueryAsync(ct); }
+            catch (OracleException ex)
+            {
+                await tx.RollbackAsync(ct);            // huỷ cả các tài liệu đã thêm trước đó trong lô
+                throw new BulkInsertException(i, ex);
+            }
+            ids.Add(Convert.ToInt64(outId.Value.ToString()));
+        }
+        await tx.CommitAsync(ct);
+        var result = new List<(long, string)>();
+        foreach (var id in ids) result.Add((id, (await GetAsync(conn, view, id, ct))!));
+        return result;
+    }
+
+    /// <summary>
     /// Đọc tài liệu như nó đã là tại SCN cho trước (Flashback Query: … FROM order_dv AS OF SCN n …).
     /// Oracle dựng lại tài liệu từ dữ liệu undo của các bảng nền tại đúng thời điểm đó.
     /// Trả (tài liệu hoặc null nếu lúc đó chưa có, thời điểm của SCN).
@@ -126,4 +160,11 @@ public class DualityViewStore(OracleConnectionFactory db)
         await tx.CommitAsync(ct);
         return await GetAsync(conn, view, id, ct);
     }
+}
+
+/// <summary>Lỗi Oracle ở tài liệu thứ Index (đếm từ 0) khi thêm nhiều tài liệu; cả lô đã rollback.</summary>
+public class BulkInsertException(int index, OracleException inner) : Exception(inner.Message, inner)
+{
+    public int Index { get; } = index;
+    public OracleException Oracle { get; } = inner;
 }

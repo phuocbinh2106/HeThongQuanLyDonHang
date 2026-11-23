@@ -110,6 +110,10 @@ public class ProductRepository(OracleConnectionFactory db, DualityViewStore stor
     public Task<(long Id, string Doc)> InsertDocAsync(string doc, string user, CancellationToken ct)
         => store.InsertAsync(DualityView.PRODUCT_DV, doc, user, ct);
 
+    /// <summary>Thêm NHIỀU tài liệu sản phẩm trong MỘT giao dịch (lỗi ở tài liệu nào thì rollback cả lô).</summary>
+    public Task<List<(long Id, string Doc)>> InsertManyDocsAsync(IReadOnlyList<string> docs, string user, CancellationToken ct)
+        => store.InsertManyAsync(DualityView.PRODUCT_DV, docs, user, ct);
+
     /// <summary>Cây danh mục (truy vấn phân cấp CONNECT BY) để làm ô lọc.</summary>
     public async Task<List<CategoryItem>> CategoriesAsync(CancellationToken ct)
     {
