@@ -15,3 +15,6 @@ public class ProductFilter
 
 public record CategoryItem(long Id, long? ParentId, string Name, int Level, string Path);
 public record AttributeKey(string Path, string Type);
+
+/// <summary>Số liệu bán của một sản phẩm, tính trên bảng chuẩn hoá order_items + orders (đường quan hệ).</summary>
+public record ProductSales(long ProductId, long SoldQty, long OrderCount, long DeliveredQty);

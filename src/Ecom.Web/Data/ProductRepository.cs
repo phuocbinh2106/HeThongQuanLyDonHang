@@ -114,6 +114,29 @@ public class ProductRepository(OracleConnectionFactory db, DualityViewStore stor
     public Task<List<(long Id, string Doc)>> InsertManyDocsAsync(IReadOnlyList<string> docs, string user, CancellationToken ct)
         => store.InsertManyAsync(DualityView.PRODUCT_DV, docs, user, ct);
 
+    /// <summary>
+    /// Trang chi tiết sản phẩm: đã bán bao nhiêu – truy vấn SQL thường trên BẢNG CHUẨN HOÁ (không qua Duality View).
+    /// Không tính đơn đã huỷ / trả hàng (hàng đã được hoàn kho). DELIVERED tính riêng (đã giao xong).
+    /// </summary>
+    public async Task<ProductSales> SalesAsync(long id, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT NVL(SUM(oi.quantity), 0)                                          AS sold_qty,
+                   COUNT(DISTINCT oi.order_id)                                       AS order_count,
+                   NVL(SUM(CASE WHEN o.status = 'DELIVERED' THEN oi.quantity END), 0) AS delivered_qty
+              FROM order_items oi
+              JOIN orders o ON o.order_id = oi.order_id
+             WHERE oi.product_id = :id
+               AND o.status NOT IN ('CANCELLED', 'RETURNED')
+            """;
+        await using var conn = await db.OpenAsync(ct: ct);
+        await using var cmd = new OracleCommand(sql, conn) { BindByName = true };
+        cmd.Parameters.Add(new OracleParameter("id", OracleDbType.Int64) { Value = id });
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        await r.ReadAsync(ct);   // hàm gộp luôn trả đúng 1 dòng
+        return new ProductSales(id, Convert.ToInt64(r.GetValue(0)), Convert.ToInt64(r.GetValue(1)), Convert.ToInt64(r.GetValue(2)));
+    }
+
     /// <summary>Cây danh mục (truy vấn phân cấp CONNECT BY) để làm ô lọc.</summary>
     public async Task<List<CategoryItem>> CategoriesAsync(CancellationToken ct)
     {

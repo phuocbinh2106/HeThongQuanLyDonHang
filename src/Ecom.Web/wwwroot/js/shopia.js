@@ -115,9 +115,9 @@ function productCard(p, opts = {}) {
   return `<div class="product-card ${inactive ? 'inactive' : ''}">
     ${inactive ? '<span class="flag badge text-bg-secondary">Ngừng bán</span>' : ''}
     <span class="id-tag">#${p._id}</span>
-    ${productThumb(p)}
+    <a class="thumb-link" href="/Products/Details/${p._id}" title="Xem chi tiết">${productThumb(p)}</a>
     <div class="body">
-      <div class="name" title="${escapeHtml(p.productName)}">${escapeHtml(p.productName)}</div>
+      <a class="name" href="/Products/Details/${p._id}" title="${escapeHtml(p.productName)}">${escapeHtml(p.productName)}</a>
       <div class="meta"><span>${escapeHtml(p.seller?.shopName || '')}</span><span>${escapeHtml(p.category?.categoryName || '')}</span></div>
       <div class="attrs">${chips}</div>
       <div class="d-flex justify-content-between align-items-baseline">

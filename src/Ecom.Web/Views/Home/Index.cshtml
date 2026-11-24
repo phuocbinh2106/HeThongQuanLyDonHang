@@ -163,7 +163,7 @@
           if (picks.length === 4) break;
         }
         sel('heroShowcase').innerHTML = picks.map((p, k) => `
-            <a class="hs-tile hs-${k + 1}" href="/Products?q=${encodeURIComponent(p.productName)}">
+            <a class="hs-tile hs-${k + 1}" href="/Products/Details/${p._id}">
               <div class="hs-img thumb c${categoryLook(p.category?.categoryName).c}">${icon(categoryLook(p.category?.categoryName).icon, 'cat')}
                 <img src="${productImageUrl(p._id)}" alt="" onerror="this.remove()"></div>
               <div class="hs-info"><span class="hs-cat">${escapeHtml(p.category?.categoryName ?? '')}</span>

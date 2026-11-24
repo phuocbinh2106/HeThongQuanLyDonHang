@@ -184,8 +184,13 @@ $('btnSubmit').addEventListener('click', submitOrder);
 
 Promise.all([loadCustomers(), loadProducts()])
   .then(() => {
-    const add = new URLSearchParams(location.search).get('add');
-    if (add && products.some(p => p._id == add)) addToCart(add);
+    // ?add=id&qty=n : từ nút "Mua" ở thẻ sản phẩm / trang chi tiết sản phẩm
+    const url = new URLSearchParams(location.search);
+    const add = url.get('add'), qty = parseInt(url.get('qty'), 10);
+    if (add && products.some(p => p._id == add)) {
+      if (qty > 0 && $('qty' + add)) $('qty' + add).value = qty;
+      addToCart(add);
+    }
     renderCart();
   })
   .catch(err => showError('resultBox', err));

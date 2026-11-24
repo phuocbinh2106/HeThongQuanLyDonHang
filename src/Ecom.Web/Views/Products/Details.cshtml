@@ -1,0 +1,90 @@
+@{
+    ViewData["Title"] = "Chi tiết sản phẩm";
+}
+@* Trang chi tiết sản phẩm. View chỉ là khung; dữ liệu do wwwroot/js/product-details.js nạp:
+   GET /api/products/{id}        -> tài liệu PRODUCT_DV (sản phẩm + shop + danh mục + attributes JSON)
+   GET /api/products/{id}/sales  -> đã bán bao nhiêu (SQL trên bảng order_items + orders)
+   GET /api/products?categoryId= -> sản phẩm cùng danh mục *@
+
+<div class="page-head">
+    <div>
+        <div class="crumbs" id="pdCrumbs"><a href="/">Trang chủ</a> / <a href="/Products">Sản phẩm</a></div>
+    </div>
+</div>
+
+<div id="pdMsg"></div>
+
+<div id="pdMain" class="pd-main" data-id="@ViewData["ProductId"]" hidden>
+    <!-- ẢNH -->
+    <div class="pd-gallery" id="pdGallery"></div>
+
+    <!-- THÔNG TIN + MUA -->
+    <div class="pd-info">
+        <div class="pd-tags" id="pdTags"></div>
+        <h1 class="pd-name" id="pdName"></h1>
+        <div class="pd-meta" id="pdMeta"></div>
+
+        <div class="pd-price-box">
+            <div class="pd-price" id="pdPrice"></div>
+            <div class="pd-stock" id="pdStock"></div>
+        </div>
+
+        <div class="pd-buy" id="pdBuy">
+            <label class="form-label small mb-1" for="pdQty">Số lượng</label>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="input-group pd-qty">
+                    <button class="btn btn-outline-secondary" type="button" id="pdMinus" aria-label="Giảm">−</button>
+                    <input type="number" class="form-control text-center" id="pdQty" value="1" min="1">
+                    <button class="btn btn-outline-secondary" type="button" id="pdPlus" aria-label="Tăng">+</button>
+                </div>
+                <a class="btn btn-primary btn-lg" id="pdBtnBuy" href="#">Mua ngay</a>
+            </div>
+            <div class="form-text" id="pdBuyNote"></div>
+        </div>
+
+        <div class="pd-promises">
+            <div><b>Giá do hệ thống chốt</b><span>Đơn giá lấy từ CSDL lúc đặt hàng</span></div>
+            <div><b>Không bán vượt tồn</b><span>Kho được trừ ngay khi đặt</span></div>
+            <div><b>Huỷ là hoàn kho</b><span>Huỷ trước khi giao, hàng trả về kho</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1" id="pdMore" hidden>
+    <!-- THÔNG SỐ (từ cột JSON attributes) -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Thông số sản phẩm</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0 pd-specs"><tbody id="pdSpecs"></tbody></table>
+            </div>
+        </div>
+    </div>
+    <!-- SHOP -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">Người bán</div>
+            <div class="card-body" id="pdShop"></div>
+        </div>
+        <!-- Chỉ người bán / quản trị: tài liệu JSON gốc của Duality View -->
+        <details class="card mt-3 pd-json" data-roles="seller,admin">
+            <summary class="card-header">Tài liệu PRODUCT_DV (JSON) <span class="text-muted small">– GET /api/products/<span id="pdIdLabel"></span></span></summary>
+            <div class="card-body small">
+                <div class="mb-1">ETag: <code id="pdEtag"></code></div>
+                <pre class="mb-0" id="pdJson"></pre>
+            </div>
+        </details>
+    </div>
+</div>
+
+<section class="section mt-4" id="pdRelatedBox" hidden>
+    <div class="section-title">
+        <h2>Sản phẩm cùng danh mục</h2>
+        <a id="pdRelatedAll" href="/Products">Xem tất cả →</a>
+    </div>
+    <div id="pdRelated" class="product-grid"></div>
+</section>
+
+@section Scripts {
+    <script src="~/js/product-details.js" asp-append-version="true"></script>
+}

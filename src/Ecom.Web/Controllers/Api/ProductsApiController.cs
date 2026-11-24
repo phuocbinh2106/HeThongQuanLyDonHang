@@ -16,7 +16,8 @@ namespace Ecom.Web.Controllers.Api;
 ///   POST /api/products                   -> tạo sản phẩm từ một tài liệu JSON
 ///   POST /api/products/bulk              -> tạo NHIỀU sản phẩm từ một mảng tài liệu, trong MỘT giao dịch
 ///   GET  /api/products/facets?categoryId=  -> cây danh mục, thương hiệu, thuộc tính JSON (dataguide)
-///   GET  /api/products/{id}/image        -> ảnh sản phẩm (tệp trên đĩa, không nằm trong CSDL)
+///   GET  /api/products/{id}/sales        -> đã bán bao nhiêu (SQL trên bảng order_items + orders)
+///   GET  /api/products/{id}/image       -> ảnh sản phẩm (tệp trên đĩa, không nằm trong CSDL)
 ///   POST /api/products/{id}/image        -> người bán / quản trị tải ảnh lên (multipart, field "file")
 /// Lỗi Oracle (ORA-40875 sai JSON Schema, ORA-42699 sai ETag...) do OracleExceptionFilter đổi sang HTTP.
 /// </summary>
@@ -44,6 +45,10 @@ public class ProductsApiController(ProductRepository repo, ProductImageStore ima
         Response.Headers.ETag = DocEtag.FromDoc(doc);
         return Content(doc, "application/json");
     }
+
+    /// <summary>Số lượng đã bán / số đơn của một sản phẩm (trang chi tiết sản phẩm). Đọc bảng chuẩn hoá, cùng nguồn dữ liệu với PRODUCT_DV.</summary>
+    [HttpGet("{id:long}/sales")]
+    public Task<ProductSales> Sales(long id, CancellationToken ct) => repo.SalesAsync(id, ct);
 
     /// <summary>Ghi đè tài liệu PRODUCT_DV (UPDATE product_dv) – cần If-Match; sai JSON Schema → 422, ETag cũ → 412.</summary>
     [HttpPut("{id:long}")]
