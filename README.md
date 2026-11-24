@@ -101,7 +101,9 @@ Mật khẩu CSDL **không** nằm trong mã nguồn. Lưu một lần bằng us
 cd src\Ecom.Web
 dotnet user-secrets set "EcomDb:Password" "oracle"
 ```
-(hoặc đặt biến môi trường `ECOM_DB_PASSWORD`). Chuỗi kết nối không mật khẩu nằm ở
+(hoặc đặt biến môi trường `ECOM_DB_PASSWORD`). Nếu không có hai cách trên (ví dụ user-secrets chỉ được .NET nạp ở môi
+trường Development), web lấy `ECOM_DB_PASSWORD` trong file `.env` ở gốc repo (`copy .env.example .env`; file này không
+đưa lên git). Chuỗi kết nối không mật khẩu nằm ở
 `src/Ecom.Web/appsettings.json` (`localhost:1521/ecom`, user `ecom_schema`).
 
 ```powershell

@@ -2,6 +2,8 @@ using Ecom.Web.Data;
 using Ecom.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+// Mật khẩu CSDL: user-secrets / biến môi trường; không có thì lấy ECOM_DB_PASSWORD trong file .env (Infrastructure/DotEnv.cs)
+builder.AddDotEnvFallback();
 
 // MVC (Controller + View) và API Controller dùng chung; bộ lọc toàn cục đổi OracleException
 // thành JSON ProblemDetails với mã HTTP đúng nghiệp vụ (409/412/422...).
