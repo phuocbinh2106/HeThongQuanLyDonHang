@@ -26,16 +26,17 @@
 <!-- ===================== M5 – XỬ LÝ ĐƠN ===================== -->
 <div class="card mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between gap-2">
-        <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></svg><span><b>Xử lý đơn</b> <span class="text-muted small">— kết quả hiện ngay ở cả hai tab bên dưới</span></span></span>
-        <span class="small">ETag đang giữ: <code id="etagHeld">—</code></span>
+        <span class="card-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></svg><span><b>Xử lý đơn</b> <span class="text-muted small" data-roles="seller,admin">— kết quả hiện ngay ở cả hai tab bên dưới</span></span></span>
+        <span class="small" data-roles="seller,admin">ETag đang giữ: <code id="etagHeld">—</code></span>
     </div>
     <div class="card-body small">
         <div id="actionMsg"></div>
         <div class="row g-3">
             <!-- Đổi trạng thái / huỷ: đường quan hệ (PKG_ORDER) -->
             <div class="col-lg-6"><div class="action-block">
-                <div class="fw-semibold">1. Trạng thái <span class="text-muted">(POST → pkg_order.sp_change_status / sp_cancel_order)</span></div>
-                <div class="text-muted mb-1">Trạng thái kế tiếp hợp lệ do hàm <code>fn_is_valid_transition</code> trong CSDL tính:</div>
+                <div class="fw-semibold">1. Trạng thái <span class="text-muted" data-roles="seller,admin">(POST → pkg_order.sp_change_status / sp_cancel_order)</span></div>
+                <div class="text-muted mb-1" data-roles="seller,admin">Trạng thái kế tiếp hợp lệ do hàm <code>fn_is_valid_transition</code> trong CSDL tính:</div>
+                <div class="text-muted mb-1" data-roles="customer">Bạn có thể huỷ đơn khi đơn chưa được giao cho đơn vị vận chuyển:</div>
                 <div id="nextButtons" class="d-flex flex-wrap gap-1 mb-2"></div>
                 <div class="input-group input-group-sm mb-1">
                     <span class="input-group-text">Ghi chú</span>
@@ -61,7 +62,7 @@
                     <div class="col-4"><input id="payAmount" type="number" min="1" class="form-control form-control-sm" /></div>
                     <div class="col-4"><input id="payRef" class="form-control form-control-sm" placeholder="Mã giao dịch" /></div>
                 </div>
-                <div class="d-flex gap-3 mb-1">
+                <div class="d-flex gap-3 mb-1" data-roles="admin">
                     <div class="form-check"><input class="form-check-input" type="radio" name="payChannel" id="payProc" value="proc" checked>
                         <label class="form-check-label" for="payProc">Qua procedure <code>sp_record_payment</code></label></div>
                     <div class="form-check"><input class="form-check-input" type="radio" name="payChannel" id="payJson" value="json">
@@ -69,12 +70,12 @@
                 </div>
                 <button id="btnPay" class="btn btn-sm btn-success">Ghi thanh toán</button>
                 <span class="text-muted ms-2">Đã trả: <b id="paidSoFar">0</b> / <b id="totalAmt">0</b></span>
-                <div class="form-text">TC-08: nhập số tiền lớn hơn phần còn lại → bị chặn ở <b>cả hai kênh</b> (ORA-20005).</div>
+                <div class="form-text" data-roles="admin">TC-08: nhập số tiền lớn hơn phần còn lại → bị chặn ở <b>cả hai kênh</b> (ORA-20005).</div>
             </div></div>
 
             <!-- Sửa đơn bằng tài liệu JSON -->
             <div class="col-lg-8" data-roles="customer,admin"><div class="action-block">
-                <div class="fw-semibold">3. Sửa đơn bằng tài liệu JSON <span class="text-muted">(PUT /api/orders/{id} + If-Match → UPDATE order_dv)</span></div>
+                <div class="fw-semibold">3. Sửa đơn <span data-roles="seller,admin">bằng tài liệu JSON <span class="text-muted">(PUT /api/orders/{id} + If-Match → UPDATE order_dv)</span></span><span class="text-muted" data-roles="customer">(địa chỉ giao, sản phẩm khi đơn còn chờ xác nhận)</span></div>
                 <div class="row g-1 mb-1">
                     <div class="col-sm-4"><input id="edReceiver" class="form-control form-control-sm" placeholder="Người nhận" /></div>
                     <div class="col-sm-3"><input id="edPhone" class="form-control form-control-sm" placeholder="Điện thoại" /></div>
@@ -93,8 +94,8 @@
                     <input id="edNewQty" type="number" min="1" value="1" class="form-control" />
                     <button id="btnEdAdd" class="btn btn-outline-secondary">+</button>
                 </div>
-                <button id="btnSaveDoc" class="btn btn-sm btn-primary">Lưu tài liệu</button>
-                <div class="form-text">
+                <button id="btnSaveDoc" class="btn btn-sm btn-primary">Lưu thay đổi</button>
+                <div class="form-text" data-roles="admin">
                     Dòng hàng chỉ sửa được khi đơn <b>PENDING</b> (đã khoá → 409 ORA-20004, TC-06).
                     TC-09: mở đơn này ở <b>hai tab</b>, lưu ở tab 1 rồi lưu ở tab 2 → tab 2 nhận <b>412</b>.
                 </div>
@@ -113,11 +114,13 @@
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
+    <li class="nav-item" data-roles="customer"><button class="nav-link" id="tabSummaryBtn" data-bs-toggle="tab" data-bs-target="#tabSummary" type="button">Thông tin đơn hàng</button></li>
+    <li class="nav-item" data-roles="seller,admin"><button class="nav-link active" id="tabJsonBtn" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
+    <li class="nav-item" data-roles="seller,admin"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTime" type="button">Theo thời gian</button></li>
 </ul>
 <div class="tab-content border border-top-0 p-3 mb-3">
+    <div class="tab-pane fade" id="tabSummary"><div id="orderSummary"></div></div>
     <div class="tab-pane fade show active" id="tabJson">
         <div class="small mb-2">
             ETag: <code id="etag">—</code>
@@ -153,7 +156,8 @@
         <div id="relTables"></div>
     </div>
     <div class="tab-pane fade" id="tabTime">
-        <p class="small text-muted mb-2">
+        <p class="small text-muted mb-2" data-roles="customer">Xem lại đơn hàng như lúc bạn mở trang hoặc vài phút trước; các mục đã thay đổi được tô vàng.</p>
+        <p class="small text-muted mb-2" data-roles="seller,admin">
             Đọc lại <b>cả tài liệu đơn</b> như nó đã là tại một thời điểm trước (Flashback Query:
             <code>SELECT … FROM order_dv AS OF SCN n</code>). Oracle dựng lại tài liệu từ dữ liệu cũ (undo) của 5 bảng nền,
             không cần bảng lịch sử riêng. Giữ được tối thiểu 15 phút, không quay về được trước lần reset dữ liệu.
@@ -163,7 +167,7 @@
             <button class="btn btn-sm btn-outline-secondary" data-minutes="1">1 phút trước</button>
             <button class="btn btn-sm btn-outline-secondary" data-minutes="5">5 phút trước</button>
             <button class="btn btn-sm btn-outline-secondary" data-minutes="15">15 phút trước</button>
-            <form id="ttForm" class="input-group input-group-sm" style="max-width:260px">
+            <form id="ttForm" data-roles="seller,admin" class="input-group input-group-sm" style="max-width:260px">
                 <span class="input-group-text">SCN</span>
                 <input id="ttScn" class="form-control" inputmode="numeric" placeholder="ví dụ 26205207" />
                 <button class="btn btn-outline-primary">Xem</button>

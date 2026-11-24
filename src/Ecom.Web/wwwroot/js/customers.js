@@ -44,7 +44,7 @@ async function openCustomer(id) {
     const { data, etag } = await api(`/api/customers/${id}`);
     held = { id: data._id, doc: data, etag };
     fillForm(data);
-    $('docTitle').textContent = `Tài liệu CUSTOMER_DV  _id = ${data._id}`;
+    $('docTitle').textContent = roleKind() === 'customer' ? 'Hồ sơ của tôi' : `Tài liệu CUSTOMER_DV  _id = ${data._id}`;
     $('etag').textContent = etag;
     $('lnkOrders').href = `/Orders?customerId=${data._id}`;
     $('lnkOrders').hidden = false;
@@ -110,10 +110,10 @@ async function save() {
     const r = held.id == null
       ? await api('/api/customers', { method: 'POST', body: doc })
       : await api(`/api/customers/${held.id}`, { method: 'PUT', body: doc, ifMatch: held.etag });
-    showOk('msg', `Đã lưu (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
+    showOk('msg', roleKind() === 'customer' ? 'Đã lưu thay đổi.' : `Đã lưu (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
     await loadList();
     await openCustomer(r.data._id);
-    showOk('msg', `Đã lưu (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
+    showOk('msg', roleKind() === 'customer' ? 'Đã lưu thay đổi.' : `Đã lưu (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
   } catch (err) { showError('msg', err); }
 }
 

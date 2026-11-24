@@ -533,3 +533,17 @@ details > summary::marker { color: var(--sp-gold-500); }
 .buy-sum > div { background: #fff; border: 1px solid var(--sp-line); border-radius: 12px; padding: .5rem .8rem; min-width: 120px; }
 .buy-sum b { display: block; font-size: 1.35rem; color: var(--sp-green-800); }
 .buy-sum span { font-size: .75rem; color: var(--sp-muted); }
+
+/* ---------------------------------------------------------------- Banner: 4 sản phẩm nổi bật */
+.hero-showcase { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; max-width: 520px; margin-left: auto; }
+.hs-tile { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.25); color: var(--sp-ink);
+  display: flex; flex-direction: column; transition: transform .2s; text-decoration: none; }
+.hs-tile:hover { transform: translateY(-4px) !important; text-decoration: none; color: var(--sp-ink); }
+.hs-2, .hs-4 { transform: translateY(22px); }
+.hs-img { aspect-ratio: 4 / 3; }
+.hs-img svg.cat { width: 34%; height: 34%; }
+.hs-info { padding: .55rem .75rem .7rem; display: flex; flex-direction: column; gap: .1rem; }
+.hs-info b { font-size: .86rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.hs-cat { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--sp-muted); }
+.hs-price { font-weight: 800; color: var(--sp-green-700); font-size: .95rem; }
+.hs-skel { aspect-ratio: 4 / 3.9; background: rgba(255,255,255,.14); box-shadow: none; }

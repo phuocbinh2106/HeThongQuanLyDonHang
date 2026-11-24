@@ -87,11 +87,27 @@ function productThumb(p, size = '') {
     ${brand && size !== 'sm' ? `<span class="brand">${escapeHtml(brand)}</span>` : ''}</div>`;
 }
 
+// Nhãn tiếng Việt cho thuộc tính sản phẩm (khách hàng không thấy tên khoá JSON như ramGb, warrantyMonths)
+const ATTR_VI = {
+  color: v => `Màu ${v}`, ramGb: v => `RAM ${v} GB`, storageGb: v => `${v} GB`, screenInch: v => `Màn hình ${v}"`,
+  size: v => `Size ${v}`, material: v => v, warrantyMonths: v => `Bảo hành ${v} tháng`, cpu: v => v,
+  batteryHours: v => `Pin ${v} giờ`, capacityMah: v => `${v} mAh`, powerW: v => `${v} W`, volumeMl: v => `${v} ml`,
+  spf: v => `SPF ${v}`, skinType: v => v, origin: v => `Xuất xứ ${v}`, author: v => v, pages: v => `${v} trang`,
+  language: v => (v === 'vi' ? 'Tiếng Việt' : v === 'en' ? 'Tiếng Anh' : v), coverType: v => v, weightG: v => `${v} g`,
+  wireless: v => (v ? 'Không dây' : 'Có dây'), foldable: v => (v ? 'Màn hình gập' : ''), waterproof: v => (v ? 'Chống nước' : ''),
+  vegan: v => (v ? 'Thuần chay' : ''), compatibleWith: v => `Dùng cho ${v}`,
+};
+const isTechRole = () => ['seller', 'admin'].includes(roleKind());
+
 // Thẻ sản phẩm từ một tài liệu PRODUCT_DV. opts.json = hiện nút "JSON" (mở tài liệu để xem / sửa)
 function productCard(p, opts = {}) {
-  const attrs = Object.entries(p.attributes || {});
+  const tech = isTechRole();
+  const attrs = Object.entries(p.attributes || {})
+    .map(([k, v]) => [k, Array.isArray(v) ? v.join('/') : v])
+    .map(([k, v]) => [k, k === 'brand' || tech ? v : (ATTR_VI[k] ? ATTR_VI[k](v) : `${k}: ${v}`)])
+    .filter(([, v]) => v !== '' && v !== null && v !== undefined);
   const chips = attrs.slice(0, 4).map(([k, v]) =>
-    `<span class="chip ${k === 'brand' ? 'brand' : ''}" title="$.${escapeHtml(k)}">${k === 'brand' ? '' : escapeHtml(k) + ': '}${escapeHtml(Array.isArray(v) ? v.join('/') : v)}</span>`).join('')
+    `<span class="chip ${k === 'brand' ? 'brand' : ''}"${tech ? ` title="$.${escapeHtml(k)}"` : ''}>${k === 'brand' || !tech ? '' : escapeHtml(k) + ': '}${escapeHtml(v)}</span>`).join('')
     + (attrs.length > 4 ? `<span class="chip">+${attrs.length - 4}</span>` : '');
   const inactive = p.status !== 'ACTIVE';
   const stock = p.stockQty === 0 ? '<span class="stock out">Hết hàng</span>'

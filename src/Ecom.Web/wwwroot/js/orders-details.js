@@ -40,6 +40,45 @@ function renderJson(doc, etag) {
   $('asof').textContent = doc._metadata?.asof ?? '—';
   window.openAsof ??= doc._metadata?.asof;   // SCN lúc mở trang (tab "Theo thời gian" dùng để xem lại bản này)
   $('jsonDoc').innerHTML = highlightJson(JSON.stringify(doc, null, 2));
+  renderSummary(doc);
+}
+
+// Tab "Thông tin đơn hàng" cho khách hàng: trình bày tài liệu đơn bằng giao diện, không hiện code JSON
+const METHOD_VI = { COD: 'Thanh toán khi nhận hàng', BANK_TRANSFER: 'Chuyển khoản', E_WALLET: 'Ví điện tử', CARD: 'Thẻ' };
+const PAY_VI = { PENDING: 'Chờ thanh toán', PAID: 'Đã thanh toán', REFUNDED: 'Đã hoàn tiền', FAILED: 'Thất bại' };
+const fmtTime = v => v ? escapeHtml(String(v).replace('T', ' ').slice(0, 16)) : '';
+function renderSummary(doc) {
+  const items = (doc.items ?? []).map(i => `<tr>
+      <td><div class="picker-row">${productThumb({ productId: i.productId }, 'sm')}<span>${escapeHtml(i.productName ?? '')}</span></div></td>
+      <td class="text-end">${fmtMoney(i.unitPrice)}</td><td class="text-center">${i.quantity}</td>
+      <td class="text-end">${fmtMoney(i.unitPrice * i.quantity)}</td></tr>`).join('');
+  const pays = (doc.payments ?? []).map(x => `<li>${escapeHtml(METHOD_VI[x.method] ?? x.method)}: <b>${fmtMoney(x.amount)}</b>
+      - ${escapeHtml(PAY_VI[x.status] ?? x.status)}</li>`).join('') || '<li class="text-muted">Chưa có thanh toán</li>';
+  const ships = (doc.shipments ?? []).map(x => `<li>${escapeHtml(x.carrier)}${x.trackingNo ? ' - mã vận đơn ' + escapeHtml(x.trackingNo) : ''}</li>`).join('')
+    || '<li class="text-muted">Chưa giao cho đơn vị vận chuyển</li>';
+  const hist = (doc.history ?? []).map(h => `<li>${fmtTime(h.changedAt)}: ${h.oldStatus ? escapeHtml(STATUS_VI[h.oldStatus] ?? h.oldStatus) + ' → ' : ''}<b>${escapeHtml(STATUS_VI[h.newStatus] ?? h.newStatus)}</b>${h.note ? ' (' + escapeHtml(h.note) + ')' : ''}</li>`).join('');
+  $('orderSummary').innerHTML = `
+    <div class="row g-3 small">
+      <div class="col-lg-8">
+        <table class="table table-sm align-middle mb-2">
+          <thead class="table-light"><tr><th>Sản phẩm</th><th class="text-end">Đơn giá</th><th class="text-center">SL</th><th class="text-end">Thành tiền</th></tr></thead>
+          <tbody>${items}</tbody>
+        </table>
+        <div class="d-flex flex-column align-items-end gap-1">
+          <div>Tiền hàng: <b>${fmtMoney(doc.subtotal)}</b></div>
+          <div>Phí vận chuyển: <b>${fmtMoney(doc.shippingFee)}</b></div>
+          <div>Giảm giá: <b>- ${fmtMoney(doc.discount)}</b></div>
+          <div class="fs-6">Tổng thanh toán: <b class="text-success">${fmtMoney(doc.totalAmount)}</b></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="fw-semibold">Giao đến</div>
+        <div class="mb-2">${escapeHtml(doc.shipReceiver ?? '')} - ${escapeHtml(doc.shipPhone ?? '')}<br>${escapeHtml(doc.shipAddress ?? '')}</div>
+        <div class="fw-semibold">Thanh toán</div><ul class="mb-2 ps-3">${pays}</ul>
+        <div class="fw-semibold">Vận chuyển</div><ul class="mb-2 ps-3">${ships}</ul>
+        <div class="fw-semibold">Lịch sử đơn hàng</div><ul class="mb-0 ps-3">${hist}</ul>
+      </div>
+    </div>`;
 }
 
 function renderRelational(tables) {
@@ -127,7 +166,7 @@ async function putDoc(doc, okText) {
   $('actionMsg').innerHTML = '';
   try {
     const r = await api(`/api/orders/${ORDER_ID}`, { method: 'PUT', body: doc, ifMatch: held.etag });
-    showOk('actionMsg', `${okText} (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
+    showOk('actionMsg', roleKind() === 'customer' ? `${okText}.` : `${okText} (HTTP ${r.status}). ETag mới: <code>${escapeHtml(r.etag)}</code>`);
     editExtra = [];
     await load();
   } catch (err) { showError('actionMsg', err); }
@@ -137,7 +176,7 @@ async function postAction(path, body, okText) {
   $('actionMsg').innerHTML = '';
   try {
     const r = await api(`/api/orders/${ORDER_ID}/${path}`, { method: 'POST', body });
-    showOk('actionMsg', `${okText} (HTTP ${r.status}). Trạng thái hiện tại: ${statusBadge(r.data.status)}`);
+    showOk('actionMsg', roleKind() === 'customer' ? `${okText}. Trạng thái hiện tại: ${statusBadge(r.data.status)}` : `${okText} (HTTP ${r.status}). Trạng thái hiện tại: ${statusBadge(r.data.status)}`);
     await load();
   } catch (err) { showError('actionMsg', err); }
 }
@@ -190,4 +229,6 @@ $('btnShip').addEventListener('click', () => {
 });
 
 $('btnRefresh').addEventListener('click', load);
+// Khách hàng: mở sẵn tab "Thông tin đơn hàng" (tab JSON / bảng quan hệ chỉ dành cho người bán, quản trị)
+if (roleKind() === 'customer') bootstrap.Tab.getOrCreateInstance($('tabSummaryBtn')).show();
 load();

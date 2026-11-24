@@ -23,20 +23,20 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span id="docTitle">Chọn một khách bên trái</span>
-                <span class="small">ETag: <code id="etag">—</code></span>
+                <span class="small" data-roles="admin">ETag: <code id="etag">—</code></span>
             </div>
             <div class="card-body small">
                 <div id="msg"></div>
                 <div class="row g-2 mb-2">
                     <div class="col-md-5"><label class="form-label mb-0">Họ tên</label><input id="fullName" class="form-control form-control-sm" /></div>
-                    <div class="col-md-4"><label class="form-label mb-0">Email (UNIQUE)</label><input id="email" class="form-control form-control-sm" /></div>
+                    <div class="col-md-4"><label class="form-label mb-0">Email</label><input id="email" class="form-control form-control-sm" /></div>
                     <div class="col-md-3"><label class="form-label mb-0">Điện thoại</label><input id="phone" class="form-control form-control-sm" /></div>
                     <div class="col-md-3"><label class="form-label mb-0">Trạng thái</label>
                         <select id="status" class="form-select form-select-sm"><option>ACTIVE</option><option>LOCKED</option></select></div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="fw-semibold">Sổ địa chỉ – <code>addresses[]</code></div>
+                    <div class="fw-semibold">Sổ địa chỉ<span data-roles="admin"> – <code>addresses[]</code></span></div>
                     <button id="btnAddAddr" class="btn btn-sm btn-outline-secondary">+ Thêm địa chỉ</button>
                 </div>
                 <div class="table-responsive">
@@ -47,15 +47,15 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <button id="btnSave" class="btn btn-sm btn-primary">Lưu tài liệu</button>
-                    <button id="btnReload" class="btn btn-sm btn-outline-secondary">Tải lại (GET)</button>
+                    <button id="btnSave" class="btn btn-sm btn-primary">Lưu thay đổi</button>
+                    <button id="btnReload" class="btn btn-sm btn-outline-secondary">Tải lại</button>
                     <a id="lnkOrders" class="btn btn-sm btn-link" href="#">Xem đơn của khách →</a>
                 </div>
-                <div class="form-text">
+                <div class="form-text" data-roles="admin">
                     Đơn hàng lưu <b>bản chụp</b> địa chỉ (orders.ship_*), không trỏ tới sổ địa chỉ → sửa / xoá địa chỉ ở đây
                     không làm đổi đơn cũ. Email trùng khách khác → 409 (ORA-00001). Hai tab cùng sửa → tab sau 412.
                 </div>
-                <details class="mt-2"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light mt-2 mb-0"></pre></details>
+                <details class="mt-2" data-roles="admin"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light mt-2 mb-0"></pre></details>
             </div>
         </div>
     </div>

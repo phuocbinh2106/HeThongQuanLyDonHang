@@ -25,28 +25,10 @@
             </div>
         </div>
         <div class="col-lg-6 d-none d-md-block">
-            <div class="duality-art">
-                <div class="panel json">
-                    <div class="ph">{ } ORDER_DV · tài liệu JSON <span style="opacity:.6;font-weight:400">(minh hoạ)</span></div>
-<pre>{ "_id": 60, "status": "PENDING",
-  "customer": { "fullName": "…" },
-  "items": [
-    { "productId": 1, "quantity": 1,
-      "unitPrice": 22990000 } ],
-  "_metadata": { "etag": "B1F3…" } }</pre>
-                </div>
-                <div class="link" title="Cùng một dữ liệu">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" /></svg>
-                </div>
-                <div class="panel rel">
-                    <div class="ph">▦ ORDERS · ORDER_ITEMS · bảng quan hệ</div>
-                    <table>
-                        <tr><th>ORDER_ID</th><th>STATUS</th><th>PRODUCT_ID</th><th>UNIT_PRICE</th></tr>
-                        <tr><td>60</td><td>PENDING</td><td>1</td><td>22.990.000</td></tr>
-                        <tr><td>59</td><td>SHIPPING</td><td>7</td><td>199.000</td></tr>
-                        <tr><td>58</td><td>DELIVERED</td><td>12</td><td>1.290.000</td></tr>
-                    </table>
-                </div>
+            <!-- 4 sản phẩm đang bán thuộc 4 ngành hàng khác nhau (đọc thật từ CSDL, xem loadShowcase) -->
+            <div class="hero-showcase" id="heroShowcase">
+                <div class="hs-tile hs-skel"></div><div class="hs-tile hs-skel"></div>
+                <div class="hs-tile hs-skel"></div><div class="hs-tile hs-skel"></div>
             </div>
         </div>
     </div>
@@ -120,7 +102,7 @@
             </div>
         </div>
     </div>
-    <div class="form-text mt-2">
+    <div class="form-text mt-2" data-roles="seller,admin">
         Vai trò lưu trong cookie <code>ecom_user</code>; API gửi giá trị này xuống Oracle qua
         <code>CLIENT_IDENTIFIER</code> → trigger ghi vào cột <code>changed_by</code> của lịch sử trạng thái.
     </div>
@@ -173,6 +155,20 @@
                 <div class="ph thumb c${look.c}">${icon(look.icon)}<img src="/img/categories/${c.id}.jpg" alt="" loading="lazy" onerror="this.remove()"></div>
                 <b>${escapeHtml(c.name)}</b><span>${c.level > 1 ? 'Danh mục con' : 'Ngành hàng'}</span></a>`;
         }).join('');
+        // Banner: 4 sản phẩm còn hàng, mỗi sản phẩm một ngành hàng khác nhau
+        const seen = new Set(), picks = [];
+        for (const p of list.items) {
+          const cat = p.category?.categoryName;
+          if (p.stockQty > 0 && !seen.has(cat)) { seen.add(cat); picks.push(p); }
+          if (picks.length === 4) break;
+        }
+        sel('heroShowcase').innerHTML = picks.map((p, k) => `
+            <a class="hs-tile hs-${k + 1}" href="/Products?q=${encodeURIComponent(p.productName)}">
+              <div class="hs-img thumb c${categoryLook(p.category?.categoryName).c}">${icon(categoryLook(p.category?.categoryName).icon, 'cat')}
+                <img src="${productImageUrl(p._id)}" alt="" onerror="this.remove()"></div>
+              <div class="hs-info"><span class="hs-cat">${escapeHtml(p.category?.categoryName ?? '')}</span>
+                <b>${escapeHtml(p.productName)}</b><span class="hs-price">${fmtMoney(p.price)}</span></div>
+            </a>`).join('');
         sel('featured').innerHTML = list.items.filter(p => p.stockQty > 0).slice(0, 10).map(p => productCard(p, { buy: roleKind() !== 'seller' })).join('')
             || '<div class="empty-state">Chưa có sản phẩm</div>';
     }

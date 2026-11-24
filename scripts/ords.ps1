@@ -8,7 +8,7 @@
   Sau khi ORDS chạy lần đầu, bật AutoREST:  .\scripts\db.ps1 file 11_ords_autorest.sql
 
   Mật khẩu:
-  - SYS: đọc lúc chạy từ biến ORACLE_PWD của container Oracle (không ghi vào repo).
+  - SYS: đọc lúc chạy từ ORACLE_PWD trong file .env (không đưa lên git), không có thì từ biến của container Oracle.
   - ORDS_PUBLIC_USER (user ORDS dùng để kết nối): tự sinh ngẫu nhiên lần đầu, ORDS lưu trong volume cấu hình.
   Cả hai được truyền cho container qua thư mục secrets tạm trong %TEMP% và xoá ngay sau khi container khởi động xong.
 #>
@@ -45,8 +45,15 @@ switch ($Action) {
       'Đã khởi động lại container ORDS có sẵn.'
     } else {
       # Lần đầu: cần mật khẩu SYS để ORDS tự cài schema ORDS_METADATA vào PDB ecom
-      $sysPwd = (docker exec $oracle bash -c 'echo -n $ORACLE_PWD')
-      if (-not $sysPwd) { throw "Không đọc được ORACLE_PWD từ container $oracle." }
+      # Ưu tiên ORACLE_PWD trong .env (mật khẩu hiện tại, kể cả khi đã đổi sau khi tạo container);
+      # không có .env thì dùng biến môi trường lúc tạo container.
+      $sysPwd = $null
+      if (Test-Path $envFile) {
+        $l = Get-Content $envFile | Where-Object { $_ -match '^\s*ORACLE_PWD\s*=' } | Select-Object -First 1
+        if ($l) { $sysPwd = ($l -split '=', 2)[1].Trim() }
+      }
+      if (-not $sysPwd) { $sysPwd = (docker exec $oracle bash -c 'echo -n $ORACLE_PWD') }
+      if (-not $sysPwd) { throw "Không có ORACLE_PWD (trong .env hoặc container $oracle)." }
       # Gọi thẳng "ords install" (không qua script khởi động của image: script đó ghép mật khẩu vào chuỗi
       # sys/<mật khẩu>@host nên hỏng khi mật khẩu có ký tự @ hoặc /). Mật khẩu đưa qua stdin (--password-stdin):
       # dòng 1 = mật khẩu SYS, dòng 2 = mật khẩu mới cho ORDS_PUBLIC_USER. Tệp tạm bị xoá ngay sau khi cài.

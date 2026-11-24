@@ -61,10 +61,12 @@
                     <button class="btn btn-sm btn-outline-secondary" type="reset">Xoá lọc</button>
                 </div>
 
+                <div data-roles="seller,admin">
                 <hr />
                 <div class="fw-semibold mb-1">Thuộc tính JSON có trong danh mục</div>
                 <div class="text-muted small mb-2">Hệ thống tự nhận biết từ dữ liệu (JSON_DATAGUIDE)</div>
                 <div id="attrKeys"></div>
+                </div>
             </div>
         </form>
     </div>
@@ -74,7 +76,7 @@
         <div id="listMsg"></div>
         <div class="toolbar">
             <span>Tìm thấy <b id="count">0</b> sản phẩm</span>
-            <details class="small">
+            <details class="small" data-roles="seller,admin">
                 <summary>Câu SQL lọc vừa chạy</summary>
             </details>
         </div>

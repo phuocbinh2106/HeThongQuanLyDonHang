@@ -25,33 +25,35 @@ cd src\Ecom.Web; dotnet run --launch-profile http
 trên bảng chuẩn hoá. Nhóm dùng JSON Relational Duality View của Oracle 23ai. Ứng dụng viết bằng ASP.NET Core MVC;
 API C# đọc/ghi **trực tiếp** Duality View, còn nghiệp vụ và báo cáo gọi package PL/SQL."
 
-**Làm:** Trang chủ Shopia → chỉ phần hero "một nguồn – hai cách nhìn" (số sản phẩm / đơn / khách lấy thật từ CSDL)
+**Làm:** Trang chủ Shopia → chỉ phần hero (4 sản phẩm đang bán và số sản phẩm / đơn / khách đều đọc thật từ CSDL)
 → cuộn xuống khu **"Bạn là ai?"** chọn
 **Khách hàng #1 – Nguyễn Văn An** → "Vào vai khách hàng" (góc phải header hiện avatar + vai trò).
-→ Chỉ menu chỉ còn *Tạo đơn / Đơn của tôi / Hồ sơ của tôi* → gõ thẳng địa chỉ **/Reports** → trang **403 – Không có quyền**.
+→ Chỉ menu chỉ còn *Tạo đơn / Đơn của tôi / Hồ sơ của tôi*; mở *Đơn của tôi* → một đơn → tab **Thông tin đơn hàng**
+(giao diện người mua, **không hiện code JSON / SQL**) → gõ thẳng địa chỉ **/Reports** → trang **403 – Không có quyền**.
 
 **Nói:** "Đăng nhập là mô phỏng, nhưng quyền được kiểm tra ở server: mọi API và mọi trang đều đọc vai trò; khách hàng
 chỉ thấy đơn của mình, không xem được báo cáo – gọi thẳng API cũng nhận 403."
 
-> Thứ tự vai trò trong demo: **khách hàng #1** (bước 1–3) → **người bán #3 – Laptop Pro Shop** (bước 4) →
-> **quản trị sàn** (bước 5–9). Đổi vai trò: bấm avatar góc phải header → khu "Bạn là ai?" ở trang chủ.
+> Thứ tự vai trò trong demo: **khách hàng #1** (bước 1) → **quản trị sàn** (bước 2–3) → **người bán #3 – Laptop Pro Shop**
+> (bước 4) → **quản trị sàn** (bước 5–9). Khách hàng chỉ thấy giao diện mua bán; phần kỹ thuật (tài liệu JSON, câu SQL,
+> ETag) chỉ hiện với người bán và quản trị nên các bước minh hoạ Duality View làm bằng vai quản trị. Đổi vai trò: bấm avatar góc phải header → khu "Bạn là ai?" ở trang chủ.
 
-## 2. TH-1, TH-4 – Tạo cả một đơn bằng một tài liệu JSON (1:00–2:15) · vai trò khách hàng #1
+## 2. TH-1, TH-4 – Tạo cả một đơn bằng một tài liệu JSON (1:00–2:15) · vai trò quản trị sàn (đặt hộ khách #1)
 
-**Làm:** Menu *Tạo đơn* (ô khách bị khoá vào chính mình) → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2
+**Làm:** Trang chủ → "Vào vai quản trị" → menu *Tạo đơn* → chọn khách **#1 – Nguyễn Văn An** → thêm *Samsung Galaxy S24* SL 1, *Áo thun Coolmate* SL 2
 → ở cột giỏ hàng bên phải tick **"Chế độ thử TC-02"** → chỉ khung *Tài liệu JSON sẽ gửi* bên trái (có `status: DELIVERED`,
 `unitPrice: 1`, `orderNo: HACK-001`) → *Đặt hàng*.
 
-**Kết quả:** HTTP 201, đơn **PENDING**, số đơn do sequence sinh, giá thật do CSDL lấy, lịch sử ghi bởi `customer:1`.
+**Kết quả:** HTTP 201, đơn **PENDING**, số đơn do sequence sinh, giá thật do CSDL lấy, lịch sử ghi bởi `admin`.
 
 **Nói:** "Một request, một câu `INSERT INTO order_dv`; Oracle tách ra ORDERS và ORDER_ITEMS, trigger chốt giá, trừ kho,
 tính tổng. Giá và trạng thái client gửi bị bỏ qua vì quy tắc nằm ở bảng nền."
 
-## 3. TH-2 – Một nguồn dữ liệu, hai cách nhìn (2:15–3:30) · vai trò khách hàng #1
+## 3. TH-2 – Một nguồn dữ liệu, hai cách nhìn (2:15–3:30) · vai trò quản trị sàn
 
 **Làm:** Bấm *Xem chi tiết đơn* → chỉ thanh tiến trình trạng thái (vẽ từ `history[]` của tài liệu) → tab **Dạng JSON** (ETag, asof, bảng ánh xạ trường → cột) → tab
 **Dạng bảng quan hệ** (dòng thật trong 5 bảng, có ROWID) → so sánh vài giá trị giữa hai tab (số đơn, trạng thái, tổng tiền, số dòng hàng).
-Khu *Xử lý đơn* của khách hàng chỉ có nút **Huỷ đơn**, thanh toán và sửa địa chỉ / dòng hàng (không tự đổi trạng thái).
+(Ở bước 1 đã cho thấy: cùng đơn này, khách hàng chỉ thấy tab *Thông tin đơn hàng* và khu *Xử lý đơn* chỉ có **Huỷ đơn**, thanh toán, sửa địa chỉ / dòng hàng.)
 
 **Làm thêm (TC-12):** Trong DBeaver chạy
 ```sql

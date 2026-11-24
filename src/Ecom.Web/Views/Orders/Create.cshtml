@@ -43,8 +43,8 @@
             </div>
         </div>
 
-        <!-- TÀI LIỆU JSON -->
-        <div class="card mb-3">
+        <!-- TÀI LIỆU JSON (chỉ quản trị: khách hàng không thấy code JSON) -->
+        <div class="card mb-3" data-roles="admin">
             <div class="card-header card-title-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 4.5c-2 0-2.5 1-2.5 2.5v2.5c0 1.2-.7 2-2 2.5 1.3.5 2 1.3 2 2.5V17c0 1.5.5 2.5 2.5 2.5" /><path d="M15.5 4.5c2 0 2.5 1 2.5 2.5v2.5c0 1.2.7 2 2 2.5-1.3.5-2 1.3-2 2.5V17c0 1.5-.5 2.5-2.5 2.5" /></svg>
                 Tài liệu JSON sẽ gửi (request body)
@@ -83,14 +83,14 @@
                     <div class="d-flex justify-content-between mt-3"><span class="text-muted">Tạm tính (client ước lượng)</span><b id="estSubtotal">0 đ</b></div>
                     <div class="summary-total"><span class="fw-semibold">Tổng thanh toán</span><b id="estTotal">0 đ</b></div>
                     <div class="text-muted text-end">Server sẽ tự tính lại từ giá trong CSDL.</div>
-                    <div class="form-check mt-3 p-2 ps-4 rounded" style="background:var(--sp-gold-100);border:1px dashed #e9c76f">
+                    <div class="form-check mt-3 p-2 ps-4 rounded" data-roles="admin" style="background:var(--sp-gold-100);border:1px dashed #e9c76f">
                         <input class="form-check-input" type="checkbox" id="fakeMode">
                         <label class="form-check-label" for="fakeMode">
                             Chế độ thử TC-02: chèn <code>status: "DELIVERED"</code>, <code>subtotal: 1</code>,
                             <code>totalAmount: 1</code>, <code>unitPrice: 1</code> vào tài liệu gửi đi
                         </label>
                     </div>
-                    <button id="btnSubmit" class="btn btn-primary btn-lg mt-3 w-100">Đặt hàng <span class="fw-normal small opacity-75">(POST /api/orders)</span></button>
+                    <button id="btnSubmit" class="btn btn-primary btn-lg mt-3 w-100">Đặt hàng <span class="fw-normal small opacity-75" data-roles="admin">(POST /api/orders)</span></button>
                 </div>
             </div>
         </div>

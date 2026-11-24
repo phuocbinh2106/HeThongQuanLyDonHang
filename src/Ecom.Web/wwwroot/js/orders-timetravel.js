@@ -24,7 +24,7 @@
     ['Vận đơn', d => (d.shipments ?? []).map(s => `${s.carrier} ${s.trackingNo}`).join('; ') || '—'],
     ['Lịch sử trạng thái', d => `${(d.history ?? []).length} dòng`],
     ['ETag', d => d._metadata?.etag],
-  ];
+  ].filter(([name]) => roleKind() !== 'customer' || name !== 'ETag');   // khách hàng không cần ETag
 
   async function show(query, label) {
     el('ttMsg').innerHTML = ''; el('ttResult').innerHTML = '<span class="text-muted small">Đang đọc…</span>';
@@ -42,13 +42,13 @@
       // SCN_TO_TIMESTAMP trả giờ của máy chủ CSDL (container Oracle chạy giờ UTC)
       const at = old.asOfTime ? ` (≈ ${escapeHtml(String(old.asOfTime).replace('T', ' ').slice(0, 19))} giờ máy chủ CSDL)` : '';
       el('ttResult').innerHTML = `
-        <div class="small mb-2">${escapeHtml(label)}: tài liệu tại <b>SCN ${escapeHtml(old.scn)}</b>${at} –
+        <div class="small mb-2">${escapeHtml(label)}: ${roleKind() === 'customer' ? 'đơn hàng lúc đó' : `tài liệu tại <b>SCN ${escapeHtml(old.scn)}</b>${at}`} –
           ${changed ? `<b>${changed}</b> mục khác bản hiện tại (tô vàng)` : 'giống hệt bản hiện tại'}.</div>
         <table class="table table-sm table-bordered align-middle">
           <thead class="table-light"><tr><th style="width:20%">Trường</th><th>Lúc đó</th><th>Hiện tại</th><th style="width:70px"></th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-        <details class="small"><summary>Hai tài liệu JSON đầy đủ</summary>
+        <details class="small ${roleKind() === 'customer' ? 'd-none' : ''}"><summary>Hai tài liệu JSON đầy đủ</summary>
           <div class="row g-2 mt-1">
             <div class="col-lg-6"><div class="fw-semibold">Lúc đó (SCN ${escapeHtml(old.scn)})</div>
               <pre class="bg-light mb-0" style="max-height:420px;overflow:auto">${escapeHtml(JSON.stringify(old.doc, null, 2))}</pre></div>

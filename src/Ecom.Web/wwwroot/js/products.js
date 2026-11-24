@@ -56,8 +56,8 @@ async function loadProducts() {
     const { data } = await api('/api/products?' + queryString());
     document.getElementById('count').textContent = data.count;
     document.getElementById('filterSql').textContent = data.filterSql;
-    // mỗi thẻ là một tài liệu PRODUCT_DV (hàm productCard ở shopia.js)
-    document.getElementById('productRows').innerHTML = data.items.map(p => productCard(p, { json: true, buy: roleKind() !== 'seller' })).join('') ||
+    // mỗi thẻ là một tài liệu PRODUCT_DV (hàm productCard ở shopia.js); nút xem tài liệu JSON chỉ cho người bán / quản trị
+    document.getElementById('productRows').innerHTML = data.items.map(p => productCard(p, { json: ['seller', 'admin'].includes(roleKind()), buy: roleKind() !== 'seller' })).join('') ||
       `<div class="empty-state" style="grid-column:1/-1">${icon('search')}<div>Không có sản phẩm phù hợp</div></div>`;
   } catch (err) { showError('listMsg', err); }
 }

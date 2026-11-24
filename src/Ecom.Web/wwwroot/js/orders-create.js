@@ -128,6 +128,19 @@ async function submitOrder() {
   try {
     const { data: doc, etag, status } = await api('/api/orders', { method: 'POST', body: sent });
     const est = sent.items.reduce((s, it) => s + cart.get(it.productId).product.price * it.quantity, 0);
+    if (roleKind() === 'customer') {
+      $('resultBox').innerHTML = `
+        <div class="card mb-3" style="border-color:#bfe5cf">
+          <div class="card-header" style="background:#e6f5ec;color:#175c3a">${icon('check')} Đặt hàng thành công</div>
+          <div class="card-body small">
+            <div>Mã đơn: <b>${escapeHtml(doc.orderNo)}</b> · ${statusPill(doc.status)}</div>
+            <div>Tổng thanh toán: <b>${fmtMoney(doc.totalAmount)}</b></div>
+            <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết đơn hàng</a>
+          </div>
+        </div>`;
+      cart.clear(); renderCart(); loadProducts();
+      return;
+    }
     $('resultBox').innerHTML = `
       <div class="card mb-3" style="border-color:#bfe5cf">
         <div class="card-header" style="background:#e6f5ec;color:#175c3a">${icon('check')} Đặt hàng thành công – HTTP ${status}</div>

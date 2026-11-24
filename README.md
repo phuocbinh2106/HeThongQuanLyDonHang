@@ -175,6 +175,8 @@ API controller và chú thích `///`; tài liệu OpenAPI ở `/api-docs/v1/swag
   nhận 401 / 403 chứ không phải 400.
 - Danh sách đơn: khách hàng luôn bị giới hạn `customer_id` = chính mình (bỏ qua tham số client gửi); người bán chỉ thấy đơn có
   sản phẩm của shop (`EXISTS` trên `order_items` ⋈ `products`).
+- Giao diện khách hàng (và khách vãng lai) không hiện code: tài liệu JSON, câu SQL, ETag chỉ hiện với người bán / quản trị
+  (thuộc tính `data-roles`); trang chi tiết đơn của khách có tab **Thông tin đơn hàng** thay cho tab JSON và tab bảng quan hệ.
 - Màn hình chọn vai trò dùng `GET /api/session/customers` (chỉ mã + họ tên); `GET /api/customers` đầy đủ chỉ dành cho quản trị.
 - Kiểm thử: `node tests/api_authz.mjs` – 22 kịch bản AZ-01…AZ-22 (gọi thẳng API và trang bằng từng vai trò). AZ-16 tạo
   một sản phẩm thử (INACTIVE) kèm ảnh; chạy `.scriptsdb.ps1 reset` sau khi kiểm thử để dữ liệu về như ban đầu.
