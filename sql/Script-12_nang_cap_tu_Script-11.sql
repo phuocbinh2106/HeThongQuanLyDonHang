@@ -117,7 +117,7 @@ ALTER TABLE products MODIFY (attributes JSON CONSTRAINT products_attr_chk VALIDA
 CREATE INDEX ix_orders_cust_date ON orders (customer_id, order_date DESC);
 
 -- IX-5 (Q3 đọc một tài liệu ORDER_DV): khoá ngoại order_id ở 3 bảng con của ORDER_DV.
--- Mỗi lần dựng tài liệu, Oracle tìm thanh toán / vận đơn / lịch sử theo order_id; không có chỉ mục
+-- Mỗi lần dựng tài liệu, Oracle tìm thanh toán / vận đơn / lịch sử theo order_id, không có chỉ mục
 -- thì mỗi bảng con bị quét toàn bộ. (order_items đã có UNIQUE(order_id, product_id) dùng được.)
 CREATE INDEX ix_payments_order  ON payments (order_id);
 CREATE INDEX ix_shipments_order ON shipments (order_id);
@@ -135,18 +135,17 @@ CREATE INDEX ix_products_brand ON products (JSON_VALUE(attributes, '$.brand' RET
 -- 04_PKG_ORDER: package nghiệp vụ đơn hàng
 -- ==============================================================================
 
--- ------------------------------------------------------------------------------
--- PKG_ORDER_CTX: biến trạng thái theo PHIÊN, dùng chung giữa procedure và trigger.
---   g_internal : TRUE khi chính package đang sửa orders (tính lại tổng) -> trigger cho phép
---   g_user     : người thao tác, ghi vào order_status_history.changed_by
---   g_note     : ghi chú đổi trạng thái
--- Vì sao tách riêng, không để trong PKG_ORDER? Package có biến (stateful) mà bị biên dịch lại
--- (ví dụ t00_reset chạy ALTER TABLE làm PKG_ORDER bị INVALID) thì mọi phiên đang mở (connection
--- pool của web) gặp ORA-04068 "existing state of packages has been discarded" ở lần gọi kế tiếp.
--- PKG_ORDER_CTX chỉ có biến, không tham chiếu bảng nào -> không bao giờ bị DDL làm INVALID;
--- PKG_ORDER không còn biến -> biên dịch lại thoải mái, không gây ORA-04068 (kiểm chứng 23.26.3).
--- ------------------------------------------------------------------------------
+-- PKG_ORDER_CTX: biến trạng thái theo PHIÊN, dùng chung giữa procedure và trigger (giải thích bên trong)
 CREATE OR REPLACE PACKAGE pkg_order_ctx AS
+  -- g_internal : TRUE khi chính package đang sửa orders (tính lại tổng) -> trigger cho phép
+  -- g_user     : người thao tác, ghi vào order_status_history.changed_by
+  -- g_note     : ghi chú đổi trạng thái
+  -- Vì sao tách riêng khỏi PKG_ORDER: package có biến (stateful) mà bị biên dịch lại
+  -- (ví dụ t00_reset chạy ALTER TABLE làm PKG_ORDER bị INVALID) thì mọi phiên đang mở (connection
+  -- pool của web) gặp ORA-04068 "existing state of packages has been discarded" ở lần gọi kế tiếp.
+  -- PKG_ORDER_CTX chỉ có biến, không tham chiếu bảng nào -> không bao giờ bị DDL làm INVALID.
+  -- PKG_ORDER không còn biến -> biên dịch lại thoải mái, không gây ORA-04068 (kiểm chứng 23.26.3).
+  -- Chú thích để TRONG package: DBeaver gửi nguyên khối, không tách câu sai ở dấu chấm phẩy trong chú thích.
   g_internal BOOLEAN := FALSE;
   g_user     VARCHAR2(60);
   g_note     VARCHAR2(300);
@@ -637,7 +636,7 @@ FROM customers c WITH INSERT UPDATE NODELETE;
 --   * R1 dùng orders.total_amount  (tiền khách thực trả cho cả đơn, gồm phí ship, trừ giảm giá).
 --   * R2, R3, R6 dùng SUM(quantity * unit_price) (tiền hàng theo từng dòng, vì một đơn có thể
 --     chứa hàng của nhiều người bán / nhiều danh mục).
--- p_from / p_to: lọc theo ngày đặt; NULL = không giới hạn.
+-- p_from / p_to: lọc theo ngày đặt, NULL = không giới hạn.
 -- ==============================================================================
 CREATE OR REPLACE PACKAGE pkg_order_rpt AS
   -- Tham số báo cáo sai (ví dụ top N <= 0, khoảng ngày ngược)
@@ -915,7 +914,7 @@ END pkg_order_rpt;
 --   * Sản phẩm 5       : tồn đúng 5         -> TC-10 (20 request đồng thời)
 --   * Sản phẩm 35      : tồn 0 (hết hàng), 36: INACTIVE
 --   * Khách 1, 2       : dùng để tạo đơn thử
--- Lưu ý SQL*Plus: không đặt chú thích "--" phía sau dấu ";" trên cùng một dòng.
+-- Lưu ý SQL*Plus: không đặt chú thích "--" phía sau dấu chấm phẩy trên cùng một dòng.
 -- ==============================================================================
 
 -- ---------- 1. NGƯỜI BÁN (5) ----------
@@ -926,7 +925,7 @@ INSERT INTO sellers (shop_name, email, phone) VALUES (N'Mỹ Phẩm Xinh',      
 INSERT INTO sellers (shop_name, email, phone) VALUES (N'Nhà Sách Tri Thức',  'trithuc@shop.vn',    '0285555555');
 
 -- ---------- 2. DANH MỤC (7, có cây cha - con qua parent_id) ----------
--- id 1..5 là danh mục gốc; id 6 là con của 1, id 7 là con của 2
+-- id 1..5 là danh mục gốc, id 6 là con của 1, id 7 là con của 2
 INSERT INTO categories (category_name) VALUES (N'Điện thoại');
 INSERT INTO categories (category_name) VALUES (N'Thời trang');
 INSERT INTO categories (category_name) VALUES (N'Laptop');
@@ -1098,7 +1097,7 @@ COMMIT;
 
 -- ---------- 5. 60 ĐƠN HÀNG MẪU, trải 8 tháng, đủ 7 trạng thái ----------
 -- Đơn được tạo qua ĐÚNG đường nghiệp vụ thật: INSERT orders/order_items -> trigger chốt giá,
--- trừ kho, tính tổng; pkg_order.sp_change_status -> kiểm tra sơ đồ trạng thái, ghi lịch sử;
+-- trừ kho, tính tổng, pkg_order.sp_change_status -> kiểm tra sơ đồ trạng thái, ghi lịch sử.
 -- pkg_order.sp_record_payment -> kiểm tra không vượt tổng tiền.
 -- Sau đó mới "lùi ngày" (order_date, lịch sử, thanh toán, vận chuyển) để báo cáo có nhiều tháng.
 -- Dữ liệu sinh theo công thức MOD (không ngẫu nhiên) nên chạy lại luôn ra cùng kết quả.

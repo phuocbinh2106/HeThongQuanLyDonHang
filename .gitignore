@@ -34,3 +34,6 @@ Thumbs.db
 
 # ---- Ảnh sản phẩm người bán tải lên khi chạy thử (xoá khi db.ps1 reset) ----
 src/Ecom.Web/App_Data/uploads/
+
+# ---- Thư mục gom bài nộp (sinh lại được) ----
+nop_bai/

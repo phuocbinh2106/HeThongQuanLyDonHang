@@ -6,7 +6,7 @@
 --   * R1 dùng orders.total_amount  (tiền khách thực trả cho cả đơn, gồm phí ship, trừ giảm giá).
 --   * R2, R3, R6 dùng SUM(quantity * unit_price) (tiền hàng theo từng dòng, vì một đơn có thể
 --     chứa hàng của nhiều người bán / nhiều danh mục).
--- p_from / p_to: lọc theo ngày đặt; NULL = không giới hạn.
+-- p_from / p_to: lọc theo ngày đặt, NULL = không giới hạn.
 -- ==============================================================================
 CREATE OR REPLACE PACKAGE pkg_order_rpt AS
   -- Tham số báo cáo sai (ví dụ top N <= 0, khoảng ngày ngược)

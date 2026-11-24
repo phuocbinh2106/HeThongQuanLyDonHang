@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- 11_ORDS_AUTOREST: bật ORDS AutoREST cho 3 Duality View (tuỳ chọn, cần container ORDS: scripts\ords.ps1 start)
 --
--- Chạy bằng user ecom_schema (DBeaver: Alt+X; hoặc .\scripts\db.ps1 file 11_ords_autorest.sql).
+-- Chạy bằng user ecom_schema (DBeaver: Alt+X, hoặc .\scripts\db.ps1 file 11_ords_autorest.sql).
 -- Sau khi chạy, Oracle TỰ SINH REST API, không cần viết code:
 --   GET    http://localhost:8181/ords/ecom/order_dv/            danh sách tài liệu (có phân trang)
 --   GET    http://localhost:8181/ords/ecom/order_dv/{id}        một tài liệu + ETag
@@ -11,7 +11,7 @@
 -- (tương tự product_dv, customer_dv)
 --
 -- p_auto_rest_auth => FALSE: KHÔNG yêu cầu đăng nhập (chỉ dùng demo trên máy cá nhân). ORDS không đi qua
--- phân quyền theo vai trò của API C#; nhưng mọi quy tắc nghiệp vụ nằm ở bảng nền (trigger, ràng buộc,
+-- phân quyền theo vai trò của API C#, nhưng mọi quy tắc nghiệp vụ nằm ở bảng nền (trigger, ràng buộc,
 -- JSON Schema) VẪN chạy, vì ORDS cũng chỉ ghi vào Duality View.
 -- Tắt lại: chạy khối "TẮT" ở cuối file.
 -- ==============================================================================

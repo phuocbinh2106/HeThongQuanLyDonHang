@@ -9,7 +9,7 @@
 CREATE INDEX ix_orders_cust_date ON orders (customer_id, order_date DESC);
 
 -- IX-5 (Q3 đọc một tài liệu ORDER_DV): khoá ngoại order_id ở 3 bảng con của ORDER_DV.
--- Mỗi lần dựng tài liệu, Oracle tìm thanh toán / vận đơn / lịch sử theo order_id; không có chỉ mục
+-- Mỗi lần dựng tài liệu, Oracle tìm thanh toán / vận đơn / lịch sử theo order_id, không có chỉ mục
 -- thì mỗi bảng con bị quét toàn bộ. (order_items đã có UNIQUE(order_id, product_id) dùng được.)
 CREATE INDEX ix_payments_order  ON payments (order_id);
 CREATE INDEX ix_shipments_order ON shipments (order_id);

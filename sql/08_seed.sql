@@ -8,7 +8,7 @@
 --   * Sản phẩm 5       : tồn đúng 5         -> TC-10 (20 request đồng thời)
 --   * Sản phẩm 35      : tồn 0 (hết hàng), 36: INACTIVE
 --   * Khách 1, 2       : dùng để tạo đơn thử
--- Lưu ý SQL*Plus: không đặt chú thích "--" phía sau dấu ";" trên cùng một dòng.
+-- Lưu ý SQL*Plus: không đặt chú thích "--" phía sau dấu chấm phẩy trên cùng một dòng.
 -- ==============================================================================
 
 -- ---------- 1. NGƯỜI BÁN (5) ----------
@@ -19,7 +19,7 @@ INSERT INTO sellers (shop_name, email, phone) VALUES (N'Mỹ Phẩm Xinh',      
 INSERT INTO sellers (shop_name, email, phone) VALUES (N'Nhà Sách Tri Thức',  'trithuc@shop.vn',    '0285555555');
 
 -- ---------- 2. DANH MỤC (7, có cây cha - con qua parent_id) ----------
--- id 1..5 là danh mục gốc; id 6 là con của 1, id 7 là con của 2
+-- id 1..5 là danh mục gốc, id 6 là con của 1, id 7 là con của 2
 INSERT INTO categories (category_name) VALUES (N'Điện thoại');
 INSERT INTO categories (category_name) VALUES (N'Thời trang');
 INSERT INTO categories (category_name) VALUES (N'Laptop');
@@ -191,7 +191,7 @@ COMMIT;
 
 -- ---------- 5. 60 ĐƠN HÀNG MẪU, trải 8 tháng, đủ 7 trạng thái ----------
 -- Đơn được tạo qua ĐÚNG đường nghiệp vụ thật: INSERT orders/order_items -> trigger chốt giá,
--- trừ kho, tính tổng; pkg_order.sp_change_status -> kiểm tra sơ đồ trạng thái, ghi lịch sử;
+-- trừ kho, tính tổng, pkg_order.sp_change_status -> kiểm tra sơ đồ trạng thái, ghi lịch sử.
 -- pkg_order.sp_record_payment -> kiểm tra không vượt tổng tiền.
 -- Sau đó mới "lùi ngày" (order_date, lịch sử, thanh toán, vận chuyển) để báo cáo có nhiều tháng.
 -- Dữ liệu sinh theo công thức MOD (không ngẫu nhiên) nên chạy lại luôn ra cùng kết quả.

@@ -2,18 +2,17 @@
 -- 04_PKG_ORDER: package nghiệp vụ đơn hàng
 -- ==============================================================================
 
--- ------------------------------------------------------------------------------
--- PKG_ORDER_CTX: biến trạng thái theo PHIÊN, dùng chung giữa procedure và trigger.
---   g_internal : TRUE khi chính package đang sửa orders (tính lại tổng) -> trigger cho phép
---   g_user     : người thao tác, ghi vào order_status_history.changed_by
---   g_note     : ghi chú đổi trạng thái
--- Vì sao tách riêng, không để trong PKG_ORDER? Package có biến (stateful) mà bị biên dịch lại
--- (ví dụ t00_reset chạy ALTER TABLE làm PKG_ORDER bị INVALID) thì mọi phiên đang mở (connection
--- pool của web) gặp ORA-04068 "existing state of packages has been discarded" ở lần gọi kế tiếp.
--- PKG_ORDER_CTX chỉ có biến, không tham chiếu bảng nào -> không bao giờ bị DDL làm INVALID;
--- PKG_ORDER không còn biến -> biên dịch lại thoải mái, không gây ORA-04068 (kiểm chứng 23.26.3).
--- ------------------------------------------------------------------------------
+-- PKG_ORDER_CTX: biến trạng thái theo PHIÊN, dùng chung giữa procedure và trigger (giải thích bên trong)
 CREATE OR REPLACE PACKAGE pkg_order_ctx AS
+  -- g_internal : TRUE khi chính package đang sửa orders (tính lại tổng) -> trigger cho phép
+  -- g_user     : người thao tác, ghi vào order_status_history.changed_by
+  -- g_note     : ghi chú đổi trạng thái
+  -- Vì sao tách riêng khỏi PKG_ORDER: package có biến (stateful) mà bị biên dịch lại
+  -- (ví dụ t00_reset chạy ALTER TABLE làm PKG_ORDER bị INVALID) thì mọi phiên đang mở (connection
+  -- pool của web) gặp ORA-04068 "existing state of packages has been discarded" ở lần gọi kế tiếp.
+  -- PKG_ORDER_CTX chỉ có biến, không tham chiếu bảng nào -> không bao giờ bị DDL làm INVALID.
+  -- PKG_ORDER không còn biến -> biên dịch lại thoải mái, không gây ORA-04068 (kiểm chứng 23.26.3).
+  -- Chú thích để TRONG package: DBeaver gửi nguyên khối, không tách câu sai ở dấu chấm phẩy trong chú thích.
   g_internal BOOLEAN := FALSE;
   g_user     VARCHAR2(60);
   g_note     VARCHAR2(300);
