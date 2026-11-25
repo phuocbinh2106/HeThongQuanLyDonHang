@@ -446,6 +446,54 @@ details > summary::marker { color: var(--sp-gold-500); }
 }
 @media (max-width: 575.98px) { .pd-promises { grid-template-columns: 1fr; } .pd-price { font-size: 1.6rem; } }
 
+/* ---------------------------------------------------------------- Hồ sơ khách hàng (M7) */
+.min-w-0 { min-width: 0; }
+.cust-list { max-height: 620px; overflow-y: auto; }
+.profile-hero {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+  background: linear-gradient(120deg, var(--sp-green-800), var(--sp-green-600) 60%, var(--sp-teal-300));
+  color: #fff; border-radius: 18px; padding: 1.25rem 1.4rem; margin-bottom: 1rem; box-shadow: var(--sp-shadow);
+}
+.profile-id { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.avatar.avatar-lg { width: 68px; height: 68px; font-size: 1.4rem; flex: 0 0 auto; background: #fff; color: var(--sp-green-700); box-shadow: 0 0 0 4px rgba(255,255,255,.25); }
+.avatar.avatar-lg.muted { background: #e8ecea; color: #7a8781; }
+.profile-hero h2 { font-size: 1.4rem; font-weight: 800; color: #fff; }
+.profile-hero code { color: var(--sp-gold-400); }
+.profile-hero .text-muted { color: rgba(255,255,255,.75) !important; }
+.pf-contact { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .88rem; margin-top: .2rem; opacity: .95; }
+.pf-contact svg { width: 15px; height: 15px; vertical-align: -2px; }
+.pf-active { background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+.pf-stats { display: flex; gap: .5rem; flex-wrap: wrap; }
+.pf-stat { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); border-radius: 12px; padding: .45rem .8rem; min-width: 84px; text-align: center; }
+.pf-stat b { display: block; font-size: 1.25rem; line-height: 1.2; }
+.pf-stat span { font-size: .72rem; opacity: .85; }
+.pf-stat.warn b { color: var(--sp-gold-400); }
+.pf-stat.ok b { color: #b9f3dc; }
+.addr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .8rem; }
+.addr-card { border: 1px solid var(--sp-line); border-radius: 12px; padding: .85rem .95rem; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.addr-card:hover { border-color: var(--sp-mint-400); box-shadow: var(--sp-shadow-sm); }
+.addr-card.is-default { border-color: var(--sp-green-500); background: var(--sp-mint-50); }
+.addr-card.editing { grid-column: 1 / -1; border-color: var(--sp-green-500); box-shadow: var(--sp-shadow-sm); }
+.addr-name { font-weight: 700; color: var(--sp-ink); }
+.addr-line { font-size: .88rem; margin: .45rem 0 .55rem; color: #3b4a45; }
+.addr-actions { display: flex; gap: .9rem; font-size: .85rem; border-top: 1px dashed var(--sp-line); padding-top: .45rem; }
+.addr-actions .btn { font-size: .82rem; text-decoration: none; }
+.pf-default { background: var(--sp-green-600); color: #fff; }
+.addr-empty { grid-column: 1 / -1; text-align: center; padding: 1.2rem; border: 1px dashed var(--sp-line); border-radius: 12px; }
+.save-bar {
+  position: static; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem;
+  background: #fff; border: 1px solid var(--sp-line); border-radius: 14px; padding: .65rem .9rem; box-shadow: var(--sp-shadow);
+}
+.save-bar.dirty { border-color: var(--sp-gold-500); position: sticky; bottom: 12px; }   /* chỉ bám đáy màn hình khi có thay đổi chưa lưu */
+.save-bar.dirty #dirtyNote { color: #9a6a00 !important; font-weight: 600; }
+@media (max-width: 575.98px) {
+  .profile-hero { padding: 1rem; }
+  .pf-stats { width: 100%; }
+  .pf-stat { flex: 1 1 40%; }
+  .save-bar .d-flex { width: 100%; }
+  .save-bar .btn { flex: 1 1 auto; }
+}
+
 /* ---------------------------------------------------------------- Tạo đơn (checkout) */
 .picker-row { display: flex; align-items: center; gap: .65rem; }
 .picker-row .info { min-width: 0; }

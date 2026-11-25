@@ -1,63 +1,109 @@
 @{
     ViewData["Title"] = "Khách hàng";
 }
+@* M7 – Hồ sơ khách hàng + sổ địa chỉ = MỘT tài liệu CUSTOMER_DV (wwwroot/js/customers.js).
+   Khách hàng: "Hồ sơ của tôi" (chỉ hồ sơ của mình). Quản trị: danh sách khách bên trái + hồ sơ bên phải. *@
 
 <div class="page-head">
     <div>
-        <div class="crumbs"><a href="/">Trang chủ</a> / Khách hàng</div>
-        <h1>Khách hàng &amp; sổ địa chỉ</h1>
+        <div class="crumbs"><a href="/">Trang chủ</a> /
+            <span data-roles="admin">Khách hàng</span><span data-roles="customer">Hồ sơ của tôi</span></div>
+        <h1><span data-roles="admin">Khách hàng &amp; sổ địa chỉ</span><span data-roles="customer">Hồ sơ của tôi</span></h1>
     </div>
 </div>
 
 <div class="row g-3">
+    <!-- Quản trị: danh sách khách (tìm phía server) -->
     <div class="col-lg-4" data-roles="admin">
-        <div class="d-flex gap-1 mb-2">
-            <input id="search" class="form-control form-control-sm" placeholder="Tìm tên, email, SĐT hoặc mã KH..." />
-            <button id="btnNew" class="btn btn-sm btn-outline-success text-nowrap">+ Khách mới</button>
+        <div class="card">
+            <div class="card-body p-2">
+                <div class="d-flex gap-1 mb-2">
+                    <input id="search" class="form-control form-control-sm" placeholder="Tìm tên, email, SĐT hoặc mã KH..." />
+                    <button id="btnNew" class="btn btn-sm btn-outline-success text-nowrap">+ Khách mới</button>
+                </div>
+                <div id="custList" class="list-group small cust-list"></div>
+                <div id="custMore" class="d-flex justify-content-between align-items-center small text-muted mt-2 px-1"></div>
+            </div>
         </div>
-        <div id="custList" class="list-group small" style="max-height: 600px; overflow-y: auto;"></div>
-        <div id="custMore" class="d-flex justify-content-between align-items-center small text-muted mt-2"></div>
     </div>
 
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span id="docTitle">Chọn một khách bên trái</span>
-                <span class="small" data-roles="admin">ETag: <code id="etag">—</code></span>
+    <div class="col-lg-8 profile-col">
+        <div id="msg"></div>
+
+        <!-- Đầu hồ sơ: ảnh đại diện, liên hệ, trạng thái, số liệu đơn hàng -->
+        <div class="profile-hero">
+            <div class="profile-id">
+                <span id="pfAvatar" class="avatar avatar-lg">?</span>
+                <div class="min-w-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <h2 id="pfName" class="mb-0">—</h2>
+                        <span id="pfStatus"></span>
+                    </div>
+                    <div id="pfContact" class="pf-contact"></div>
+                    <div class="small text-muted" data-roles="admin"><span id="docTitle">Chọn một khách bên trái</span>
+                        · ETag <code id="etag">—</code></div>
+                </div>
             </div>
-            <div class="card-body small">
-                <div id="msg"></div>
-                <div class="row g-2 mb-2">
-                    <div class="col-md-5"><label class="form-label mb-0">Họ tên</label><input id="fullName" class="form-control form-control-sm" /></div>
-                    <div class="col-md-4"><label class="form-label mb-0">Email</label><input id="email" class="form-control form-control-sm" /></div>
-                    <div class="col-md-3"><label class="form-label mb-0">Điện thoại</label><input id="phone" class="form-control form-control-sm" /></div>
-                    <div class="col-md-3"><label class="form-label mb-0">Trạng thái</label>
-                        <select id="status" class="form-select form-select-sm"><option>ACTIVE</option><option>LOCKED</option></select></div>
-                </div>
+            <div class="pf-stats" id="pfStats"></div>
+        </div>
 
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="fw-semibold">Sổ địa chỉ<span data-roles="admin"> – <code>addresses[]</code></span></div>
-                    <button id="btnAddAddr" class="btn btn-sm btn-outline-secondary">+ Thêm địa chỉ</button>
+        <!-- Thông tin cá nhân -->
+        <div class="card mb-3">
+            <div class="card-header card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6" /><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6" /></svg>
+                Thông tin cá nhân
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="fullName">Họ và tên</label>
+                        <input id="fullName" class="form-control" autocomplete="name" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="email">Email</label>
+                        <input id="email" type="email" class="form-control" autocomplete="email" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="phone">Số điện thoại</label>
+                        <input id="phone" class="form-control" autocomplete="tel" />
+                    </div>
+                    <div class="col-md-6" data-roles="admin">
+                        <label class="form-label" for="status">Trạng thái tài khoản</label>
+                        <select id="status" class="form-select"><option value="ACTIVE">Đang hoạt động (ACTIVE)</option><option value="LOCKED">Bị khoá (LOCKED)</option></select>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead><tr><th>ID</th><th>Người nhận</th><th>Điện thoại</th><th>Địa chỉ</th><th>Phường</th><th>Quận</th><th>Tỉnh/TP</th><th>Mặc định</th><th></th></tr></thead>
-                        <tbody id="addrRows"></tbody>
-                    </table>
-                </div>
-
-                <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <button id="btnSave" class="btn btn-sm btn-primary">Lưu thay đổi</button>
-                    <button id="btnReload" class="btn btn-sm btn-outline-secondary">Tải lại</button>
-                    <a id="lnkOrders" class="btn btn-sm btn-link" href="#">Xem đơn của khách →</a>
-                </div>
-                <div class="form-text" data-roles="admin">
-                    Đơn hàng lưu <b>bản chụp</b> địa chỉ (orders.ship_*), không trỏ tới sổ địa chỉ → sửa / xoá địa chỉ ở đây
-                    không làm đổi đơn cũ. Email trùng khách khác → 409 (ORA-00001). Hai tab cùng sửa → tab sau 412.
-                </div>
-                <details class="mt-2" data-roles="admin"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light mt-2 mb-0"></pre></details>
             </div>
         </div>
+
+        <!-- Sổ địa chỉ: mảng addresses[] của tài liệu -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span class="card-title-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" /><circle cx="12" cy="10" r="2.4" /></svg>
+                    Sổ địa chỉ <span class="text-muted small" data-roles="admin">– addresses[]</span>
+                </span>
+                <button id="btnAddAddr" class="btn btn-sm btn-outline-primary">+ Thêm địa chỉ</button>
+            </div>
+            <div class="card-body">
+                <div id="addrRows" class="addr-grid"></div>
+                <div class="form-text mt-2">Đơn hàng lưu bản chụp địa chỉ lúc đặt, nên sửa hoặc xoá địa chỉ ở đây không làm thay đổi các đơn đã đặt.</div>
+            </div>
+        </div>
+
+        <!-- Lưu: cả hồ sơ + sổ địa chỉ trong MỘT lần ghi tài liệu -->
+        <div class="save-bar">
+            <span id="dirtyNote" class="small text-muted">Mọi thay đổi được lưu cùng lúc khi bấm "Lưu thay đổi".</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a id="lnkOrders" class="btn btn-outline-secondary" href="#">Xem đơn hàng →</a>
+                <button id="btnReload" class="btn btn-outline-secondary">Huỷ thay đổi</button>
+                <button id="btnSave" class="btn btn-primary">Lưu thay đổi</button>
+            </div>
+        </div>
+
+        <div class="small text-muted mt-2" data-roles="admin">
+            PUT /api/customers/{id} kèm If-Match = ETag → UPDATE customer_dv. Email trùng khách khác → 409 (ORA-00001); hai tab cùng sửa → tab sau 412.
+        </div>
+        <details class="mt-2 small" data-roles="admin"><summary>Tài liệu JSON sẽ gửi</summary><pre id="preview" class="bg-light mt-2 mb-0 p-2 rounded"></pre></details>
     </div>
 </div>
 
