@@ -38,8 +38,6 @@
                 <div class="text-muted mb-1" data-roles="seller,admin">Trạng thái kế tiếp hợp lệ do hàm <code>fn_is_valid_transition</code> trong CSDL tính:</div>
                 <div class="text-muted mb-1" data-roles="customer">Bạn có thể huỷ đơn khi đơn chưa được giao cho đơn vị vận chuyển:</div>
                 <div id="nextButtons" class="d-flex flex-wrap gap-1 mb-2"></div>
-                <!-- Khách hàng: ai chuyển trạng thái đơn + nút vào vai người bán của shop có hàng trong đơn (orders-details.js) -->
-                <div id="statusHelp" class="status-help mb-2" data-roles="customer"></div>
                 <div class="input-group input-group-sm mb-1">
                     <span class="input-group-text">Ghi chú</span>
                     <input id="statusNote" class="form-control" placeholder="lý do / ghi chú (lưu vào lịch sử)" />
@@ -116,9 +114,9 @@
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
-    <li class="nav-item" data-roles="customer"><button class="nav-link" id="tabSummaryBtn" data-bs-toggle="tab" data-bs-target="#tabSummary" type="button">Thông tin đơn hàng</button></li>
-    <li class="nav-item" data-roles="seller,admin"><button class="nav-link active" id="tabJsonBtn" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
-    <li class="nav-item" data-roles="seller,admin"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
+    <li class="nav-item" data-roles="customer,seller"><button class="nav-link" id="tabSummaryBtn" data-bs-toggle="tab" data-bs-target="#tabSummary" type="button">Thông tin đơn hàng</button></li>
+    <li class="nav-item" data-roles="admin"><button class="nav-link active" id="tabJsonBtn" data-bs-toggle="tab" data-bs-target="#tabJson" type="button">Dạng JSON (ORDER_DV)</button></li>
+    <li class="nav-item" data-roles="admin"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRel" type="button">Dạng bảng quan hệ (5 bảng)</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTime" type="button">Theo thời gian</button></li>
 </ul>
 <div class="tab-content border border-top-0 p-3 mb-3">

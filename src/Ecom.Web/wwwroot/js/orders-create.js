@@ -135,7 +135,6 @@ async function submitOrder() {
           <div class="card-body small">
             <div>Mã đơn: <b>${escapeHtml(doc.orderNo)}</b> · ${statusPill(doc.status)}</div>
             <div>Tổng thanh toán: <b>${fmtMoney(doc.totalAmount)}</b></div>
-            <div class="text-muted mt-1">Đơn đang chờ người bán xác nhận; trạng thái đơn được cập nhật ở trang chi tiết đơn.</div>
             <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết đơn hàng</a>
           </div>
         </div>`;
@@ -154,7 +153,7 @@ async function submitOrder() {
           ${sent.status ? `<div class="text-success">Client gửi status="${sent.status}", subtotal=${sent.subtotal}, unitPrice=1 → CSDL đã bỏ qua.</div>` : ''}
           <div>Lịch sử: ${doc.history.map(h => `${h.oldStatus ?? 'NULL'} → ${h.newStatus} (bởi ${escapeHtml(h.changedBy)})`).join('; ')}</div>
           <div>ETag: <code>${escapeHtml(etag)}</code></div>
-          <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết & xử lý đơn (đổi trạng thái, thanh toán…)</a>
+          <a class="btn btn-sm btn-success mt-2" href="/Orders/Details/${doc._id}">Xem chi tiết đơn (JSON ↔ bảng quan hệ)</a>
           <details class="mt-2"><summary>Tài liệu server trả về</summary>
             <pre class="bg-light mb-0">${highlightJson(JSON.stringify(doc, null, 2))}</pre></details>
         </div>

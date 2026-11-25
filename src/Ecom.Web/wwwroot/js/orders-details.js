@@ -122,8 +122,6 @@ async function renderActions(doc, etag) {
           data-status="${s}" title="${STATUS_VI[s]}">${s === 'CANCELLED' ? 'Huỷ đơn' : '→ ' + s}</button>`).join('')
     : '<span class="text-muted">Trạng thái cuối, không chuyển tiếp được.</span>';
 
-  if (roleKind() === 'customer') renderStatusHelp(doc);
-
   // Thanh toán: gợi ý số tiền còn lại
   const paid = doc.payments.filter(p => p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
   $('paidSoFar').textContent = fmtMoney(paid);
@@ -138,37 +136,6 @@ async function renderActions(doc, etag) {
   $('edDiscount').value = doc.discount;
   renderEditItems(doc.items);
 }
-
-// Khách hàng chỉ huỷ được đơn; các bước Xác nhận → Đóng gói → Đang giao → Đã giao do NGƯỜI BÁN của shop
-// (hoặc quản trị sàn) bấm. Vai trò là mô phỏng nên hiện sẵn nút "vào vai" người bán của các shop có hàng trong đơn
-// (shop lấy từ tài liệu PRODUCT_DV của từng sản phẩm: GET /api/products/{id}, ai cũng đọc được).
-async function renderStatusHelp(doc) {
-  const box = $('statusHelp');
-  if (!box) return;
-  const FINAL = ['DELIVERED', 'CANCELLED', 'RETURNED'];
-  if (FINAL.includes(doc.status)) { box.innerHTML = ''; return; }
-  const ids = [...new Set((doc.items ?? []).map(i => i.productId))];
-  const shops = new Map();
-  for (const id of ids) {
-    try { const { data } = await api(`/api/products/${id}`); if (data.seller) shops.set(data.seller.sellerId, data.seller.shopName); } catch { /* bỏ qua */ }
-  }
-  const btns = [...shops].map(([sid, name]) =>
-    `<button type="button" class="btn btn-sm btn-outline-primary" data-as="seller:${sid}" data-label="#${sid} – ${escapeHtml(name)}">
-       Vào vai người bán: ${escapeHtml(name)}</button>`).join('');
-  box.innerHTML = `<div class="alert alert-info small py-2 mb-0">
-      <div><b>Ai chuyển trạng thái đơn?</b> Đơn đang <b>${escapeHtml(STATUS_VI[doc.status] ?? doc.status)}</b>.
-        Các bước <i>Xác nhận → Đóng gói → Đang giao → Đã giao</i> do <b>người bán</b> của shop có sản phẩm trong đơn
-        (hoặc quản trị sàn) thực hiện ở chính trang này; khách hàng chỉ được huỷ đơn.</div>
-      <div class="mt-1">Muốn tự thử chuyển trạng thái, bấm vào vai người bán bên dưới (trang tải lại với vai trò mới):</div>
-      <div class="d-flex flex-wrap gap-1 mt-2">${btns}
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-as="admin" data-label="Quản trị sàn">Vào vai quản trị sàn</button></div>
-    </div>`;
-}
-$('statusHelp')?.addEventListener('click', e => {
-  const b = e.target.closest('[data-as]'); if (!b) return;
-  setRole(b.dataset.as, b.dataset.label);
-  location.reload();
-});
 
 function renderEditItems(items) {
   $('edItems').innerHTML = items.map((it, i) => `
@@ -262,6 +229,6 @@ $('btnShip').addEventListener('click', () => {
 });
 
 $('btnRefresh').addEventListener('click', load);
-// Khách hàng: mở sẵn tab "Thông tin đơn hàng" (tab JSON / bảng quan hệ chỉ dành cho người bán, quản trị)
-if (roleKind() === 'customer') bootstrap.Tab.getOrCreateInstance($('tabSummaryBtn')).show();
+// Khách hàng, người bán: mở sẵn tab "Thông tin đơn hàng" (tab JSON / bảng quan hệ chỉ dành cho quản trị)
+if (['customer', 'seller'].includes(roleKind())) bootstrap.Tab.getOrCreateInstance($('tabSummaryBtn')).show();
 load();
